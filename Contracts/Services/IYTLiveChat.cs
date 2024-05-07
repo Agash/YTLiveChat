@@ -5,7 +5,7 @@ namespace YTLiveChat.Contracts.Services
     /// <summary>
     /// Represents the YouTube Live Chat Service
     /// </summary>
-    public interface IYTLiveChat
+    public interface IYTLiveChat : IDisposable
     {
         /// <summary>
         /// Fires after the initial Live page was loaded

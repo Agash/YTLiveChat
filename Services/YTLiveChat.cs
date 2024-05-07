@@ -65,6 +65,11 @@ namespace YTLiveChat.Services
             OnChatStopped(new() { Reason = "Stop called" });
         }
 
+        public void Dispose()
+        {
+            this.Stop();
+        }
+
         protected virtual void OnInitialPageLoaded(InitialPageLoadedEventArgs e)
         {
             EventHandler<InitialPageLoadedEventArgs>? raiseInitialPageLoaded = InitialPageLoaded;
