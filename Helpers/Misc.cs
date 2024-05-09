@@ -1,10 +1,6 @@
-﻿namespace YTLiveChat.Helpers
+﻿namespace YTLiveChat.Helpers;
+
+internal static class Misc
 {
-    internal static class Misc
-    {
-        public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> o) where T : class
-        {
-            return o.Where(x => x != null)!;
-        }
-    }
+    public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> o) where T : class => o.Where(x => x != null)!;
 }
