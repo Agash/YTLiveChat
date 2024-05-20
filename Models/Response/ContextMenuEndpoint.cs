@@ -2,7 +2,7 @@
 
 internal class ContextMenuEndpoint
 {
-    public required string ClickTrackingParams { get; set; }
+    public string? ClickTrackingParams { get; set; }
     public required CommandMetadata CommandMetadata { get; set; }
     public required LiveChatItemContextMenuEndpoint LiveChatItemContextMenuEndpoint { get; set; }
 }

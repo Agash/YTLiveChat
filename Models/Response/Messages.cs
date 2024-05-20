@@ -1,5 +1,9 @@
-﻿namespace YTLiveChat.Models.Response;
+﻿using System.Text.Json.Serialization;
+using YTLiveChat.Helpers;
 
+namespace YTLiveChat.Models.Response;
+
+[JsonConverter(typeof(MessageRunConverter))]
 internal abstract class MessageRun
 {
 }

@@ -18,7 +18,7 @@ public class Author
     /// <summary>
     /// ChannelId if available
     /// </summary>
-    public string? ChannelId { get; set; }
+    public required string ChannelId { get; set; }
 
     /// <summary>
     /// Current Badge of the Author within the Live Channel

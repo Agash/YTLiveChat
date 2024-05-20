@@ -11,7 +11,7 @@ internal class YTAction
 internal class AddChatItemAction
 {
     public required ItemObj Item { get; set; }
-    public required string ClientId { get; set; }
+    public string? ClientId { get; set; }
     public class ItemObj
     {
         public LiveChatTextMessageRenderer? LiveChatTextMessageRenderer { get; set; }

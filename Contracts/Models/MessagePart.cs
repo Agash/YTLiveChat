@@ -18,6 +18,12 @@ public class ImagePart : MessagePart
     /// Alt string of the image
     /// </summary>
     public string? Alt { get; set; }
+
+    /// <summary>
+    /// Create a quasi json representation of an ImagePart
+    /// </summary>
+    /// <returns>String representation of Image in quasi json</returns>
+    public override string ToString() => $"{{Image: {{Alt: {Alt}, Url: {Url}}}}}";
 }
 
 /// <summary>
@@ -33,6 +39,12 @@ public class EmojiPart : ImagePart
     /// Whether or not Emoji is a custom emoji of the channel
     /// </summary>
     public bool IsCustomEmoji { get; set; }
+
+    /// <summary>
+    /// Create a quasi json representation of an EmojiPart
+    /// </summary>
+    /// <returns>String representation of an Emoji in quasi json</returns>
+    public override string ToString() => $"{{Emoji: {{EmojiText: {EmojiText}, Alt: {Alt}, Url: {Url}, IsCustomEmoji: {IsCustomEmoji}}}}}";
 };
 
 /// <summary>
@@ -44,4 +56,10 @@ public class TextPart : MessagePart
     /// Contained text of the message
     /// </summary>
     public required string Text { get; set; }
+
+    /// <summary>
+    /// Return the text
+    /// </summary>
+    /// <returns>string representation of TextPart</returns>
+    public override string ToString() => Text;
 }

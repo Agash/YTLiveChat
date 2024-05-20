@@ -183,12 +183,12 @@ internal static partial class Parser
     [GeneratedRegex("\"isReplay\":\\s*(true)")]
     private static partial Regex ReplayRegex();
 
-    [GeneratedRegex("\"INNERTUBE_API_KEY\":\\s*\"[^\"]*\"")]
+    [GeneratedRegex("\"INNERTUBE_API_KEY\":\\s*\"([^\"]*)\"")]
     private static partial Regex ApiKeyRegex();
 
-    [GeneratedRegex("\"clientVersion\":\\s*\"[^\"]*\"")]
+    [GeneratedRegex("\"clientVersion\":\\s*\"([^\"]*)\"")]
     private static partial Regex ClientVersionRegex();
 
-    [GeneratedRegex("\"continuation\":\\s*\"[^\"]*\"")]
+    [GeneratedRegex("\"continuation\":\\s*\"([^\"]*)\"")]
     private static partial Regex ContinuationRegex();
 }
