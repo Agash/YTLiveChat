@@ -4,7 +4,7 @@ using YTLiveChat.Models.Response;
 
 namespace YTLiveChat.Services;
 
-internal class YTHttpClient(HttpClient httpClient)
+internal class YTHttpClient(HttpClient httpClient) : IDisposable
 {
     private readonly HttpClient _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
 
@@ -52,4 +52,6 @@ internal class YTHttpClient(HttpClient httpClient)
 
         return await _httpClient.GetStringAsync(url);
     }
+
+    public void Dispose() => ((IDisposable)_httpClient).Dispose();
 }

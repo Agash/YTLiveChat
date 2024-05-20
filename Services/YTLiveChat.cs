@@ -1,10 +1,12 @@
-﻿using YTLiveChat.Contracts.Services;
+﻿using Microsoft.Extensions.Options;
+using YTLiveChat.Contracts;
+using YTLiveChat.Contracts.Services;
 using YTLiveChat.Helpers;
 using YTLiveChat.Models;
 
 namespace YTLiveChat.Services;
 
-internal class YTLiveChat(YTHttpClientFactory httpClientFactory) : IYTLiveChat
+internal class YTLiveChat(IOptions<YTLiveChatOptions> options, YTHttpClientFactory httpClientFactory) : IYTLiveChat
 {
     public event EventHandler<InitialPageLoadedEventArgs>? InitialPageLoaded;
     public event EventHandler<ChatStoppedEventArgs>? ChatStopped;
@@ -13,13 +15,17 @@ internal class YTLiveChat(YTHttpClientFactory httpClientFactory) : IYTLiveChat
 
     private FetchOptions? _fetchOptions;
     private CancellationTokenSource? _cancellationTokenSource;
-    private readonly YTHttpClientFactory _httpClientFactory = httpClientFactory;
 
+    private readonly YTHttpClientFactory _httpClientFactory = httpClientFactory;
+    private readonly IOptions<YTLiveChatOptions> _options = options;
 
     public void Start(string? handle = null, string? channelId = null, string? liveId = null, bool overwrite = false)
     {
-        _cancellationTokenSource = new CancellationTokenSource();
-        _ = Task.Run(async () => await StartAsync(handle, channelId, liveId, overwrite, _cancellationTokenSource.Token));
+        if(_cancellationTokenSource == null || _cancellationTokenSource.IsCancellationRequested)
+        {
+            _cancellationTokenSource = new CancellationTokenSource();
+            _ = Task.Run(async () => await StartAsync(handle, channelId, liveId, overwrite, _cancellationTokenSource.Token));
+        }
     }
     private async Task StartAsync(string? handle = null, string? channelId = null, string? liveId = null, bool overwrite = false, CancellationToken cancellationToken = default)
     {
@@ -35,8 +41,8 @@ internal class YTLiveChat(YTHttpClientFactory httpClientFactory) : IYTLiveChat
 
             OnInitialPageLoaded(new() { LiveId = options.LiveId });
 
-            YTHttpClient httpClient = _httpClientFactory.Create();
-            using PeriodicTimer timer = new(TimeSpan.FromMilliseconds(500));
+            using YTHttpClient httpClient = _httpClientFactory.Create();
+            using PeriodicTimer timer = new(TimeSpan.FromMilliseconds(_options.Value.RequestFrequency));
             while (await timer.WaitForNextTickAsync(cancellationToken))
             {
                 Models.Response.GetLiveChatResponse? response = await httpClient.GetLiveChatAsync(options);
@@ -65,7 +71,12 @@ internal class YTLiveChat(YTHttpClientFactory httpClientFactory) : IYTLiveChat
         OnChatStopped(new() { Reason = "Stop called" });
     }
 
-    public void Dispose() => Stop();
+    public void Dispose()
+    {
+        Stop();
+        _cancellationTokenSource?.Dispose();
+        _cancellationTokenSource = null;
+    }
 
     protected virtual void OnInitialPageLoaded(InitialPageLoadedEventArgs e)
     {
