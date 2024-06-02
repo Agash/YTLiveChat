@@ -9,16 +9,11 @@ internal class MessageRunConverter : JsonConverter<MessageRun>
     {
         using JsonDocument doc = JsonDocument.ParseValue(ref reader);
 
-        if (doc.RootElement.TryGetProperty("emoji", out _))
-        {
-            return JsonSerializer.Deserialize<MessageEmoji>(doc.RootElement, options);
-        }
-        else
-        {
-            return doc.RootElement.TryGetProperty("text", out _)
+        return doc.RootElement.TryGetProperty("emoji", out _)
+            ? JsonSerializer.Deserialize<MessageEmoji>(doc.RootElement, options)
+            : doc.RootElement.TryGetProperty("text", out _)
                 ? (MessageRun?)JsonSerializer.Deserialize<MessageText>(doc.RootElement, options)
                 : throw new JsonException("Invalid MessageRun format.");
-        }
     }
 
     public override void Write(Utf8JsonWriter writer, MessageRun value, JsonSerializerOptions options) => throw new NotImplementedException(); // Implement if needed
