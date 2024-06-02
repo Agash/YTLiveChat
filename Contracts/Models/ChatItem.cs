@@ -48,5 +48,5 @@ public class ChatItem
     /// <summary>
     /// Timestamp of the ChatItem creation
     /// </summary>
-    public DateTime Timestamp { get; set; } = DateTime.Now;
+    public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
 }

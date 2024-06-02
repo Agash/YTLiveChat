@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using YTLiveChat.Common;
 using YTLiveChat.Contracts.Services;
 using YTLiveChat.Services;
 
@@ -15,21 +14,20 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// Adds all relevant services as well as the Service backing IYTLiveChat to the ServiceCollection
     /// </summary>
-    /// <param name="services">IServiceCollection to add the services to</param>
-    /// <param name="context">HostBuilderContext to get relevant Configuration to configure Options (YTLiveChatOptions)</param>
+    /// <param name="builder">IHostApplicationBuilder to add the services to</param>
     /// <returns>return IServiceCollection after the services have been added</returns>
-    public static IServiceCollection AddYTLiveChat(this IServiceCollection services, HostBuilderContext context)
+    public static IHostApplicationBuilder AddYTLiveChat(this IHostApplicationBuilder builder)
     {
-        _ = services.AddSingleton<IYTLiveChat, YTLiveChat.Services.YTLiveChat>();
-        _ = services.AddHttpClient<YTHttpClient>("YouTubeClient", (serviceProvider, httpClient) =>
+        _ = builder.Services.Configure<YTLiveChatOptions>(builder.Configuration.GetSection(nameof(YTLiveChatOptions)));
+
+        _ = builder.Services.AddSingleton<IYTLiveChat, YTLiveChat.Services.YTLiveChat>();
+        _ = builder.Services.AddHttpClient<YTHttpClient>("YouTubeClient", (serviceProvider, httpClient) =>
         {
-            var ytChatOptions = serviceProvider.GetRequiredService<IOptions<YTLiveChatOptions>>().Value;
-            httpClient.BaseAddress = new Uri(ytChatOptions.YoutubeBaseUrl ?? Constants.YTBaseUrl);
+            YTLiveChatOptions ytChatOptions = serviceProvider.GetRequiredService<IOptions<YTLiveChatOptions>>().Value;
+            httpClient.BaseAddress = new Uri(ytChatOptions.YoutubeBaseUrl);
         });
-        _ = services.AddSingleton<YTHttpClientFactory>();
+        _ = builder.Services.AddSingleton<YTHttpClientFactory>();
 
-        _ = services.Configure<YTLiveChatOptions>(context.Configuration.GetSection(nameof(YTLiveChatOptions)));
-
-        return services;
+        return builder;
     }
 }

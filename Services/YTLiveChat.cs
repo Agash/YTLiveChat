@@ -21,7 +21,7 @@ internal class YTLiveChat(IOptions<YTLiveChatOptions> options, YTHttpClientFacto
 
     public void Start(string? handle = null, string? channelId = null, string? liveId = null, bool overwrite = false)
     {
-        if(_cancellationTokenSource == null || _cancellationTokenSource.IsCancellationRequested)
+        if (_cancellationTokenSource == null || _cancellationTokenSource.IsCancellationRequested)
         {
             _cancellationTokenSource = new CancellationTokenSource();
             _ = Task.Run(async () => await StartAsync(handle, channelId, liveId, overwrite, _cancellationTokenSource.Token));
@@ -45,16 +45,23 @@ internal class YTLiveChat(IOptions<YTLiveChatOptions> options, YTHttpClientFacto
             using PeriodicTimer timer = new(TimeSpan.FromMilliseconds(_options.Value.RequestFrequency));
             while (await timer.WaitForNextTickAsync(cancellationToken))
             {
-                Models.Response.GetLiveChatResponse? response = await httpClient.GetLiveChatAsync(options);
-                if (response != null)
+                try
                 {
-                    (List<Contracts.Models.ChatItem> items, string continuation) = Parser.ParseGetLiveChatResponse(response);
-                    foreach (Contracts.Models.ChatItem item in items)
+                    Models.Response.GetLiveChatResponse? response = await httpClient.GetLiveChatAsync(options);
+                    if (response != null)
                     {
-                        OnChatReceived(new() { ChatItem = item });
-                    }
+                        (List<Contracts.Models.ChatItem> items, string continuation) = Parser.ParseGetLiveChatResponse(response);
+                        foreach (Contracts.Models.ChatItem item in items)
+                        {
+                            OnChatReceived(new() { ChatItem = item });
+                        }
 
-                    options.Continuation = continuation;
+                        options.Continuation = continuation;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    OnErrorOccurred(new ErrorOccurredEventArgs(ex));
                 }
             }
         }
