@@ -12,10 +12,10 @@ namespace YTLiveChat.Contracts;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Adds all relevant services as well as the Service backing IYTLiveChat to the ServiceCollection
+    /// Adds all relevant services as well as the Service backing IYTLiveChat to the ServiceCollection and Configures YTLiveChatOptions from appsettings.json
     /// </summary>
     /// <param name="builder">IHostApplicationBuilder to add the services to</param>
-    /// <returns>return IServiceCollection after the services have been added</returns>
+    /// <returns>return IHostApplicationBuilder after the services have been added</returns>
     public static IHostApplicationBuilder AddYTLiveChat(this IHostApplicationBuilder builder)
     {
         _ = builder.Services.Configure<YTLiveChatOptions>(builder.Configuration.GetSection(nameof(YTLiveChatOptions)));
