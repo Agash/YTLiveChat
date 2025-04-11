@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using YTLiveChat.Contracts.Services;
@@ -20,7 +21,7 @@ public static class ServiceCollectionExtensions
     {
         _ = builder.Services.Configure<YTLiveChatOptions>(builder.Configuration.GetSection(nameof(YTLiveChatOptions)));
 
-        _ = builder.Services.AddSingleton<IYTLiveChat, YTLiveChat.Services.YTLiveChat>();
+        _ = builder.Services.AddTransient<IYTLiveChat, YTLiveChat.Services.YTLiveChat>();
         _ = builder.Services.AddHttpClient<YTHttpClient>("YouTubeClient", (serviceProvider, httpClient) =>
         {
             YTLiveChatOptions ytChatOptions = serviceProvider.GetRequiredService<IOptions<YTLiveChatOptions>>().Value;
@@ -29,5 +30,24 @@ public static class ServiceCollectionExtensions
         _ = builder.Services.AddSingleton<YTHttpClientFactory>();
 
         return builder;
+    }
+
+    /// <summary>
+    /// Adds all relevant services as well as the Service backing IYTLiveChat to the ServiceCollection and Configures YTLiveChatOptions from appsettings.json
+    /// </summary>
+    /// <returns>return IServiceCollection after the services have been added</returns>
+    public static IServiceCollection AddYTLiveChat(this IServiceCollection services, IConfiguration configuration)
+    {
+        _ = services.Configure<YTLiveChatOptions>(configuration.GetSection(nameof(YTLiveChatOptions)));
+
+        _ = services.AddTransient<IYTLiveChat, YTLiveChat.Services.YTLiveChat>();
+        _ = services.AddHttpClient<YTHttpClient>("YouTubeClient", (serviceProvider, httpClient) =>
+        {
+            YTLiveChatOptions ytChatOptions = serviceProvider.GetRequiredService<IOptions<YTLiveChatOptions>>().Value;
+            httpClient.BaseAddress = new Uri(ytChatOptions.YoutubeBaseUrl);
+        });
+        _ = services.AddSingleton<YTHttpClientFactory>();
+
+        return services;
     }
 }

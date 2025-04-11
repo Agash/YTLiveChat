@@ -90,7 +90,7 @@ internal static partial class Parser
             },
             Message = renderer switch
             {
-                LiveChatTextMessageRenderer textMessageRenderer => textMessageRenderer.Message.Runs.ToMessagePart(),
+                LiveChatTextMessageRenderer textMessageRenderer => textMessageRenderer.Message?.Runs.ToMessagePart() ?? [],
                 LiveChatMembershipItemRenderer membershipItemRenderer => membershipItemRenderer.HeaderSubtext.Runs.ToMessagePart(),
                 _ => []
             },

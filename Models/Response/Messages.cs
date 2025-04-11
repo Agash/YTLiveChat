@@ -47,7 +47,8 @@ internal class MessageRuns
 
 internal class LiveChatTextMessageRenderer : MessageRendererBase
 {
-    public required MessageRuns Message { get; set; }
+    // Not required because LiveChatPaidMessages are ChatTextMessages but don't always have a MessageRun
+    public MessageRuns? Message { get; set; }
 }
 
 internal class PurchaseAmountText
@@ -58,23 +59,23 @@ internal class PurchaseAmountText
 internal class LiveChatPaidMessageRenderer : LiveChatTextMessageRenderer
 {
     public required PurchaseAmountText PurchaseAmountText { get; set; }
-    public required int HeaderBackgroundColor { get; set; }
-    public required int HeaderTextColor { get; set; }
-    public required int BodyBackgroundColor { get; set; }
-    public required int BodyTextColor { get; set; }
-    public required int AuthorNameTextColor { get; set; }
+    public required long HeaderBackgroundColor { get; set; }
+    public required long HeaderTextColor { get; set; }
+    public required long BodyBackgroundColor { get; set; }
+    public required long BodyTextColor { get; set; }
+    public required long AuthorNameTextColor { get; set; }
 }
 
 internal class LiveChatPaidStickerRenderer : MessageRendererBase
 {
     public required PurchaseAmountText PurchaseAmountText { get; set; }
     public required ImageWithAccessibility Sticker { get; set; }
-    public required int MoneyChipBackgroundColor { get; set; }
-    public required int MoneyChipTextColor { get; set; }
-    public required int StickerDisplayWidth { get; set; }
-    public required int StickerDisplayHeight { get; set; }
-    public required int BackgroundColor { get; set; }
-    public required int AuthorNameTextColor { get; set; }
+    public required long MoneyChipBackgroundColor { get; set; }
+    public required long MoneyChipTextColor { get; set; }
+    public required long StickerDisplayWidth { get; set; }
+    public required long StickerDisplayHeight { get; set; }
+    public required long BackgroundColor { get; set; }
+    public required long AuthorNameTextColor { get; set; }
 }
 
 internal class LiveChatMembershipItemRenderer : MessageRendererBase
