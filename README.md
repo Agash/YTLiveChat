@@ -180,7 +180,7 @@ public class MyChatListenerService : IDisposable // Example Service
         _ytLiveChat.ChatReceived -= OnChatReceived;
         _ytLiveChat.ChatStopped -= OnChatStopped;
         _ytLiveChat.ErrorOccurred -= OnErrorOccurred;
-        // _ytLiveChat.Dispose(); // If YTLiveChat itself implements IDisposable (it likely does via HttpClient)
+        _ytLiveChat.Dispose();
         GC.SuppressFinalize(this);
     }
 }
