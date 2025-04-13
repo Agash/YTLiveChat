@@ -123,6 +123,13 @@ internal record CustomThumbnail
     [JsonPropertyName("thumbnails")] public List<Thumbnail>? Thumbnails { get; init; }
 }
 
+internal record AuthorBadgeContainer // NEW RECORD
+{
+    // This property name MUST match the key in the JSON array elements
+    [JsonPropertyName("liveChatAuthorBadgeRenderer")]
+    public LiveChatAuthorBadgeRenderer? LiveChatAuthorBadgeRenderer { get; init; }
+}
+
 internal record LiveChatAuthorBadgeRenderer
 {
     [JsonPropertyName("customThumbnail")] public CustomThumbnail? CustomThumbnail { get; init; }
@@ -203,7 +210,7 @@ internal record MessageRendererBase
     [JsonPropertyName("timestampUsec")] public string? TimestampUsec { get; init; }
     [JsonPropertyName("authorName")] public SimpleText? AuthorName { get; init; }
     [JsonPropertyName("authorPhoto")] public AuthorPhoto? AuthorPhoto { get; init; }
-    [JsonPropertyName("authorBadges")] public List<LiveChatAuthorBadgeRenderer>? AuthorBadges { get; init; }
+    [JsonPropertyName("authorBadges")] public List<AuthorBadgeContainer>? AuthorBadges { get; init; }
     [JsonPropertyName("authorExternalChannelId")] public string? AuthorExternalChannelId { get; init; }
     [JsonPropertyName("contextMenuEndpoint")] public ContextMenuEndpoint? ContextMenuEndpoint { get; init; }
     [JsonPropertyName("contextMenuAccessibility")] public Accessibility? ContextMenuAccessibility { get; init; }
@@ -285,7 +292,7 @@ internal record LiveChatSponsorshipsHeaderRenderer // Used within Gift Purchase
     [JsonPropertyName("authorName")] public SimpleText? AuthorName { get; init; }
     [JsonPropertyName("authorPhoto")] public AuthorPhoto? AuthorPhoto { get; init; }
     [JsonPropertyName("primaryText")] public Message? PrimaryText { get; init; }
-    [JsonPropertyName("authorBadges")] public List<LiveChatAuthorBadgeRenderer>? AuthorBadges { get; init; }
+    [JsonPropertyName("authorBadges")] public List<AuthorBadgeContainer>? AuthorBadges { get; init; }
     [JsonPropertyName("contextMenuEndpoint")] public ContextMenuEndpoint? ContextMenuEndpoint { get; init; }
     [JsonPropertyName("contextMenuAccessibility")] public Accessibility? ContextMenuAccessibility { get; init; }
     [JsonPropertyName("image")] public IconSource? Image { get; init; }
@@ -464,7 +471,7 @@ internal record LiveChatParticipantRenderer
 {
     [JsonPropertyName("authorName")] public SimpleText? AuthorName { get; init; }
     [JsonPropertyName("authorPhoto")] public AuthorPhoto? AuthorPhoto { get; init; }
-    [JsonPropertyName("authorBadges")] public List<LiveChatAuthorBadgeRenderer>? AuthorBadges { get; init; }
+    [JsonPropertyName("authorBadges")] public List<AuthorBadgeContainer>? AuthorBadges { get; init; }
 }
 
 // --- Navigation Endpoint ---

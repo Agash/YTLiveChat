@@ -23,8 +23,6 @@ internal class YTHttpClient(HttpClient httpClient) : IDisposable
     {
         string url = $"/youtubei/v1/live_chat/get_live_chat?key={options.ApiKey}";
         string? rawJson = null;
-        LiveChatResponse? responseObject = null;
-
         try
         {
             using HttpResponseMessage response = await _httpClient.PostAsJsonAsync(url, new
@@ -47,8 +45,7 @@ internal class YTHttpClient(HttpClient httpClient) : IDisposable
 
             // Then deserialize
             // Consider adding more robust error handling for deserialization
-            responseObject = JsonSerializer.Deserialize<LiveChatResponse>(rawJson, s_jsonOptions);
-
+            LiveChatResponse? responseObject = JsonSerializer.Deserialize<LiveChatResponse>(rawJson, s_jsonOptions);
             return (responseObject, rawJson);
         }
         catch (HttpRequestException httpEx)
