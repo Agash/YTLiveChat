@@ -19,6 +19,7 @@ internal static partial class Parser
         {
             throw new Exception($"{liveId} is finished live (isReplay: true found)");
         }
+
         Match keyResult = ApiKeyRegex().Match(raw);
         string apiKey = keyResult.Success ? keyResult.Groups[1].Value : throw new Exception("API Key (INNERTUBE_API_KEY) not found");
         Match verResult = ClientVersionRegex().Match(raw);
@@ -60,6 +61,7 @@ internal static partial class Parser
             // TODO: Potentially handle navigationEndpoint, bold, italics later if needed
             return new Contracts.Models.TextPart { Text = textRun.Text }; // Use contract type
         }
+
         if (run is Models.Response.MessageEmoji emojiRun && emojiRun.Emoji != null)
         {
             Emoji emoji = emojiRun.Emoji;
@@ -107,6 +109,7 @@ internal static partial class Parser
         {
             return (fallbackAmount, "USD"); // Default currency
         }
+
         return (0M, "USD"); // Final fallback
     }
 
@@ -252,6 +255,7 @@ internal static partial class Parser
                         membershipInfo.MilestoneMonths = months;
                     }
                 }
+
                 break;
 
             case LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer giftPurchase:
@@ -309,6 +313,7 @@ internal static partial class Parser
                         membershipInfo.GiftCount = 1; // Default to 1
                     }
                 }
+
                 membershipInfo.LevelName = levelNameFromBadge ?? "Member"; // Gifter's level or fallback
                 break;
 
@@ -449,8 +454,7 @@ internal static partial class Parser
             if (symbolOrCode.Length == 3 && symbolOrCode.All(char.IsLetter)) return symbolOrCode.ToUpperInvariant();
             if (s_symbolToCode.TryGetValue(symbolOrCode, out string? code)) return code;
             if (symbolOrCode == "$") return "USD";
-            if (symbolOrCode == "¥") return "JPY";
-            return symbolOrCode.ToUpperInvariant();
+            return symbolOrCode == "¥" ? "JPY" : symbolOrCode.ToUpperInvariant();
         }
     }
 }
