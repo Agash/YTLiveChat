@@ -18,11 +18,15 @@ public enum MembershipEventType
     /// </summary>
     Milestone,
     /// <summary>
-    /// Memberships were gifted (potentially by the author of the containing ChatItem).
-    /// Note: This event type might need refinement based on how gifted membership notifications are rendered.
-    /// Currently, it primarily relies on parsing the 'headerSubtext'.
+    /// A user announced they gifted memberships (from LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer).
+    /// The author of the ChatItem is the gifter.
     /// </summary>
-    GiftedMemberships
+    GiftPurchase,
+    /// <summary>
+    /// A user received a gifted membership (from LiveChatSponsorshipsGiftRedemptionAnnouncementRenderer).
+    /// The author of the ChatItem is the recipient.
+    /// </summary>
+    GiftRedemption
 }
 
 /// <summary>
@@ -31,37 +35,49 @@ public enum MembershipEventType
 public class MembershipDetails
 {
     /// <summary>
-    /// The type of membership event (New, Milestone, Gift).
+    /// The type of membership event (New, Milestone, GiftPurchase, GiftRedemption).
     /// </summary>
     public MembershipEventType EventType { get; set; } = MembershipEventType.Unknown;
 
     /// <summary>
     /// The user-visible name of the membership level or tier.
-    /// Extracted from badge tooltips or message text.
+    /// Extracted from badge tooltips or message text. Defaults to "Member".
     /// </summary>
-    public string? LevelName { get; set; }
+    public string LevelName { get; set; } = "Member";
 
     /// <summary>
-    /// The full text displayed in the membership item's header (e.g., "Member for 6 months", "Welcome!").
+    /// The primary text displayed in the membership item's header (e.g., "Member for 6 months", "Gifted 5 memberships", "Welcome!").
     /// </summary>
     public string? HeaderPrimaryText { get; set; }
 
     /// <summary>
-    /// The number of months for a milestone event, parsed from HeaderPrimaryText. Null otherwise.
+    /// The secondary text displayed (e.g., "New member" from headerSubtext).
+    /// </summary>
+    public string? HeaderSubtext { get; set; }
+
+    /// <summary>
+    /// The number of months for a Milestone event, parsed from HeaderPrimaryText. Null otherwise.
     /// </summary>
     public int? MilestoneMonths { get; set; }
 
     /// <summary>
     /// The username of the user who gifted the membership(s).
-    /// Only applicable if EventType is GiftedMemberships.
-    /// Note: Currently inferred from the ChatItem author if message indicates a gift.
+    /// Only applicable if EventType is GiftPurchase. Null otherwise.
+    /// Extracted from the author of the gift purchase announcement.
     /// </summary>
     public string? GifterUsername { get; set; }
 
     /// <summary>
-    /// The number of memberships gifted in this event.
-    /// Only applicable if EventType is GiftedMemberships.
-    /// Note: Currently inferred by parsing HeaderPrimaryText.
+    /// The number of memberships gifted in a GiftPurchase event.
+    /// Only applicable if EventType is GiftPurchase. Null otherwise.
+    /// Parsed from HeaderPrimaryText (e.g., "Gifted 5 memberships"). Defaults to 1 if parsing fails but text indicates a gift.
     /// </summary>
     public int? GiftCount { get; set; }
+
+    /// <summary>
+    /// The username of the user who received the gifted membership.
+    /// Only applicable if EventType is GiftRedemption. Null otherwise.
+    /// Extracted from the author of the gift redemption announcement.
+    /// </summary>
+    public string? RecipientUsername { get; set; }
 }

@@ -1,6 +1,6 @@
 ﻿namespace YTLiveChat.Models;
 
-internal class FetchOptions
+internal record FetchOptions
 {
     public required string LiveId { get; set; }
     public required string ApiKey { get; set; }

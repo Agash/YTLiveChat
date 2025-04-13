@@ -8,7 +8,7 @@ namespace YTLiveChat.Services;
 internal class YTHttpClient(HttpClient httpClient) : IDisposable
 {
     private readonly HttpClient _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-    
+
     private static readonly JsonSerializerOptions s_jsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
@@ -19,11 +19,11 @@ internal class YTHttpClient(HttpClient httpClient) : IDisposable
     /// </summary>
     /// <param name="options">Fetch options containing API key, continuation token, etc.</param>
     /// <returns>A tuple containing the deserialized response and the raw JSON string, or (null, null) on error.</returns>
-    public async Task<(GetLiveChatResponse? Response, string? RawJson)> GetLiveChatAsync(FetchOptions options)
+    public async Task<(LiveChatResponse? Response, string? RawJson)> GetLiveChatAsync(FetchOptions options)
     {
         string url = $"/youtubei/v1/live_chat/get_live_chat?key={options.ApiKey}";
         string? rawJson = null;
-        GetLiveChatResponse? responseObject = null;
+        LiveChatResponse? responseObject = null;
 
         try
         {
@@ -47,7 +47,7 @@ internal class YTHttpClient(HttpClient httpClient) : IDisposable
 
             // Then deserialize
             // Consider adding more robust error handling for deserialization
-            responseObject = JsonSerializer.Deserialize<GetLiveChatResponse>(rawJson, s_jsonOptions);
+            responseObject = JsonSerializer.Deserialize<LiveChatResponse>(rawJson, s_jsonOptions);
 
             return (responseObject, rawJson);
         }

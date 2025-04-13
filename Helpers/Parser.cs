@@ -3,30 +3,32 @@ using System.Text.RegularExpressions;
 using YTLiveChat.Contracts.Models;
 using YTLiveChat.Models;
 using YTLiveChat.Models.Response;
+using Action = YTLiveChat.Models.Response.Action; // Namespace for the new internal models
 
 namespace YTLiveChat.Helpers;
 
 internal static partial class Parser
 {
+    // --- GetOptionsFromLivePage remains the same ---
     public static FetchOptions GetOptionsFromLivePage(string raw)
     {
         Match idResult = LiveIdRegex().Match(raw);
-        string liveId = idResult.Success ? idResult.Groups[1].Value : throw new Exception("Live Stream was not found");
+        string liveId = idResult.Success ? idResult.Groups[1].Value : throw new Exception("Live Stream canonical link not found");
 
         Match replayResult = ReplayRegex().Match(raw);
         if (replayResult.Success)
         {
-            throw new Exception($"{liveId} is finished live");
+            throw new Exception($"{liveId} is finished live (isReplay: true found)");
         }
 
         Match keyResult = ApiKeyRegex().Match(raw);
-        string apiKey = keyResult.Success ? keyResult.Groups[1].Value : throw new Exception("API Key was not found");
+        string apiKey = keyResult.Success ? keyResult.Groups[1].Value : throw new Exception("API Key (INNERTUBE_API_KEY) not found");
 
         Match verResult = ClientVersionRegex().Match(raw);
-        string clientVersion = verResult.Success ? verResult.Groups[1].Value : throw new Exception("Client Version was not found");
+        string clientVersion = verResult.Success ? verResult.Groups[1].Value : throw new Exception("Client Version (INNERTUBE_CONTEXT_CLIENT_VERSION) not found");
 
         Match continuationResult = ContinuationRegex().Match(raw);
-        string continuation = continuationResult.Success ? continuationResult.Groups[1].Value : throw new Exception("Continuation was not found");
+        string continuation = continuationResult.Success ? continuationResult.Groups[1].Value : throw new Exception("Initial Continuation token not found");
 
         return new()
         {
@@ -37,90 +39,238 @@ internal static partial class Parser
         };
     }
 
-
-    public static MessageRendererBase? GetMessageRenderer(AddChatItemAction.ItemObj item)
+    /// <summary>
+    /// Extracts the relevant message renderer from a polymorphic item container.
+    /// </summary>
+    private static MessageRendererBase? GetBaseRenderer(AddChatItemActionItem? item)
     {
-        // Allow null item gracefully
-        return item?.LiveChatTextMessageRenderer ??
-               item?.LiveChatPaidMessageRenderer ?? // Check Paid Message before Text Message
-               item?.LiveChatPaidStickerRenderer ??
-               item?.LiveChatMembershipItemRenderer ??
-               (MessageRendererBase?)null;
+        if (item == null) return null;
+
+        // Check in likely order of appearance or specificity
+        return item.LiveChatPaidMessageRenderer as MessageRendererBase ??
+               item.LiveChatPaidStickerRenderer as MessageRendererBase ??
+               item.LiveChatMembershipItemRenderer as MessageRendererBase ??
+               item.LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer as MessageRendererBase ??
+               item.LiveChatSponsorshipsGiftRedemptionAnnouncementRenderer as MessageRendererBase ??
+               item.LiveChatTextMessageRenderer as MessageRendererBase ?? // Standard text message last
+               null; // PlaceholderItemRenderer doesn't inherit from Base
     }
 
+    /// <summary>
+    /// Converts a MessageRun (internal model) to a MessagePart (contract model).
+    /// </summary>
     public static MessagePart ToMessagePart(this MessageRun run)
     {
-        if (run is MessageText text)
+        if (run is MessageText textRun && textRun.Text != null)
         {
-            return new TextPart { Text = text.Text };
+            // TODO: Potentially handle navigationEndpoint, bold, italics later if needed
+            return new TextPart { Text = textRun.Text };
         }
 
-        MessageEmoji? emoji = run as MessageEmoji;
-
-        bool isCustom = emoji?.Emoji.IsCustomEmoji ?? false;
-        string? altText = emoji?.Emoji.Shortcuts.FirstOrDefault();
-
-        return new EmojiPart
+        if (run is MessageEmoji emojiRun && emojiRun.Emoji != null)
         {
-            Url = emoji?.Emoji.Image?.Thumbnails.FirstOrDefault()?.Url ?? string.Empty,
-            IsCustomEmoji = isCustom,
-            Alt = altText,
-            EmojiText = (isCustom ? altText : emoji?.Emoji.EmojiId) ?? string.Empty
-        };
+            Emoji emoji = emojiRun.Emoji;
+            bool isCustom = emoji.IsCustomEmoji;
+            string? altText = emoji.Shortcuts?.FirstOrDefault() ?? emoji.SearchTerms?.FirstOrDefault(); // Use shortcut/search term as alt
+            string emojiText = isCustom ? (altText ?? $"[:{emoji.EmojiId}:]") : (emoji.EmojiId ?? ""); // Use alt or ID for custom, ID for standard
+
+            return new EmojiPart
+            {
+                Url = emoji.Image?.Thumbnails?.LastOrDefault()?.Url ?? string.Empty,
+                IsCustomEmoji = isCustom,
+                Alt = altText,
+                EmojiText = emojiText
+            };
+        }
+
+        // Fallback for unknown run types
+        return new TextPart { Text = "[Unknown Message Part]" };
     }
 
-    public static MessagePart[] ToMessagePart(this MessageRun[] runs) => [.. runs.Select(r => r.ToMessagePart())];
+    /// <summary>
+    /// Converts an array of MessageRun (internal) to MessagePart[] (contract).
+    /// </summary>
+    public static MessagePart[] ToMessageParts(this IEnumerable<MessageRun>? runs) => runs?.Select(r => r.ToMessagePart()).ToArray() ?? [];
+
+    /// <summary>
+    /// Parses the primary amount/currency string into numeric value and symbol/code.
+    /// </summary>
+    private static (decimal AmountValue, string Currency) ParseAmount(string? amountString)
+    {
+        if (string.IsNullOrWhiteSpace(amountString)) return (0M, "USD");
+
+        amountString = amountString.Replace(",", "").Replace("\u00A0", " ").Trim(); // Normalize spaces/commas
+
+        Match match = AmountCurrencyRegex().Match(amountString);
+        if (match.Success)
+        {
+            string currencySymbolOrCode = match.Groups[1].Success ? match.Groups[1].Value : match.Groups[3].Value;
+            string amountPart = match.Groups[2].Value;
+
+            if (decimal.TryParse(amountPart, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal amountValue))
+            {
+                string currencyCode = CurrencyHelper.GetCodeFromSymbolOrCode(currencySymbolOrCode);
+                return (amountValue, currencyCode);
+            }
+        }
+
+        if (decimal.TryParse(amountString, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal fallbackAmount))
+        {
+            return (fallbackAmount, "USD"); // Default currency
+        }
+
+        return (0M, "USD"); // Final fallback
+    }
+
+
+    /// <summary>
+    /// Extracts membership details from the specific renderer types.
+    /// </summary>
+    private static MembershipDetails? ParseMembershipDetails(
+        MessageRendererBase renderer,
+        Author author // Pass the already parsed author for Gift events
+    )
+    {
+        string? levelNameFromBadge = renderer.AuthorBadges?
+            .FirstOrDefault(b => b.CustomThumbnail != null)?
+            .Tooltip;
+
+        MembershipDetails details = new() { LevelName = levelNameFromBadge ?? "Member" }; // Default level name
+
+        switch (renderer)
+        {
+            case LiveChatMembershipItemRenderer membershipItem:
+                details.HeaderSubtext = membershipItem.HeaderSubtext?.Text;
+                details.HeaderPrimaryText = membershipItem.HeaderPrimaryText?.Runs?.ToMessageParts()?.ToSimpleString();
+
+                // Determine type: New or Milestone based on text
+                if (details.HeaderPrimaryText?.StartsWith("Welcome", StringComparison.OrdinalIgnoreCase) == true ||
+                    details.HeaderSubtext?.StartsWith("New member", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    details.EventType = MembershipEventType.New;
+                    // Try to refine level name if needed (less reliable than badge)
+                    if (details.LevelName == "Member" && details.HeaderPrimaryText != null)
+                    {
+                        Match levelMatch = NewMemberLevelRegex().Match(details.HeaderPrimaryText);
+                        if (levelMatch.Success) details.LevelName = levelMatch.Groups[1].Value.Trim();
+                    }
+                }
+                else if (details.HeaderPrimaryText?.Contains("member for", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    details.EventType = MembershipEventType.Milestone;
+                    Match monthsMatch = MilestoneMonthsRegex().Match(details.HeaderPrimaryText);
+                    if (monthsMatch.Success && int.TryParse(monthsMatch.Groups[1].Value, out int months))
+                    {
+                        details.MilestoneMonths = months;
+                    }
+                }
+
+                break;
+
+            case LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer giftPurchase:
+                details.EventType = MembershipEventType.GiftPurchase;
+                details.HeaderPrimaryText = giftPurchase.Header?.LiveChatSponsorshipsHeaderRenderer?.PrimaryText?.Runs?.ToMessageParts()?.ToSimpleString();
+                details.GifterUsername = author.Name; // Author of this event is the gifter
+
+                // Parse count from text like "Gifted 5 memberships"
+                if (details.HeaderPrimaryText != null)
+                {
+                    Match giftMatch = GiftedCountRegex().Match(details.HeaderPrimaryText);
+                    if (giftMatch.Success && int.TryParse(giftMatch.Groups[1].Value, out int count))
+                    {
+                        details.GiftCount = count;
+                    }
+                    else if (details.HeaderPrimaryText.Contains("gifted", StringComparison.OrdinalIgnoreCase))
+                    {
+                        details.GiftCount = 1; // Default to 1 if text indicates gift but count parsing fails
+                    }
+                }
+                // Level name often not present in gift purchase message, rely on badge if available
+                details.LevelName = levelNameFromBadge ?? "Member"; // Fallback if gifter has no level badge visible
+                break;
+
+            case LiveChatSponsorshipsGiftRedemptionAnnouncementRenderer giftRedemption:
+                details.EventType = MembershipEventType.GiftRedemption;
+                details.HeaderPrimaryText = giftRedemption.Message?.Runs?.ToMessageParts()?.ToSimpleString(); // Usually "Welcome!"
+                details.RecipientUsername = author.Name; // Author of this event is the recipient
+                // Level name comes from the recipient's badge
+                details.LevelName = levelNameFromBadge ?? "Member";
+                break;
+
+            default:
+                return null; // Not a membership-related event
+        }
+
+        return details;
+    }
 
     /// <summary>
     /// Converts a raw YouTube Action into a StreamWeaver ChatItem.
     /// </summary>
-    public static ChatItem? ToChatItem(this YTAction action)
+    public static ChatItem? ToChatItem(this Action action) // Updated parameter type
     {
         ArgumentNullException.ThrowIfNull(action);
 
-        if (action.AddChatItemAction == null)
+        // We only care about adding chat items for now
+        if (action.AddChatItemAction?.Item == null)
         {
             return null;
         }
 
-        MessageRendererBase? renderer = GetMessageRenderer(action.AddChatItemAction.Item);
-        if (renderer == null)
+        AddChatItemActionItem item = action.AddChatItemAction.Item;
+        MessageRendererBase? baseRenderer = GetBaseRenderer(item);
+
+        if (baseRenderer == null)
         {
+            // Could be a placeholder or unsupported type
+            if (item.LiveChatPlaceholderItemRenderer != null)
+            {
+                // Handle placeholder if needed (e.g., for deleted messages)
+                // For now, we skip them.
+            }
+            else if (item.LiveChatViewerEngagementMessageRenderer != null)
+            {
+                // Skip engagement messages for now
+            }
+            else
+            {
+                // Log unknown item type if debug logging is on
+                // Console.WriteLine($"[YTLiveChat DEBUG] Skipped unknown item type: {action.AddChatItemAction.Item}");
+            }
+
             return null;
         }
 
         // --- Author & Badges ---
         Author author = new()
         {
-            Name = renderer.AuthorName?.SimpleText ?? string.Empty,
-            ChannelId = renderer.AuthorExternalChannelId,
-            Thumbnail = renderer.AuthorPhoto.Thumbnails.ToImage(renderer.AuthorName?.SimpleText ?? string.Empty)
+            Name = baseRenderer.AuthorName?.Text ?? "Unknown Author",
+            ChannelId = baseRenderer.AuthorExternalChannelId ?? string.Empty,
+            Thumbnail = baseRenderer.AuthorPhoto?.Thumbnails?.ToImage(baseRenderer.AuthorName?.Text)
         };
 
-        bool isMembership = false;
+        bool isMembershipBadge = false; // Specifically check for membership badge presence
         bool isVerified = false;
         bool isOwner = false;
         bool isModerator = false;
-        AuthorBadgeRenderer? membershipBadgeRenderer = null; // Store for membership level parsing
 
-        if (renderer.AuthorBadges != null && renderer.AuthorBadges.Length > 0)
+        if (baseRenderer.AuthorBadges != null)
         {
-            foreach (AuthorBadge item in renderer.AuthorBadges)
+            foreach (LiveChatAuthorBadgeRenderer badgeRenderer in baseRenderer.AuthorBadges)
             {
-                AuthorBadgeRenderer badge = item.LiveChatAuthorBadgeRenderer;
-                if (badge.CustomThumbnail != null) // Membership badges have custom thumbnails
+                if (badgeRenderer.CustomThumbnail != null) // Membership badges
                 {
-                    isMembership = true;
-                    membershipBadgeRenderer = badge; // Use this later for level name
-                    author.Badge = new Badge // Assign the first custom badge found as the primary Author.Badge
+                    isMembershipBadge = true;
+                    // Use the first membership badge found for the Author contract
+                    author.Badge ??= new Badge
                     {
-                        Thumbnail = badge.CustomThumbnail.Thumbnails.ToImage(badge.Tooltip),
-                        Label = badge.Tooltip
+                        Thumbnail = badgeRenderer.CustomThumbnail.Thumbnails?.ToImage(badgeRenderer.Tooltip),
+                        Label = badgeRenderer.Tooltip ?? "Member"
                     };
                 }
-                else // Built-in badges (Owner, Verified, Mod)
+                else // Standard badges
                 {
-                    switch (badge.Icon?.IconType)
+                    switch (badgeRenderer.Icon?.IconType)
                     {
                         case "OWNER": isOwner = true; break;
                         case "VERIFIED": isVerified = true; break;
@@ -130,75 +280,75 @@ internal static partial class Parser
             }
         }
 
-        // --- Event Specific Details ---
-        Superchat? superchatDetails = null;
-        MembershipDetails? membershipInfo = null;
-
-        switch (renderer)
+        // --- Message Content ---
+        MessagePart[] messageParts = [];
+        if (item.LiveChatTextMessageRenderer?.Message?.Runs != null)
         {
-            case LiveChatPaidStickerRenderer stickerRenderer:
-                (decimal stickerAmountValue, string stickerCurrency) = ParseAmount(stickerRenderer.PurchaseAmountText.SimpleText ?? string.Empty);
-                superchatDetails = new Superchat
-                {
-                    AmountString = stickerRenderer.PurchaseAmountText.SimpleText ?? string.Empty,
-                    AmountValue = stickerAmountValue,
-                    Currency = stickerCurrency,
-                    Color = stickerRenderer.BackgroundColor.ToHex6Color(), // Primary color is background for stickers
-                    AuthorNameTextColor = stickerRenderer.AuthorNameTextColor.ToHex6Color(),
-                    Sticker = stickerRenderer.Sticker.Thumbnails.ToImage(stickerRenderer.Sticker.Accessibility.AccessibilityData.Label)
-                };
-                break;
+            messageParts = item.LiveChatTextMessageRenderer.Message.Runs.ToMessageParts();
+        }
+        else if (item.LiveChatPaidMessageRenderer?.Message?.Runs != null) // Paid message content
+        {
+            messageParts = item.LiveChatPaidMessageRenderer.Message.Runs.ToMessageParts();
+        }
+        // Note: Membership renderers' primary text is handled within ParseMembershipDetails
 
-            case LiveChatPaidMessageRenderer paidMessageRenderer:
-                (decimal scAmountValue, string scCurrency) = ParseAmount(paidMessageRenderer.PurchaseAmountText.SimpleText ?? string.Empty);
-                superchatDetails = new Superchat
-                {
-                    AmountString = paidMessageRenderer.PurchaseAmountText.SimpleText ?? string.Empty,
-                    AmountValue = scAmountValue,
-                    Currency = scCurrency,
-                    Color = paidMessageRenderer.BodyBackgroundColor.ToHex6Color(), // Primary color is body background
-                    HeaderBackgroundColor = paidMessageRenderer.HeaderBackgroundColor.ToHex6Color(),
-                    HeaderTextColor = paidMessageRenderer.HeaderTextColor.ToHex6Color(),
-                    BodyTextColor = paidMessageRenderer.BodyTextColor.ToHex6Color(),
-                    AuthorNameTextColor = paidMessageRenderer.AuthorNameTextColor.ToHex6Color(),
-                    Sticker = null
-                };
-                break;
-
-            case LiveChatMembershipItemRenderer membershipItemRenderer:
-                // Assume this renderer always indicates some form of membership event
-                string headerText = string.Join("", membershipItemRenderer.HeaderSubtext.Runs.Select(r => r is MessageText mt ? mt.Text : ""));
-                membershipInfo = ParseMembershipInfo(headerText, membershipBadgeRenderer);
-                // Gifter username might be the author of *this* item if EventType is GiftedMemberships
-                if (membershipInfo.EventType == MembershipEventType.GiftedMemberships)
-                {
-                    membershipInfo.GifterUsername = author.Name;
-                }
-
-                break;
+        // --- Super Chat / Sticker Details ---
+        Superchat? superchatDetails = null;
+        if (item.LiveChatPaidMessageRenderer != null)
+        {
+            LiveChatPaidMessageRenderer paidRenderer = item.LiveChatPaidMessageRenderer;
+            (decimal amountValue, string currency) = ParseAmount(paidRenderer.PurchaseAmountText?.Text);
+            superchatDetails = new Superchat
+            {
+                AmountString = paidRenderer.PurchaseAmountText?.Text ?? string.Empty,
+                AmountValue = amountValue,
+                Currency = currency,
+                BodyBackgroundColor = paidRenderer.BodyBackgroundColor.ToHex6Color() ?? "000000", // Black fallback
+                HeaderBackgroundColor = paidRenderer.HeaderBackgroundColor.ToHex6Color(),
+                HeaderTextColor = paidRenderer.HeaderTextColor.ToHex6Color(),
+                BodyTextColor = paidRenderer.BodyTextColor.ToHex6Color(),
+                AuthorNameTextColor = paidRenderer.AuthorNameTextColor.ToHex6Color(),
+                Sticker = null // Not a sticker
+            };
+        }
+        else if (item.LiveChatPaidStickerRenderer != null)
+        {
+            LiveChatPaidStickerRenderer stickerRenderer = item.LiveChatPaidStickerRenderer;
+            (decimal amountValue, string currency) = ParseAmount(stickerRenderer.PurchaseAmountText?.Text);
+            superchatDetails = new Superchat
+            {
+                AmountString = stickerRenderer.PurchaseAmountText?.Text ?? string.Empty,
+                AmountValue = amountValue,
+                Currency = currency,
+                BodyBackgroundColor = stickerRenderer.BackgroundColor.ToHex6Color() ?? "000000", // Main bg color
+                AuthorNameTextColor = stickerRenderer.AuthorNameTextColor.ToHex6Color(),
+                Sticker = stickerRenderer.Sticker?.Thumbnails?.ToImage(stickerRenderer.Sticker?.Accessibility?.AccessibilityData?.Label)
+                // Header/Body colors don't apply to stickers
+            };
         }
 
-        // --- Message Parsing ---
-        // Get message runs based on renderer type
-        MessageRun[]? messageRuns = renderer switch
+        // --- Membership Details ---
+        // Parse details if it's any of the membership-related renderers
+        MembershipDetails? membershipInfo = ParseMembershipDetails(baseRenderer, author);
+
+
+        // --- Timestamp ---
+        DateTimeOffset timestamp = DateTimeOffset.UtcNow; // Default to now
+        if (long.TryParse(baseRenderer.TimestampUsec, out long timestampUsec))
         {
-            LiveChatTextMessageRenderer textRenderer => textRenderer.Message?.Runs, // Standard/Paid message
-            LiveChatMembershipItemRenderer memberRenderer => memberRenderer.HeaderSubtext?.Runs, // Use header for membership system messages
-            LiveChatPaidStickerRenderer => null, // Stickers don't have a separate message body here
-            _ => null
-        };
-        MessagePart[] parsedMessage = messageRuns != null ? messageRuns.ToMessagePart() : [];
+            timestamp = DateTimeOffset.FromUnixTimeMilliseconds(timestampUsec / 1000);
+        }
 
         // --- Construct Final ChatItem ---
         ChatItem chatItem = new()
         {
-            Id = renderer.Id,
-            Timestamp = DateTimeOffset.UtcNow, // TODO: Consider parsing `renderer.TimestampUsec` if accuracy needed
+            Id = baseRenderer.Id ?? Guid.NewGuid().ToString(), // Ensure ID exists
+            Timestamp = timestamp,
             Author = author,
-            Message = parsedMessage,
+            Message = messageParts,
             Superchat = superchatDetails,
-            MembershipDetails = membershipInfo, // Assign parsed details
-            IsMembership = isMembership, // Based on badge presence
+            MembershipDetails = membershipInfo,
+            IsMembership = isMembershipBadge || membershipInfo != null, // True if has badge OR is a membership event
             IsVerified = isVerified,
             IsOwner = isOwner,
             IsModerator = isModerator
@@ -207,187 +357,128 @@ internal static partial class Parser
         return chatItem;
     }
 
-    public static ImagePart? ToImage(this Thumbnail[] thumbnails, string? alt = null)
+    /// <summary>
+    /// Converts an array of image thumbnails (internal model) to an ImagePart (contract model).
+    /// </summary>
+    public static ImagePart? ToImage(this List<Thumbnail>? thumbnails, string? alt = null)
     {
         // Prefer larger thumbnails if available (usually last in array)
-        Thumbnail? thumbnail = thumbnails.LastOrDefault();
-        return thumbnail == null
+        Thumbnail? thumbnail = thumbnails?.LastOrDefault();
+        return thumbnail == null || thumbnail.Url == null
             ? null
             : new ImagePart
             {
                 Url = thumbnail.Url,
                 Alt = alt,
+                // We don't have width/height directly in ImagePart contract
             };
     }
 
-    public static (List<ChatItem> Items, string Continuation) ParseGetLiveChatResponse(GetLiveChatResponse? response)
+    /// <summary>
+    /// Parses the full API response to extract chat items and the next continuation token.
+    /// </summary>
+    /// <param name="response">The deserialized API response.</param>
+    /// <returns>A tuple containing a list of parsed ChatItems and the next continuation token string.</returns>
+    public static (List<ChatItem> Items, string? Continuation) ParseLiveChatResponse(LiveChatResponse? response) // Changed method name for clarity
     {
         List<ChatItem> items = [];
+        string? continuationToken = null;
 
-        if (response != null)
+        if (response?.ContinuationContents?.LiveChatContinuation?.Actions != null)
         {
             items = [.. response.ContinuationContents.LiveChatContinuation.Actions
-                .Where(a => a.AddChatItemAction != null)
                 .Select(a => a.ToChatItem()) // Uses the updated ToChatItem method
                 .WhereNotNull()
                 ];
         }
 
-        Continuation? continuationData = response?.ContinuationContents.LiveChatContinuation.Continuations.FirstOrDefault();
-        string continuation = "";
+        // Extract the next continuation token
+        Continuation? nextContinuation = response?.ContinuationContents?.LiveChatContinuation?.Continuations?.FirstOrDefault();
+        continuationToken = nextContinuation?.InvalidationContinuationData?.Continuation ??
+                            nextContinuation?.TimedContinuationData?.Continuation;
 
-        if (continuationData?.InvalidationContinuationData != null)
+        // Sometimes the continuation might be at the root level (initial response)
+        if (string.IsNullOrEmpty(continuationToken))
         {
-            continuation = continuationData.InvalidationContinuationData.Continuation;
-        }
-        else if (continuationData?.TimedContinuationData != null)
-        {
-            continuation = continuationData.TimedContinuationData.Continuation;
-        }
-
-        return (items, continuation);
-    }
-
-    /// <summary>
-    /// Parses the primary amount/currency string into numeric value and symbol/code.
-    /// </summary>
-    private static (decimal AmountValue, string Currency) ParseAmount(string amountString)
-    {
-        if (string.IsNullOrWhiteSpace(amountString))
-        {
-            return (0M, "USD"); // Default on error
+            continuationToken = response?.InvalidationContinuationData?.Continuation;
         }
 
-        // Remove common formatting like commas
-        amountString = amountString.Replace(",", "");
-
-        // Use regex to capture currency symbols/codes and the numeric value
-        Match match = AmountCurrencyRegex().Match(amountString);
-
-        if (match.Success)
-        {
-            string currencySymbolOrCode = match.Groups[1].Success ? match.Groups[1].Value : match.Groups[3].Value; // Symbol first, then code
-            string amountPart = match.Groups[2].Value;
-
-            if (decimal.TryParse(amountPart, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal amountValue))
-            {
-                // Basic symbol mapping - enhance if needed
-                string currencyCode = currencySymbolOrCode switch
-                {
-                    "€" => "EUR",
-                    "£" => "GBP",
-                    "¥" => "JPY", // Could be CNY as well, JPY more common on YT?
-                    "$" => "USD", // Default $ to USD, could be CAD, AUD etc.
-                    _ => currencySymbolOrCode // Assume it's already a code (e.g., "CAD", "AUD")
-                };
-                return (amountValue, currencyCode.ToUpperInvariant());
-            }
-        }
-
-        // Fallback if regex fails
-        if (decimal.TryParse(amountString, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal fallbackAmount))
-        {
-            return (fallbackAmount, "USD"); // Default currency if only number found
-        }
-
-        return (0M, "USD"); // Final fallback
-    }
-
-    /// <summary>
-    /// Parses membership header text to determine event type and details.
-    /// </summary>
-    private static MembershipDetails ParseMembershipInfo(string headerText, AuthorBadgeRenderer? authorBadgeRenderer)
-    {
-        MembershipDetails details = new()
-        {
-            EventType = MembershipEventType.Unknown, // Default
-            HeaderPrimaryText = headerText,
-            LevelName = authorBadgeRenderer?.Tooltip // Start with badge tooltip for level name
-        };
-
-        // Heuristics based on common message formats
-        if (headerText.StartsWith("Welcome", StringComparison.OrdinalIgnoreCase))
-        {
-            details.EventType = MembershipEventType.New;
-            if (string.IsNullOrEmpty(details.LevelName)) // Infer level from text if badge didn't provide
-            {
-                Match levelMatch = NewMemberLevelRegex().Match(headerText);
-                if (levelMatch.Success) details.LevelName = levelMatch.Groups[1].Value.Trim();
-            }
-        }
-        else if (headerText.Contains("member for", StringComparison.OrdinalIgnoreCase))
-        {
-            details.EventType = MembershipEventType.Milestone;
-            Match monthsMatch = MilestoneMonthsRegex().Match(headerText);
-            if (monthsMatch.Success && int.TryParse(monthsMatch.Groups[1].Value, out int months))
-            {
-                details.MilestoneMonths = months;
-            }
-
-            if (string.IsNullOrEmpty(details.LevelName)) // Infer level from badge if available
-            {
-                details.LevelName = authorBadgeRenderer?.Tooltip; // Might just be "Member"
-            }
-        }
-        else if (headerText.Contains("gifted", StringComparison.OrdinalIgnoreCase))
-        {
-            details.EventType = MembershipEventType.GiftedMemberships;
-            Match giftMatch = GiftedCountRegex().Match(headerText);
-            if (giftMatch.Success && int.TryParse(giftMatch.Groups[1].Value, out int count))
-            {
-                details.GiftCount = count;
-            }
-            else
-            {
-                details.GiftCount = 1; // Assume 1 if count not parsed
-            }
-
-            if (string.IsNullOrEmpty(details.LevelName)) // Infer level from text
-            {
-                Match levelMatch = GiftedLevelRegex().Match(headerText);
-                if (levelMatch.Success) details.LevelName = levelMatch.Groups[1].Value.Trim();
-            }
-        }
-        // TODO: Refine GiftedMemberships parsing and potentially GifterUsername if possible from other fields
-
-        details.LevelName ??= "Member"; // Default level name
-
-        return details;
+        return (items, continuationToken);
     }
 
     // --- Regex Definitions ---
-    [GeneratedRegex("<link rel=\"canonical\" href=\"https:\\/\\/www\\.youtube\\.com\\/watch\\?v=([^\"]+)\">")]
+    [GeneratedRegex("<link rel=\"canonical\" href=\"https:\\/\\/www\\.youtube\\.com\\/watch\\?v=([^\"]+)\">", RegexOptions.Compiled)]
     private static partial Regex LiveIdRegex();
 
-    [GeneratedRegex("\"isReplay\":\\s*(true)")]
+    [GeneratedRegex("\"isReplay\":\\s*(true)", RegexOptions.Compiled)]
     private static partial Regex ReplayRegex();
 
-    [GeneratedRegex("\"INNERTUBE_API_KEY\":\\s*\"([^\"]*)\"")]
+    [GeneratedRegex("\"INNERTUBE_API_KEY\":\\s*\"([^\"]*)\"", RegexOptions.Compiled)]
     private static partial Regex ApiKeyRegex();
 
-    [GeneratedRegex("\"clientVersion\":\\s*\"([^\"]*)\"")]
+    [GeneratedRegex("\"INNERTUBE_CONTEXT_CLIENT_VERSION\":\\s*\"([^\"]*)\"", RegexOptions.Compiled)] // Updated key based on typical web source
     private static partial Regex ClientVersionRegex();
 
-    [GeneratedRegex("\"continuation\":\\s*\"([^\"]*)\"")]
+    [GeneratedRegex("\"continuation\":\\s*\"([^\"]*)\"", RegexOptions.Compiled)]
     private static partial Regex ContinuationRegex();
 
-    // Regex to capture currency symbol OR code and amount value
-    [GeneratedRegex(@"([€$£¥])?\s*([\d.,]+)(?:\s*([A-Z]{3}))?", RegexOptions.Compiled | RegexOptions.CultureInvariant)]
+    // Regex to capture currency symbol OR code and amount value more robustly
+    // Allows optional space, handles symbols before/after, captures value with decimals/commas
+    [GeneratedRegex(@"(?:([€$£¥])\s?([\d,.]+)|\s?([\d,.]+)\s?([A-Z]{3}|[€$£¥]))", RegexOptions.Compiled | RegexOptions.CultureInvariant)]
+    private static partial Regex AmountCurrencyRegex_Experimental(); // Keeping old one as fallback if needed
+    [GeneratedRegex(@"([€$£¥])?\s*([\d.,]+)\s*(?:([A-Z]{3}))?", RegexOptions.Compiled | RegexOptions.CultureInvariant)] // Original one, safer?
     private static partial Regex AmountCurrencyRegex();
 
-    // Regex for Membership Milestone parsing
-    [GeneratedRegex(@"member for (\d+) months", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+
+    [GeneratedRegex(@"member for (\d+) months?", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex MilestoneMonthsRegex();
 
-    // Regex for parsing gifted membership count
-    [GeneratedRegex(@"gifted (\d+) membership", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    [GeneratedRegex(@"gifted (\d+|a) membership", RegexOptions.IgnoreCase | RegexOptions.Compiled)] // Handle "a membership"
     private static partial Regex GiftedCountRegex();
 
-    // Regex for parsing gifted membership level
-    [GeneratedRegex(@"gifted.*to.*as (.*?) member", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
-    private static partial Regex GiftedLevelRegex();
-
-    // Regex for parsing new member level
     [GeneratedRegex(@"Welcome to (.*?) membership", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex NewMemberLevelRegex();
+
+    // Helper extension method to convert message parts back to a simple string
+    private static string ToSimpleString(this IEnumerable<MessagePart>? parts)
+    {
+        return string.Join("", parts?.Select(p => p switch
+        {
+            TextPart tp => tp.Text,
+            EmojiPart ep => ep.EmojiText, // Use text representation of emoji
+            _ => ""
+        }) ?? Enumerable.Empty<string>());
+    }
+
+    // Helper class for currency symbol/code mapping
+    private static class CurrencyHelper
+    {
+        private static readonly Dictionary<string, string> s_symbolToCode = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["€"] = "EUR",
+            ["£"] = "GBP",
+            ["¥"] = "JPY",
+            ["$"] = "USD",
+            ["₽"] = "RUB",
+            ["₹"] = "INR",
+            ["₩"] = "KRW",
+            ["₱"] = "PHP",
+            ["฿"] = "THB",
+            ["₫"] = "VND",
+            // Add more common symbols as needed
+        };
+
+        public static string GetCodeFromSymbolOrCode(string symbolOrCode)
+        {
+            if (string.IsNullOrWhiteSpace(symbolOrCode)) return "USD"; // Default
+            // Check if it's already a known code (3 letters)
+            if (symbolOrCode.Length == 3 && symbolOrCode.All(char.IsLetter)) return symbolOrCode.ToUpperInvariant();
+            // Try mapping from symbol
+            if (s_symbolToCode.TryGetValue(symbolOrCode, out string? code)) return code;
+            // Fallback defaults
+            if (symbolOrCode == "$") return "USD";
+            if (symbolOrCode == "¥") return "JPY";
+            return symbolOrCode.ToUpperInvariant(); // Return original if unknown
+        }
+    }
 }
