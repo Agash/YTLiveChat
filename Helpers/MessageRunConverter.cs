@@ -16,5 +16,19 @@ internal class MessageRunConverter : JsonConverter<MessageRun>
                 : throw new JsonException("Invalid MessageRun format.");
     }
 
-    public override void Write(Utf8JsonWriter writer, MessageRun value, JsonSerializerOptions options) => throw new NotImplementedException(); // Implement if needed
+    // public override void Write(Utf8JsonWriter writer, MessageRun value, JsonSerializerOptions options) => throw new NotImplementedException(); // TODO: This fires and throws, where? How? Implement if needed
+    public override void Write(Utf8JsonWriter writer, MessageRun value, JsonSerializerOptions options)
+    {
+        switch (value)
+        {
+            case MessageEmoji emoji:
+                JsonSerializer.Serialize(writer, emoji, options);
+                break;
+            case MessageText text:
+                JsonSerializer.Serialize(writer, text, options);
+                break;
+            default:
+                throw new JsonException($"Unknown MessageRun type: {value.GetType()}");
+        }
+    }
 }

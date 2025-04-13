@@ -10,22 +10,22 @@ public interface IYTLiveChat : IDisposable
     /// <summary>
     /// Fires after the initial Live page was loaded
     /// </summary>
-    public event EventHandler<InitialPageLoadedEventArgs>? InitialPageLoaded;
+    event EventHandler<InitialPageLoadedEventArgs>? InitialPageLoaded;
 
     /// <summary>
     /// Fires after Chat was stopped
     /// </summary>
-    public event EventHandler<ChatStoppedEventArgs>? ChatStopped;
+    event EventHandler<ChatStoppedEventArgs>? ChatStopped;
 
     /// <summary>
     /// Fires when a ChatItem was received
     /// </summary>
-    public event EventHandler<ChatReceivedEventArgs>? ChatReceived;
+    event EventHandler<ChatReceivedEventArgs>? ChatReceived;
 
     /// <summary>
     /// Fires on any error from backend or within service
     /// </summary>
-    public event EventHandler<ErrorOccurredEventArgs>? ErrorOccurred;
+    event EventHandler<ErrorOccurredEventArgs>? ErrorOccurred;
 
     /// <summary>
     /// Starts the Listeners for the LiveChat and fires InitialPageLoaded when successful. Either <paramref name="handle"/>, <paramref name="channelId"/> or <paramref name="liveId"/> must be given.
@@ -37,12 +37,12 @@ public interface IYTLiveChat : IDisposable
     /// <param name="channelId">The channelId of the channel (eg. "UCtykdsdm9cBfh5JM8xscA0Q")</param>
     /// <param name="liveId">The video ID of the live video (eg. "WZafWA1NVrU")</param>
     /// <param name="overwrite"></param>
-    public void Start(string? handle = null, string? channelId = null, string? liveId = null, bool overwrite = false);
+    void Start(string? handle = null, string? channelId = null, string? liveId = null, bool overwrite = false);
 
     /// <summary>
     /// Stops the listeners
     /// </summary>
-    public void Stop();
+    void Stop();
 
 }
 
