@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<Authors>Agash Thamo.</Authors>
 		<Description>InnerTube API for YouTube LiveChat to get Live Chat messages without API restrictions. Mainly intended for use in application for the streamer.</Description>
-		<PackageProjectUrl>https://github.com/Agash/YTLiveChat/wiki</PackageProjectUrl>
+		<PackageProjectUrl>https://github.com/Agash/YTLiveChat/</PackageProjectUrl>
 		<PackageTags>library, youtube, live-chat, yt, streamer</PackageTags>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
@@ -16,6 +16,12 @@
 		<EnablePackageValidation>true</EnablePackageValidation>
 
 		<MinVerTagPrefix>v</MinVerTagPrefix>
+
+		<Copyright>MIT License</Copyright>
+
+		<RepositoryUrl>https://github.com/Agash/YTLiveChat/</RepositoryUrl>
+
+		<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
 	</PropertyGroup>
 
 	<ItemGroup>
