@@ -1,0 +1,2050 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+<additional_info>
+
+</additional_info>
+
+</file_summary>
+
+<directory_structure>
+.editorconfig
+.gitattributes
+.github/FUNDING.yml
+.github/workflows/publish.yml
+.gitignore
+Common/Constants.cs
+Contracts/Models/Author.cs
+Contracts/Models/ChatItem.cs
+Contracts/Models/MessagePart.cs
+Contracts/Models/Superchat.cs
+Contracts/ServiceCollectionExtensions.cs
+Contracts/Services/IYTLiveChat.cs
+Contracts/YTLiveChatOptions.cs
+global.json
+Helpers/Converter.cs
+Helpers/MessageRunConverter.cs
+Helpers/Misc.cs
+Helpers/Parser.cs
+LICENSE.txt
+Models/FetchOptions.cs
+Models/Response/Accessibility.cs
+Models/Response/Author.cs
+Models/Response/ContextMenuEndpoint.cs
+Models/Response/Continuation.cs
+Models/Response/GetLiveChatResponse.cs
+Models/Response/Images.cs
+Models/Response/Messages.cs
+Models/Response/YTAction.cs
+README.md
+Services/YTHttpClient.cs
+Services/YTHttpClientFactory.cs
+Services/YTLiveChat.cs
+YTLiveChat.csproj
+YTLiveChat.sln
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".editorconfig">
+# Remove the line below if you want to inherit .editorconfig settings from higher directories
+root = true
+
+# C# files
+[*.cs]
+
+#### Core EditorConfig Options ####
+
+# Indentation and spacing
+indent_size = 4
+indent_style = space
+tab_width = 4
+
+# New line preferences
+end_of_line = crlf
+insert_final_newline = false
+
+#### .NET Coding Conventions ####
+
+# Organize usings
+dotnet_separate_import_directive_groups = false
+dotnet_sort_system_directives_first = false
+file_header_template = unset
+
+# this. and Me. preferences
+dotnet_style_qualification_for_event = false
+dotnet_style_qualification_for_field = false
+dotnet_style_qualification_for_method = false
+dotnet_style_qualification_for_property = false
+
+# Language keywords vs BCL types preferences
+dotnet_style_predefined_type_for_locals_parameters_members = true
+dotnet_style_predefined_type_for_member_access = true
+
+# Parentheses preferences
+dotnet_style_parentheses_in_arithmetic_binary_operators = always_for_clarity
+dotnet_style_parentheses_in_other_binary_operators = always_for_clarity
+dotnet_style_parentheses_in_other_operators = never_if_unnecessary
+dotnet_style_parentheses_in_relational_binary_operators = always_for_clarity
+
+# Modifier preferences
+dotnet_style_require_accessibility_modifiers = for_non_interface_members
+
+# Expression-level preferences
+dotnet_style_coalesce_expression = true
+dotnet_style_collection_initializer = true
+dotnet_style_explicit_tuple_names = true
+dotnet_style_namespace_match_folder = true
+dotnet_style_null_propagation = true
+dotnet_style_object_initializer = true
+dotnet_style_operator_placement_when_wrapping = beginning_of_line
+dotnet_style_prefer_auto_properties = true
+dotnet_style_prefer_collection_expression = when_types_loosely_match
+dotnet_style_prefer_compound_assignment = true
+dotnet_style_prefer_conditional_expression_over_assignment = true
+dotnet_style_prefer_conditional_expression_over_return = true
+dotnet_style_prefer_foreach_explicit_cast_in_source = when_strongly_typed
+dotnet_style_prefer_inferred_anonymous_type_member_names = true
+dotnet_style_prefer_inferred_tuple_names = true
+dotnet_style_prefer_is_null_check_over_reference_equality_method = true
+dotnet_style_prefer_simplified_boolean_expressions = true
+dotnet_style_prefer_simplified_interpolation = true
+
+# Field preferences
+dotnet_style_readonly_field = true
+
+# Parameter preferences
+dotnet_code_quality_unused_parameters = all
+
+# Suppression preferences
+dotnet_remove_unnecessary_suppression_exclusions = none
+
+# New line preferences
+dotnet_style_allow_multiple_blank_lines_experimental = true
+dotnet_style_allow_statement_immediately_after_block_experimental = false
+
+#### C# Coding Conventions ####
+
+# var preferences
+csharp_style_var_elsewhere = false:silent
+csharp_style_var_for_built_in_types = false:silent
+csharp_style_var_when_type_is_apparent = false:silent
+
+# Expression-bodied members
+csharp_style_expression_bodied_accessors = true:silent
+csharp_style_expression_bodied_constructors = when_on_single_line:silent
+csharp_style_expression_bodied_indexers = true:silent
+csharp_style_expression_bodied_lambdas = true:silent
+csharp_style_expression_bodied_local_functions = when_on_single_line:silent
+csharp_style_expression_bodied_methods = when_on_single_line:silent
+csharp_style_expression_bodied_operators = when_on_single_line:silent
+csharp_style_expression_bodied_properties = true:silent
+
+# Pattern matching preferences
+csharp_style_pattern_matching_over_as_with_null_check = true:suggestion
+csharp_style_pattern_matching_over_is_with_cast_check = true:suggestion
+csharp_style_prefer_extended_property_pattern = true:suggestion
+csharp_style_prefer_not_pattern = true:suggestion
+csharp_style_prefer_pattern_matching = true:silent
+csharp_style_prefer_switch_expression = true:suggestion
+
+# Null-checking preferences
+csharp_style_conditional_delegate_call = true:suggestion
+
+# Modifier preferences
+csharp_prefer_static_local_function = true:suggestion
+csharp_preferred_modifier_order = public,private,protected,internal,file,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,required,volatile,async
+csharp_style_prefer_readonly_struct = true:suggestion
+csharp_style_prefer_readonly_struct_member = true:suggestion
+
+# Code-block preferences
+csharp_prefer_braces = when_multiline:silent
+csharp_prefer_simple_using_statement = true:suggestion
+csharp_style_namespace_declarations = file_scoped:silent
+csharp_style_prefer_method_group_conversion = true:silent
+csharp_style_prefer_primary_constructors = true:suggestion
+csharp_style_prefer_top_level_statements = true:silent
+
+# Expression-level preferences
+csharp_prefer_simple_default_expression = true:suggestion
+csharp_style_deconstructed_variable_declaration = true:suggestion
+csharp_style_implicit_object_creation_when_type_is_apparent = true:suggestion
+csharp_style_inlined_variable_declaration = true:suggestion
+csharp_style_prefer_index_operator = true:suggestion
+csharp_style_prefer_local_over_anonymous_function = true:suggestion
+csharp_style_prefer_null_check_over_type_check = true:suggestion
+csharp_style_prefer_range_operator = true:suggestion
+csharp_style_prefer_tuple_swap = true:suggestion
+csharp_style_prefer_utf8_string_literals = true:suggestion
+csharp_style_throw_expression = true:suggestion
+csharp_style_unused_value_assignment_preference = discard_variable:suggestion
+csharp_style_unused_value_expression_statement_preference = discard_variable:silent
+
+# 'using' directive preferences
+csharp_using_directive_placement = outside_namespace:silent
+
+# New line preferences
+csharp_style_allow_blank_line_after_colon_in_constructor_initializer_experimental = false:silent
+csharp_style_allow_blank_line_after_token_in_arrow_expression_clause_experimental = false:silent
+csharp_style_allow_blank_line_after_token_in_conditional_expression_experimental = false:silent
+csharp_style_allow_blank_lines_between_consecutive_braces_experimental = false:silent
+csharp_style_allow_embedded_statements_on_same_line_experimental = true:silent
+
+#### C# Formatting Rules ####
+
+# New line preferences
+csharp_new_line_before_catch = true
+csharp_new_line_before_else = true
+csharp_new_line_before_finally = true
+csharp_new_line_before_members_in_anonymous_types = true
+csharp_new_line_before_members_in_object_initializers = true
+csharp_new_line_before_open_brace = all
+csharp_new_line_between_query_expression_clauses = true
+
+# Indentation preferences
+csharp_indent_block_contents = true
+csharp_indent_braces = false
+csharp_indent_case_contents = true
+csharp_indent_case_contents_when_block = true
+csharp_indent_labels = one_less_than_current
+csharp_indent_switch_labels = true
+
+# Space preferences
+csharp_space_after_cast = false
+csharp_space_after_colon_in_inheritance_clause = true
+csharp_space_after_comma = true
+csharp_space_after_dot = false
+csharp_space_after_keywords_in_control_flow_statements = true
+csharp_space_after_semicolon_in_for_statement = true
+csharp_space_around_binary_operators = before_and_after
+csharp_space_around_declaration_statements = false
+csharp_space_before_colon_in_inheritance_clause = true
+csharp_space_before_comma = false
+csharp_space_before_dot = false
+csharp_space_before_open_square_brackets = false
+csharp_space_before_semicolon_in_for_statement = false
+csharp_space_between_empty_square_brackets = false
+csharp_space_between_method_call_empty_parameter_list_parentheses = false
+csharp_space_between_method_call_name_and_opening_parenthesis = false
+csharp_space_between_method_call_parameter_list_parentheses = false
+csharp_space_between_method_declaration_empty_parameter_list_parentheses = false
+csharp_space_between_method_declaration_name_and_open_parenthesis = false
+csharp_space_between_method_declaration_parameter_list_parentheses = false
+csharp_space_between_parentheses = false
+csharp_space_between_square_brackets = false
+
+# Wrapping preferences
+csharp_preserve_single_line_blocks = true
+csharp_preserve_single_line_statements = true
+
+#### Naming styles ####
+
+# Naming rules
+
+dotnet_naming_rule.interface_should_be_begins_with_i.severity = suggestion
+dotnet_naming_rule.interface_should_be_begins_with_i.symbols = interface
+dotnet_naming_rule.interface_should_be_begins_with_i.style = begins_with_i
+
+dotnet_naming_rule.types_should_be_pascal_case.severity = suggestion
+dotnet_naming_rule.types_should_be_pascal_case.symbols = types
+dotnet_naming_rule.types_should_be_pascal_case.style = pascal_case
+
+dotnet_naming_rule.non_field_members_should_be_pascal_case.severity = suggestion
+dotnet_naming_rule.non_field_members_should_be_pascal_case.symbols = non_field_members
+dotnet_naming_rule.non_field_members_should_be_pascal_case.style = pascal_case
+
+# Symbol specifications
+
+dotnet_naming_symbols.interface.applicable_kinds = interface
+dotnet_naming_symbols.interface.applicable_accessibilities = public, internal, private, protected, protected_internal, private_protected
+dotnet_naming_symbols.interface.required_modifiers = 
+
+dotnet_naming_symbols.types.applicable_kinds = class, struct, interface, enum
+dotnet_naming_symbols.types.applicable_accessibilities = public, internal, private, protected, protected_internal, private_protected
+dotnet_naming_symbols.types.required_modifiers = 
+
+dotnet_naming_symbols.non_field_members.applicable_kinds = property, event, method
+dotnet_naming_symbols.non_field_members.applicable_accessibilities = public, internal, private, protected, protected_internal, private_protected
+dotnet_naming_symbols.non_field_members.required_modifiers = 
+
+# Naming styles
+
+dotnet_naming_style.pascal_case.required_prefix = 
+dotnet_naming_style.pascal_case.required_suffix = 
+dotnet_naming_style.pascal_case.word_separator = 
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+
+dotnet_naming_style.begins_with_i.required_prefix = I
+dotnet_naming_style.begins_with_i.required_suffix = 
+dotnet_naming_style.begins_with_i.word_separator = 
+dotnet_naming_style.begins_with_i.capitalization = pascal_case
+
+[*.{cs,vb}]
+dotnet_style_operator_placement_when_wrapping = beginning_of_line
+tab_width = 4
+indent_size = 4
+end_of_line = crlf
+dotnet_style_coalesce_expression = true:suggestion
+dotnet_style_null_propagation = true:suggestion
+dotnet_style_prefer_is_null_check_over_reference_equality_method = true:suggestion
+dotnet_style_prefer_auto_properties = true:silent
+dotnet_style_object_initializer = true:suggestion
+dotnet_style_collection_initializer = true:suggestion
+dotnet_style_prefer_simplified_boolean_expressions = true:suggestion
+dotnet_style_prefer_conditional_expression_over_return = true:silent
+dotnet_style_prefer_conditional_expression_over_assignment = true:silent
+dotnet_style_prefer_inferred_tuple_names = true:suggestion
+dotnet_style_explicit_tuple_names = true:suggestion
+dotnet_style_prefer_compound_assignment = true:suggestion
+dotnet_style_prefer_inferred_anonymous_type_member_names = true:suggestion
+dotnet_style_prefer_simplified_interpolation = true:suggestion
+dotnet_style_prefer_collection_expression = when_types_loosely_match:suggestion
+dotnet_style_namespace_match_folder = true:suggestion
+dotnet_style_readonly_field = true:suggestion
+dotnet_style_predefined_type_for_locals_parameters_members = true:silent
+dotnet_style_predefined_type_for_member_access = true:silent
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:silent
+dotnet_style_allow_multiple_blank_lines_experimental = true:silent
+dotnet_style_allow_statement_immediately_after_block_experimental = false:silent
+dotnet_code_quality_unused_parameters = all:suggestion
+dotnet_style_parentheses_in_arithmetic_binary_operators = always_for_clarity:silent
+dotnet_style_parentheses_in_relational_binary_operators = always_for_clarity:silent
+dotnet_style_parentheses_in_other_binary_operators = always_for_clarity:silent
+dotnet_style_parentheses_in_other_operators = never_if_unnecessary:silent
+dotnet_style_qualification_for_field = false:silent
+dotnet_style_qualification_for_property = false:silent
+dotnet_style_qualification_for_method = false:silent
+dotnet_style_qualification_for_event = false:silent
+</file>
+
+<file path=".gitattributes">
+###############################################################################
+# Set default behavior to automatically normalize line endings.
+###############################################################################
+* text=auto
+
+###############################################################################
+# Set default behavior for command prompt diff.
+#
+# This is need for earlier builds of msysgit that does not have it on by
+# default for csharp files.
+# Note: This is only used by command line
+###############################################################################
+#*.cs     diff=csharp
+
+###############################################################################
+# Set the merge driver for project and solution files
+#
+# Merging from the command prompt will add diff markers to the files if there
+# are conflicts (Merging from VS is not affected by the settings below, in VS
+# the diff markers are never inserted). Diff markers may cause the following 
+# file extensions to fail to load in VS. An alternative would be to treat
+# these files as binary and thus will always conflict and require user
+# intervention with every merge. To do so, just uncomment the entries below
+###############################################################################
+#*.sln       merge=binary
+#*.csproj    merge=binary
+#*.vbproj    merge=binary
+#*.vcxproj   merge=binary
+#*.vcproj    merge=binary
+#*.dbproj    merge=binary
+#*.fsproj    merge=binary
+#*.lsproj    merge=binary
+#*.wixproj   merge=binary
+#*.modelproj merge=binary
+#*.sqlproj   merge=binary
+#*.wwaproj   merge=binary
+
+###############################################################################
+# behavior for image files
+#
+# image files are treated as binary by default.
+###############################################################################
+#*.jpg   binary
+#*.png   binary
+#*.gif   binary
+
+###############################################################################
+# diff behavior for common document formats
+# 
+# Convert binary document formats to text before diffing them. This feature
+# is only available from the command line. Turn it on by uncommenting the 
+# entries below.
+###############################################################################
+#*.doc   diff=astextplain
+#*.DOC   diff=astextplain
+#*.docx  diff=astextplain
+#*.DOCX  diff=astextplain
+#*.dot   diff=astextplain
+#*.DOT   diff=astextplain
+#*.pdf   diff=astextplain
+#*.PDF   diff=astextplain
+#*.rtf   diff=astextplain
+#*.RTF   diff=astextplain
+</file>
+
+<file path=".github/FUNDING.yml">
+# These are supported funding model platforms
+
+github: [Agash]
+</file>
+
+<file path=".gitignore">
+## Ignore Visual Studio temporary files, build results, and
+## files generated by popular Visual Studio add-ons.
+##
+## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# User-specific files (MonoDevelop/Xamarin Studio)
+*.userprefs
+
+# Mono auto generated files
+mono_crash.*
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio 2015/2017 cache/options directory
+.vs/
+# Uncomment if you have tasks that create the project's static files in wwwroot
+#wwwroot/
+
+# Visual Studio 2017 auto generated files
+Generated\ Files/
+
+# MSTest test Results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+
+# NUnit
+*.VisualState.xml
+TestResult.xml
+nunit-*.xml
+
+# Build Results of an ATL Project
+[Dd]ebugPS/
+[Rr]eleasePS/
+dlldata.c
+
+# Benchmark Results
+BenchmarkDotNet.Artifacts/
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# StyleCop
+StyleCopReport.xml
+
+# Files built by Visual Studio
+*_i.c
+*_p.c
+*_h.h
+*.ilk
+*.meta
+*.obj
+*.iobj
+*.pch
+*.pdb
+*.ipdb
+*.pgc
+*.pgd
+*.rsp
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.tmp
+*.tmp_proj
+*_wpftmp.csproj
+*.log
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
+
+# Chutzpah Test files
+_Chutzpah*
+
+# Visual C++ cache files
+ipch/
+*.aps
+*.ncb
+*.opendb
+*.opensdf
+*.sdf
+*.cachefile
+*.VC.db
+*.VC.VC.opendb
+
+# Visual Studio profiler
+*.psess
+*.vsp
+*.vspx
+*.sap
+
+# Visual Studio Trace Files
+*.e2e
+
+# TFS 2012 Local Workspace
+$tf/
+
+# Guidance Automation Toolkit
+*.gpState
+
+# ReSharper is a .NET coding add-in
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# TeamCity is a build add-in
+_TeamCity*
+
+# DotCover is a Code Coverage Tool
+*.dotCover
+
+# AxoCover is a Code Coverage Tool
+.axoCover/*
+!.axoCover/settings.json
+
+# Coverlet is a free, cross platform Code Coverage Tool
+coverage*.json
+coverage*.xml
+coverage*.info
+
+# Visual Studio code coverage results
+*.coverage
+*.coveragexml
+
+# NCrunch
+_NCrunch_*
+.*crunch*.local.xml
+nCrunchTemp_*
+
+# MightyMoose
+*.mm.*
+AutoTest.Net/
+
+# Web workbench (sass)
+.sass-cache/
+
+# Installshield output folder
+[Ee]xpress/
+
+# DocProject is a documentation generator add-in
+DocProject/buildhelp/
+DocProject/Help/*.HxT
+DocProject/Help/*.HxC
+DocProject/Help/*.hhc
+DocProject/Help/*.hhk
+DocProject/Help/*.hhp
+DocProject/Help/Html2
+DocProject/Help/html
+
+# Click-Once directory
+publish/
+
+# Publish Web Output
+*.[Pp]ublish.xml
+*.azurePubxml
+# Note: Comment the next line if you want to checkin your web deploy settings,
+# but database connection strings (with potential passwords) will be unencrypted
+*.pubxml
+*.publishproj
+
+# Microsoft Azure Web App publish settings. Comment the next line if you want to
+# checkin your Azure Web App publish settings, but sensitive information contained
+# in these scripts will be unencrypted
+PublishScripts/
+
+# NuGet Packages
+*.nupkg
+# NuGet Symbol Packages
+*.snupkg
+# The packages folder can be ignored because of Package Restore
+**/[Pp]ackages/*
+# except build/, which is used as an MSBuild target.
+!**/[Pp]ackages/build/
+# Uncomment if necessary however generally it will be regenerated when needed
+#!**/[Pp]ackages/repositories.config
+# NuGet v3's project.json files produces more ignorable files
+*.nuget.props
+*.nuget.targets
+
+# Microsoft Azure Build Output
+csx/
+*.build.csdef
+
+# Microsoft Azure Emulator
+ecf/
+rcf/
+
+# Windows Store app package directories and files
+AppPackages/
+BundleArtifacts/
+Package.StoreAssociation.xml
+_pkginfo.txt
+*.appx
+*.appxbundle
+*.appxupload
+
+# Visual Studio cache files
+# files ending in .cache can be ignored
+*.[Cc]ache
+# but keep track of directories ending in .cache
+!?*.[Cc]ache/
+
+# Others
+ClientBin/
+~$*
+*~
+*.dbmdl
+*.dbproj.schemaview
+*.jfm
+*.pfx
+*.publishsettings
+orleans.codegen.cs
+
+# Including strong name files can present a security risk
+# (https://github.com/github/gitignore/pull/2483#issue-259490424)
+#*.snk
+
+# Since there are multiple workflows, uncomment next line to ignore bower_components
+# (https://github.com/github/gitignore/pull/1529#issuecomment-104372622)
+#bower_components/
+
+# RIA/Silverlight projects
+Generated_Code/
+
+# Backup & report files from converting an old project file
+# to a newer Visual Studio version. Backup files are not needed,
+# because we have git ;-)
+_UpgradeReport_Files/
+Backup*/
+UpgradeLog*.XML
+UpgradeLog*.htm
+ServiceFabricBackup/
+*.rptproj.bak
+
+# SQL Server files
+*.mdf
+*.ldf
+*.ndf
+
+# Business Intelligence projects
+*.rdl.data
+*.bim.layout
+*.bim_*.settings
+*.rptproj.rsuser
+*- [Bb]ackup.rdl
+*- [Bb]ackup ([0-9]).rdl
+*- [Bb]ackup ([0-9][0-9]).rdl
+
+# Microsoft Fakes
+FakesAssemblies/
+
+# GhostDoc plugin setting file
+*.GhostDoc.xml
+
+# Node.js Tools for Visual Studio
+.ntvs_analysis.dat
+node_modules/
+
+# Visual Studio 6 build log
+*.plg
+
+# Visual Studio 6 workspace options file
+*.opt
+
+# Visual Studio 6 auto-generated workspace file (contains which files were open etc.)
+*.vbw
+
+# Visual Studio LightSwitch build output
+**/*.HTMLClient/GeneratedArtifacts
+**/*.DesktopClient/GeneratedArtifacts
+**/*.DesktopClient/ModelManifest.xml
+**/*.Server/GeneratedArtifacts
+**/*.Server/ModelManifest.xml
+_Pvt_Extensions
+
+# Paket dependency manager
+.paket/paket.exe
+paket-files/
+
+# FAKE - F# Make
+.fake/
+
+# CodeRush personal settings
+.cr/personal
+
+# Python Tools for Visual Studio (PTVS)
+__pycache__/
+*.pyc
+
+# Cake - Uncomment if you are using it
+# tools/**
+# !tools/packages.config
+
+# Tabs Studio
+*.tss
+
+# Telerik's JustMock configuration file
+*.jmconfig
+
+# BizTalk build output
+*.btp.cs
+*.btm.cs
+*.odx.cs
+*.xsd.cs
+
+# OpenCover UI analysis results
+OpenCover/
+
+# Azure Stream Analytics local run output
+ASALocalRun/
+
+# MSBuild Binary and Structured Log
+*.binlog
+
+# NVidia Nsight GPU debugger configuration file
+*.nvuser
+
+# MFractors (Xamarin productivity tool) working folder
+.mfractor/
+
+# Local History for Visual Studio
+.localhistory/
+
+# BeatPulse healthcheck temp database
+healthchecksdb
+
+# Backup folder for Package Reference Convert tool in Visual Studio 2017
+MigrationBackup/
+
+# Ionide (cross platform F# VS Code tools) working folder
+.ionide/
+
+# Fody - auto-generated XML schema
+FodyWeavers.xsd
+</file>
+
+<file path="global.json">
+{
+  "sdk": {
+    "rollForward": "feature",
+    "version": "8.0.204"
+  }
+}
+</file>
+
+<file path="README.md">
+# YTLiveChat
+</file>
+
+<file path="YTLiveChat.sln">
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34728.123
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YTLiveChat", "YTLiveChat.csproj", "{E576C1B9-B923-4B52-B159-EED0E4673A32}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E576C1B9-B923-4B52-B159-EED0E4673A32}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E576C1B9-B923-4B52-B159-EED0E4673A32}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E576C1B9-B923-4B52-B159-EED0E4673A32}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E576C1B9-B923-4B52-B159-EED0E4673A32}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {09AC152F-309D-4227-8A52-471A92F4AC61}
+	EndGlobalSection
+EndGlobal
+</file>
+
+<file path=".github/workflows/publish.yml">
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+name: publish
+on:
+  workflow_dispatch: # Allow running the workflow manually from the GitHub UI
+  push:
+    branches:
+      - 'main'       # Run the workflow when pushing to the main branch
+  pull_request:
+    branches:
+      - '*'          # Run the workflow for all pull requests
+  release:
+    types:
+      - published    # Run the workflow when a new GitHub release is published
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+  DOTNET_NOLOGO: true
+  NuGetDirectory: ${{ github.workspace}}/nuget
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  create_nuget:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Get all history to allow automatic versioning using MinVer
+
+    # Install the .NET SDK indicated in the global.json file
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+
+    # Create the NuGet package in the folder from the environment variable NuGetDirectory
+    - run: dotnet pack --configuration Release --output ${{ env.NuGetDirectory }}
+
+    # Publish the NuGet package as an artifact, so they can be used in the following jobs
+    - uses: actions/upload-artifact@v4
+      with:
+        name: nuget
+        if-no-files-found: error
+        retention-days: 7
+        path: ${{ env.NuGetDirectory }}/*.nupkg
+
+  deploy:
+    # Publish only when creating a GitHub Release
+    # https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository
+    # You can update this logic if you want to manage releases differently
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    needs: [ create_nuget ]
+    steps:
+      # Download the NuGet package created in the previous job
+      - uses: actions/download-artifact@v4
+        with:
+          name: nuget
+          path: ${{ env.NuGetDirectory }}
+
+      # Install the .NET SDK indicated in the global.json file
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v4
+
+      # Publish all NuGet packages to NuGet.org
+      # Use --skip-duplicate to prevent errors if a package with the same version already exists.
+      # If you retry a failed workflow, already published packages will be skipped without error.
+      - name: Publish NuGet package
+        run: |
+          foreach($file in (Get-ChildItem "${{ env.NuGetDirectory }}" -Recurse -Include *.nupkg)) {
+              dotnet nuget push $file --api-key "${{ secrets.NUGET_APIKEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          }
+</file>
+
+<file path="Contracts/YTLiveChatOptions.cs">
+namespace YTLiveChat.Contracts;
+
+/// <summary>
+/// Options from appsettings.json loaded in DI
+/// </summary>
+public class YTLiveChatOptions
+{
+    /// <summary>
+    /// Base URL of YouTube
+    /// </summary>
+    /// <remarks>If not set, during DI initialization it'll default to: "https://www.youtube.com"</remarks>
+    public string YoutubeBaseUrl { get; set; } = "https://www.youtube.com";
+
+    /// <summary>
+    /// Frequency of when (in milliseconds) the new batch of chat messages will be requested from YT servers, (i.e. every X milliseconds)
+    /// </summary>
+    public int RequestFrequency { get; set; } = 1000;
+}
+</file>
+
+<file path="Helpers/Converter.cs">
+namespace YTLiveChat.Helpers;
+
+internal static class Converter
+{
+    public static string ToHex6Color(this int value) => value.ToString("X")[2..].ToUpperInvariant();
+}
+</file>
+
+<file path="Helpers/Misc.cs">
+namespace YTLiveChat.Helpers;
+
+internal static class Misc
+{
+    public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> o) where T : class => o.Where(x => x != null)!;
+}
+</file>
+
+<file path="LICENSE.txt">
+MIT License
+
+Copyright (c) 2024 Agash Thamo.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</file>
+
+<file path="Models/FetchOptions.cs">
+namespace YTLiveChat.Models;
+
+internal class FetchOptions
+{
+    public required string LiveId { get; set; }
+    public required string ApiKey { get; set; }
+    public required string ClientVersion { get; set; }
+    public required string Continuation { get; set; }
+}
+</file>
+
+<file path="Models/Response/Accessibility.cs">
+namespace YTLiveChat.Models.Response;
+
+internal class Accessibility
+{
+    public required AccessibilityDataObj AccessibilityData { get; set; }
+    public class AccessibilityDataObj
+    {
+        public string Label { get; set; } = string.Empty;
+    }
+}
+</file>
+
+<file path="Models/Response/Author.cs">
+namespace YTLiveChat.Models.Response;
+
+internal class AuthorName
+{
+    public required string SimpleText { get; set; }
+}
+
+internal class AuthorBadge
+{
+    public required AuthorBadgeRenderer LiveChatAuthorBadgeRenderer { get; set; }
+}
+
+internal class AuthorBadgeRenderer
+{
+    public Image? CustomThumbnail { get; set; }
+    public Icon? Icon { get; set; }
+    public required string Tooltip { get; set; }
+    public required Accessibility Accessibility { get; set; }
+}
+</file>
+
+<file path="Models/Response/Continuation.cs">
+namespace YTLiveChat.Models.Response;
+
+internal class ContinuationContents
+{
+    public required LiveChatContinuationObj LiveChatContinuation { get; set; }
+    public class LiveChatContinuationObj
+    {
+        public Continuation[] Continuations { get; set; } = [];
+        public YTAction[] Actions { get; set; } = [];
+    }
+}
+
+
+
+internal class Continuation
+{
+    public InvalidationContinuation? InvalidationContinuationData { get; set; }
+    public TimedContinuation? TimedContinuationData { get; set; }
+}
+
+internal class InvalidationId
+{
+    public required string ObjectId { get; set; }
+    public required int ObjectSource { get; set; }
+    public required string Topic { get; set; }
+    public required bool SubscribeToGcmTopics { get; set; }
+    public required string ProtoCreationTimestampMs { get; set; }
+}
+
+internal class InvalidationContinuation
+{
+    public required InvalidationId InvalidationId { get; set; }
+    public required int TimeoutMs { get; set; }
+    public required string Continuation { get; set; }
+}
+
+internal class TimedContinuation
+{
+    public required int TimeoutMs { get; set; }
+    public required string Continuation { get; set; }
+    public required string ClickTrackingParams { get; set; }
+}
+</file>
+
+<file path="Models/Response/GetLiveChatResponse.cs">
+using System.Text.Json.Nodes;
+
+namespace YTLiveChat.Models.Response;
+
+internal class GetLiveChatResponse
+{
+    public required JsonObject ResponseContext { get; set; }
+    public string? TrackingParams { get; set; }
+    public required ContinuationContents ContinuationContents { get; set; }
+}
+</file>
+
+<file path="Models/Response/Images.cs">
+namespace YTLiveChat.Models.Response;
+
+internal class Thumbnail
+{
+    public required string Url { get; set; }
+    public int? Width { get; set; }
+    public int? Height { get; set; }
+}
+
+internal class Icon
+{
+    public required string IconType { get; set; }
+}
+
+internal class Image
+{
+    public Thumbnail[] Thumbnails { get; set; } = [];
+}
+
+internal class ImageWithAccessibility : Image
+{
+    public required Accessibility Accessibility { get; set; }
+}
+</file>
+
+<file path="Contracts/Models/Superchat.cs">
+namespace YTLiveChat.Contracts.Models;
+
+/// <summary>
+/// Represents a Superchat
+/// </summary>
+public class Superchat
+{
+    /// <summary>
+    /// Amount of $ gifted
+    /// </summary>
+    public required string Amount { get; set; }
+
+    /// <summary>
+    /// Color of Superchat
+    /// </summary>
+    public required string Color { get; set; }
+
+    /// <summary>
+    /// If Superchat is a sticker, contains an ImagePart with said Sticker
+    /// </summary>
+    public ImagePart? Sticker { get; set; }
+}
+</file>
+
+<file path="Helpers/MessageRunConverter.cs">
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using YTLiveChat.Models.Response;
+
+namespace YTLiveChat.Helpers;
+internal class MessageRunConverter : JsonConverter<MessageRun>
+{
+    public override MessageRun? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using JsonDocument doc = JsonDocument.ParseValue(ref reader);
+
+        return doc.RootElement.TryGetProperty("emoji", out _)
+            ? JsonSerializer.Deserialize<MessageEmoji>(doc.RootElement, options)
+            : doc.RootElement.TryGetProperty("text", out _)
+                ? (MessageRun?)JsonSerializer.Deserialize<MessageText>(doc.RootElement, options)
+                : throw new JsonException("Invalid MessageRun format.");
+    }
+
+    public override void Write(Utf8JsonWriter writer, MessageRun value, JsonSerializerOptions options) => throw new NotImplementedException(); // Implement if needed
+}
+</file>
+
+<file path="Helpers/Parser.cs">
+using System.Text.RegularExpressions;
+using YTLiveChat.Contracts.Models;
+using YTLiveChat.Models;
+using YTLiveChat.Models.Response;
+
+namespace YTLiveChat.Helpers;
+
+internal static partial class Parser
+{
+    public static FetchOptions GetOptionsFromLivePage(string raw)
+    {
+        Match idResult = LiveIdRegex().Match(raw);
+        string liveId = idResult.Success ? idResult.Groups[1].Value : throw new Exception("Live Stream was not found");
+
+        Match replayResult = ReplayRegex().Match(raw);
+        if (replayResult.Success)
+        {
+            throw new Exception($"{liveId} is finished live");
+        }
+
+        Match keyResult = ApiKeyRegex().Match(raw);
+        string apiKey = keyResult.Success ? keyResult.Groups[1].Value : throw new Exception("API Key was not found");
+
+        Match verResult = ClientVersionRegex().Match(raw);
+        string clientVersion = verResult.Success ? verResult.Groups[1].Value : throw new Exception("Client Version was not found");
+
+        Match continuationResult = ContinuationRegex().Match(raw);
+        string continuation = continuationResult.Success ? continuationResult.Groups[1].Value : throw new Exception("Continuation was not found");
+
+        return new()
+        {
+            ApiKey = apiKey,
+            ClientVersion = clientVersion,
+            Continuation = continuation,
+            LiveId = liveId
+        };
+    }
+    public static MessageRendererBase? GetMessageRenderer(AddChatItemAction.ItemObj item)
+    {
+        return item == null
+            ? null
+            : item.LiveChatPaidMessageRenderer ?? item.LiveChatTextMessageRenderer ?? item.LiveChatPaidStickerRenderer ?? item.LiveChatMembershipItemRenderer ?? (MessageRendererBase?)null;
+    }
+    public static MessagePart ToMessagePart(this MessageRun run)
+    {
+        if (run is MessageText text)
+        {
+            return new TextPart { Text = text.Text };
+        }
+
+        MessageEmoji? emoji = run as MessageEmoji;
+
+        bool isCustom = emoji?.Emoji.IsCustomEmoji ?? false;
+        string? altText = emoji?.Emoji.Shortcuts.FirstOrDefault();
+
+        return new EmojiPart
+        {
+            Url = emoji?.Emoji.Image?.Thumbnails.FirstOrDefault()?.Url ?? string.Empty,
+            IsCustomEmoji = isCustom,
+            Alt = altText,
+            EmojiText = (isCustom ? altText : emoji?.Emoji.EmojiId) ?? string.Empty
+        };
+    }
+
+    public static MessagePart[] ToMessagePart(this MessageRun[] runs) => runs.Select(r => r.ToMessagePart()).ToArray();
+
+    public static ChatItem? ToChatItem(this YTAction action)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+
+        if (action.AddChatItemAction == null)
+        {
+            return null;
+        }
+
+        MessageRendererBase? renderer = GetMessageRenderer(action.AddChatItemAction.Item);
+        if (renderer == null)
+        {
+            return null;
+        }
+
+        ChatItem chat = new()
+        {
+            Id = renderer.Id,
+            Author = new()
+            {
+                Name = renderer.AuthorName?.SimpleText ?? string.Empty,
+                ChannelId = renderer.AuthorExternalChannelId,
+                Thumbnail = renderer.AuthorPhoto.Thumbnails.ToImage(renderer.AuthorName?.SimpleText ?? string.Empty)
+            },
+            Message = renderer switch
+            {
+                LiveChatTextMessageRenderer textMessageRenderer => textMessageRenderer.Message.Runs.ToMessagePart(),
+                LiveChatMembershipItemRenderer membershipItemRenderer => membershipItemRenderer.HeaderSubtext.Runs.ToMessagePart(),
+                _ => []
+            },
+            Superchat = renderer switch
+            {
+                LiveChatPaidStickerRenderer stickerRenderer => new()
+                {
+                    Amount = stickerRenderer.PurchaseAmountText.SimpleText ?? string.Empty,
+                    Color = stickerRenderer.BackgroundColor.ToHex6Color(),
+                    Sticker = stickerRenderer.Sticker.Thumbnails.ToImage(stickerRenderer.Sticker.Accessibility.AccessibilityData.Label)
+                },
+                LiveChatPaidMessageRenderer paidMessageRenderer => new()
+                {
+                    Amount = paidMessageRenderer.PurchaseAmountText.SimpleText ?? string.Empty,
+                    Color = paidMessageRenderer.BodyBackgroundColor.ToHex6Color(),
+                },
+                _ => null
+            }
+        };
+
+        if (renderer.AuthorBadges != null && renderer.AuthorBadges.Length > 0)
+        {
+            foreach (AuthorBadge item in renderer.AuthorBadges)
+            {
+                AuthorBadgeRenderer badge = item.LiveChatAuthorBadgeRenderer;
+                if (badge.CustomThumbnail != null)
+                {
+                    chat.Author.Badge = new Badge
+                    {
+                        Thumbnail = badge.CustomThumbnail.Thumbnails.ToImage(badge.Tooltip),
+                        Label = badge.Tooltip
+                    };
+                    chat.IsMembership = true;
+                }
+                else
+                {
+                    switch (badge.Icon?.IconType)
+                    {
+                        case "OWNER":
+                            chat.IsOwner = true; break;
+                        case "VERIFIED":
+                            chat.IsVerified = true; break;
+                        case "MODERATOR":
+                            chat.IsModerator = true; break;
+                    }
+                }
+            }
+        }
+
+        return chat;
+    }
+    public static ImagePart? ToImage(this Thumbnail[] thumbnails, string? alt = null)
+    {
+        Thumbnail? thumbnail = thumbnails.LastOrDefault();
+        return thumbnail == null
+            ? null
+            : new ImagePart
+            {
+                Url = thumbnail.Url,
+                Alt = alt,
+            };
+    }
+    public static (List<ChatItem> Items, string Continuation) ParseGetLiveChatResponse(GetLiveChatResponse? response)
+    {
+        List<ChatItem> items = [];
+
+        if (response != null)
+        {
+            items = response.ContinuationContents.LiveChatContinuation.Actions.Where(a => a.AddChatItemAction != null).Select(a => a.ToChatItem()).WhereNotNull().ToList();
+        }
+
+        Continuation? continuationData = response?.ContinuationContents.LiveChatContinuation.Continuations.FirstOrDefault();
+        string continuation = "";
+
+        if (continuationData?.InvalidationContinuationData != null)
+        {
+            continuation = continuationData.InvalidationContinuationData.Continuation;
+        }
+        else if (continuationData?.TimedContinuationData != null)
+        {
+            continuation = continuationData.TimedContinuationData.Continuation;
+        }
+
+        return (items, continuation);
+    }
+
+    [GeneratedRegex("<link rel=\"canonical\" href=\"https:\\/\\/www\\.youtube\\.com\\/watch\\?v=([^\"]+)\">")]
+    private static partial Regex LiveIdRegex();
+
+    [GeneratedRegex("\"isReplay\":\\s*(true)")]
+    private static partial Regex ReplayRegex();
+
+    [GeneratedRegex("\"INNERTUBE_API_KEY\":\\s*\"([^\"]*)\"")]
+    private static partial Regex ApiKeyRegex();
+
+    [GeneratedRegex("\"clientVersion\":\\s*\"([^\"]*)\"")]
+    private static partial Regex ClientVersionRegex();
+
+    [GeneratedRegex("\"continuation\":\\s*\"([^\"]*)\"")]
+    private static partial Regex ContinuationRegex();
+}
+</file>
+
+<file path="Models/Response/ContextMenuEndpoint.cs">
+namespace YTLiveChat.Models.Response;
+
+internal class ContextMenuEndpoint
+{
+    public string? ClickTrackingParams { get; set; }
+    public required CommandMetadata CommandMetadata { get; set; }
+    public required LiveChatItemContextMenuEndpoint LiveChatItemContextMenuEndpoint { get; set; }
+}
+
+internal class CommandMetadata
+{
+    public required WebCommandMetadataObj WebCommandMetadata { get; set; }
+    public class WebCommandMetadataObj
+    {
+        public bool IgnoreNavigation { get; set; } = true;
+    }
+}
+
+internal class LiveChatItemContextMenuEndpoint
+{
+    public required string Params { get; set; }
+}
+</file>
+
+<file path="Models/Response/Messages.cs">
+using System.Text.Json.Serialization;
+using YTLiveChat.Helpers;
+
+namespace YTLiveChat.Models.Response;
+
+[JsonConverter(typeof(MessageRunConverter))]
+internal abstract class MessageRun
+{
+}
+
+internal class MessageText : MessageRun
+{
+    public required string Text { get; set; }
+}
+
+internal class MessageEmoji : MessageRun
+{
+    public required EmojiObj Emoji { get; set; }
+    public class EmojiObj
+    {
+        public required string EmojiId { get; set; }
+        public string[] Shortcuts { get; set; } = [];
+        public string[] SearchTerms { get; set; } = [];
+        public bool SupportsSkinTones { get; set; } = false;
+        public ImageWithAccessibility? Image { get; set; }
+        public string[] VariantIds { get; set; } = [];
+        public bool IsCustomEmoji { get; set; } = false;
+    }
+}
+
+internal class MessageRendererBase
+{
+    public required string Id { get; set; }
+    public AuthorName? AuthorName { get; set; }
+    public required Image AuthorPhoto { get; set; }
+    public AuthorBadge[]? AuthorBadges { get; set; }
+    public required string AuthorExternalChannelId { get; set; }
+    public required ContextMenuEndpoint ContextMenuEndpoint { get; set; }
+    public required Accessibility ContextMenuAccessibility { get; set; }
+    public required string TimestampUsec { get; set; }
+}
+
+internal class MessageRuns
+{
+    public MessageRun[] Runs { get; set; } = [];
+}
+
+internal class LiveChatTextMessageRenderer : MessageRendererBase
+{
+    public required MessageRuns Message { get; set; }
+}
+
+internal class PurchaseAmountText
+{
+    public required string SimpleText { get; set; }
+}
+
+internal class LiveChatPaidMessageRenderer : LiveChatTextMessageRenderer
+{
+    public required PurchaseAmountText PurchaseAmountText { get; set; }
+    public required int HeaderBackgroundColor { get; set; }
+    public required int HeaderTextColor { get; set; }
+    public required int BodyBackgroundColor { get; set; }
+    public required int BodyTextColor { get; set; }
+    public required int AuthorNameTextColor { get; set; }
+}
+
+internal class LiveChatPaidStickerRenderer : MessageRendererBase
+{
+    public required PurchaseAmountText PurchaseAmountText { get; set; }
+    public required ImageWithAccessibility Sticker { get; set; }
+    public required int MoneyChipBackgroundColor { get; set; }
+    public required int MoneyChipTextColor { get; set; }
+    public required int StickerDisplayWidth { get; set; }
+    public required int StickerDisplayHeight { get; set; }
+    public required int BackgroundColor { get; set; }
+    public required int AuthorNameTextColor { get; set; }
+}
+
+internal class LiveChatMembershipItemRenderer : MessageRendererBase
+{
+    public required MessageRuns HeaderSubtext { get; set; }
+}
+</file>
+
+<file path="Models/Response/YTAction.cs">
+using System.Text.Json.Nodes;
+
+namespace YTLiveChat.Models.Response;
+
+internal class YTAction
+{
+    public AddChatItemAction? AddChatItemAction { get; set; }
+    public JsonObject? AddLiveChatTickerItemAction { get; set; }
+}
+
+internal class AddChatItemAction
+{
+    public required ItemObj Item { get; set; }
+    public string? ClientId { get; set; }
+    public class ItemObj
+    {
+        public LiveChatTextMessageRenderer? LiveChatTextMessageRenderer { get; set; }
+        public LiveChatPaidMessageRenderer? LiveChatPaidMessageRenderer { get; set; }
+        public LiveChatMembershipItemRenderer? LiveChatMembershipItemRenderer { get; set; }
+        public LiveChatPaidStickerRenderer? LiveChatPaidStickerRenderer { get; set; }
+        public JsonObject? LiveChatViewerEngagementMessageRenderer { get; set; }
+    }
+}
+</file>
+
+<file path="Services/YTHttpClient.cs">
+using System.Net.Http.Json;
+using YTLiveChat.Models;
+using YTLiveChat.Models.Response;
+
+namespace YTLiveChat.Services;
+
+internal class YTHttpClient(HttpClient httpClient) : IDisposable
+{
+    private readonly HttpClient _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+
+    public async Task<GetLiveChatResponse?> GetLiveChatAsync(FetchOptions options)
+    {
+        string url = $"/youtubei/v1/live_chat/get_live_chat?key={options.ApiKey}";
+        using HttpResponseMessage response = await _httpClient.PostAsJsonAsync(url, new
+        {
+            context = new
+            {
+                client = new
+                {
+                    clientVersion = options.ClientVersion,
+                    clientName = "WEB"
+                }
+            },
+            continuation = options.Continuation,
+        });
+
+        _ = response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<GetLiveChatResponse>();
+    }
+
+    public async Task<string> GetOptionsAsync(string? handle, string? channelId, string? liveId)
+    {
+        string url = string.Empty;
+        if (!string.IsNullOrEmpty(handle))
+        {
+            handle = handle.StartsWith('@') ? handle : '@' + handle;
+            url = $"/{handle}/live";
+        }
+
+        if (!string.IsNullOrEmpty(channelId))
+        {
+            url = $"/channel/{channelId}/live";
+        }
+
+        if (!string.IsNullOrEmpty(liveId))
+        {
+            url = $"/watch?v={liveId}";
+        }
+
+        ArgumentException.ThrowIfNullOrEmpty(url, "LiveID");
+
+        return await _httpClient.GetStringAsync(url);
+    }
+
+    public void Dispose() => ((IDisposable)_httpClient).Dispose();
+}
+</file>
+
+<file path="Services/YTHttpClientFactory.cs">
+using Microsoft.Extensions.DependencyInjection;
+namespace YTLiveChat.Services;
+
+internal class YTHttpClientFactory(IServiceProvider serviceProvider)
+{
+    private readonly IServiceProvider _serviceProvider = serviceProvider;
+
+    public YTHttpClient Create() => _serviceProvider.GetRequiredService<YTHttpClient>();
+}
+</file>
+
+<file path="Common/Constants.cs">
+namespace YTLiveChat.Common;
+
+internal class Constants
+{
+}
+</file>
+
+<file path="Contracts/Models/Author.cs">
+namespace YTLiveChat.Contracts.Models;
+
+/// <summary>
+/// Represents the Author of the message
+/// </summary>
+public class Author
+{
+    /// <summary>
+    /// Public name of the Author
+    /// </summary>
+    public required string Name { get; set; }
+
+    /// <summary>
+    /// ImagePart containing the Authors Thumbnail
+    /// </summary>
+    public ImagePart? Thumbnail { get; set; }
+
+    /// <summary>
+    /// ChannelId if available
+    /// </summary>
+    public required string ChannelId { get; set; }
+
+    /// <summary>
+    /// Current Badge of the Author within the Live Channel
+    /// </summary>
+    public Badge? Badge { get; set; }
+}
+
+/// <summary>
+/// Badges available on YouTube for Users
+/// </summary>
+public class Badge
+{
+    /// <summary>
+    /// Text representation of the Badge
+    /// </summary>
+    public required string Label { get; set; }
+
+    /// <summary>
+    /// ImagePart containing the Badge Thumbnail
+    /// </summary>
+    public ImagePart? Thumbnail { get; set; }
+}
+</file>
+
+<file path="Contracts/Models/ChatItem.cs">
+namespace YTLiveChat.Contracts.Models;
+
+/// <summary>
+/// ChatItem containing the full object with any MessageParts and Author details
+/// </summary>
+public class ChatItem
+{
+    /// <summary>
+    /// Unique Identifier
+    /// </summary>
+    public required string Id { get; set; }
+
+    /// <summary>
+    /// Author of the ChatItem
+    /// </summary>
+    public required Author Author { get; set; }
+
+    /// <summary>
+    /// Array of all message parts (Image, Text or Emoji variant)
+    /// </summary>
+    public required MessagePart[] Message { get; set; }
+
+    /// <summary>
+    /// Contains the Superchat if any was given
+    /// </summary>
+    public Superchat? Superchat { get; set; }
+
+    /// <summary>
+    /// Whether or not Author has a Membership on the current Live Channel
+    /// </summary>
+    public bool IsMembership { get; set; }
+
+    /// <summary>
+    /// Whether or not Author is Verified on YT
+    /// </summary>
+    public bool IsVerified { get; set; }
+
+    /// <summary>
+    /// Whether or not Author is Owner of the current Live Channel
+    /// </summary>
+    public bool IsOwner { get; set; }
+
+    /// <summary>
+    /// Whether or not Author is a Moderator of the current Live Channel
+    /// </summary>
+    public bool IsModerator { get; set; }
+
+    /// <summary>
+    /// Timestamp of the ChatItem creation
+    /// </summary>
+    public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
+}
+</file>
+
+<file path="Contracts/Models/MessagePart.cs">
+namespace YTLiveChat.Contracts.Models;
+
+/// <summary>
+/// Base class for individual message parts
+/// </summary>
+public abstract class MessagePart { }
+
+/// <summary>
+/// Image variant of a message part
+/// </summary>
+public class ImagePart : MessagePart
+{
+    /// <summary>
+    /// URL of the image
+    /// </summary>
+    public required string Url { get; set; }
+    /// <summary>
+    /// Alt string of the image
+    /// </summary>
+    public string? Alt { get; set; }
+
+    /// <summary>
+    /// Create a quasi json representation of an ImagePart
+    /// </summary>
+    /// <returns>String representation of Image in quasi json</returns>
+    public override string ToString() => $"{{Image: {{Alt: {Alt}, Url: {Url}}}}}";
+}
+
+/// <summary>
+/// Emoji variant of a message part
+/// </summary>
+public class EmojiPart : ImagePart
+{
+    /// <summary>
+    /// Text representation of the emoji
+    /// </summary>
+    public required string EmojiText { get; set; }
+    /// <summary>
+    /// Whether or not Emoji is a custom emoji of the channel
+    /// </summary>
+    public bool IsCustomEmoji { get; set; }
+
+    /// <summary>
+    /// Create a quasi json representation of an EmojiPart
+    /// </summary>
+    /// <returns>String representation of an Emoji in quasi json</returns>
+    public override string ToString() => $"{{Emoji: {{EmojiText: {EmojiText}, Alt: {Alt}, Url: {Url}, IsCustomEmoji: {IsCustomEmoji}}}}}";
+};
+
+/// <summary>
+/// Text variant of a message part
+/// </summary>
+public class TextPart : MessagePart
+{
+    /// <summary>
+    /// Contained text of the message
+    /// </summary>
+    public required string Text { get; set; }
+
+    /// <summary>
+    /// Return the text
+    /// </summary>
+    /// <returns>string representation of TextPart</returns>
+    public override string ToString() => Text;
+}
+</file>
+
+<file path="Contracts/Services/IYTLiveChat.cs">
+using YTLiveChat.Contracts.Models;
+
+namespace YTLiveChat.Contracts.Services;
+
+/// <summary>
+/// Represents the YouTube Live Chat Service
+/// </summary>
+public interface IYTLiveChat : IDisposable
+{
+    /// <summary>
+    /// Fires after the initial Live page was loaded
+    /// </summary>
+    public event EventHandler<InitialPageLoadedEventArgs>? InitialPageLoaded;
+
+    /// <summary>
+    /// Fires after Chat was stopped
+    /// </summary>
+    public event EventHandler<ChatStoppedEventArgs>? ChatStopped;
+
+    /// <summary>
+    /// Fires when a ChatItem was received
+    /// </summary>
+    public event EventHandler<ChatReceivedEventArgs>? ChatReceived;
+
+    /// <summary>
+    /// Fires on any error from backend or within service
+    /// </summary>
+    public event EventHandler<ErrorOccurredEventArgs>? ErrorOccurred;
+
+    /// <summary>
+    /// Starts the Listeners for the LiveChat and fires InitialPageLoaded when successful. Either <paramref name="handle"/>, <paramref name="channelId"/> or <paramref name="liveId"/> must be given.
+    /// </summary>
+    /// <remarks>
+    /// This method initially loads the stream page from whatever param was given. If called again, it'll simply register the listeners again, but not load another live stream. If another live stream should be loaded, <paramref name="overwrite"/> should be set to true.
+    /// </remarks>
+    /// <param name="handle">The handle of the channel (eg. "@Original151")</param>
+    /// <param name="channelId">The channelId of the channel (eg. "UCtykdsdm9cBfh5JM8xscA0Q")</param>
+    /// <param name="liveId">The video ID of the live video (eg. "WZafWA1NVrU")</param>
+    /// <param name="overwrite"></param>
+    public void Start(string? handle = null, string? channelId = null, string? liveId = null, bool overwrite = false);
+
+    /// <summary>
+    /// Stops the listeners
+    /// </summary>
+    public void Stop();
+
+}
+
+/// <summary>
+/// EventArgs for InitialPageLoaded event
+/// </summary>
+public class InitialPageLoadedEventArgs : EventArgs
+{
+    /// <summary>
+    /// Video ID selected or found
+    /// </summary>
+    public required string LiveId { get; set; }
+}
+
+/// <summary>
+/// EventArgs for ChatStopped event
+/// </summary>
+public class ChatStoppedEventArgs : EventArgs
+{
+    /// <summary>
+    /// Reason why the stop occured
+    /// </summary>
+    public string? Reason { get; set; }
+}
+
+/// <summary>
+/// EventArgs for ChatReceived event
+/// </summary>
+public class ChatReceivedEventArgs : EventArgs
+{
+    /// <summary>
+    /// ChatItem that was received
+    /// </summary>
+    public required ChatItem ChatItem { get; set; }
+}
+
+/// <summary>
+/// EventArgs for ErrorOccurred event
+/// </summary>
+/// <param name="exception">Exception that triggered the event</param>
+public class ErrorOccurredEventArgs(Exception exception) : ErrorEventArgs(exception)
+{
+}
+</file>
+
+<file path="YTLiveChat.csproj">
+<Project Sdk="Microsoft.NET.Sdk">
+	
+	<PropertyGroup>
+		<Authors>Agash Thamo.</Authors>
+		<Description>InnerTube API for YouTube LiveChat to get Live Chat messages without API restrictions. Mainly intended for use in application for the streamer.</Description>
+		<PackageProjectUrl>https://github.com/Agash/YTLiveChat/wiki</PackageProjectUrl>
+		<PackageTags>library, youtube, live-chat, yt, streamer</PackageTags>
+		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+
+		<PackageId>Agash.YTLiveChat</PackageId>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<EnablePackageValidation>true</EnablePackageValidation>
+
+		<MinVerTagPrefix>v</MinVerTagPrefix>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+		<PackageReference Include="MinVer" Version="5.0.0">
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<PackageReference Include="DotNet.ReproducibleBuilds" Version="1.1.1">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+		</PackageReference>
+		<None Include="LICENSE.txt" Pack="true" PackagePath="" />
+		<None Include="README.md" Pack="true" PackagePath="" />
+	</ItemGroup>
+
+</Project>
+</file>
+
+<file path="Contracts/ServiceCollectionExtensions.cs">
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using YTLiveChat.Contracts.Services;
+using YTLiveChat.Services;
+
+namespace YTLiveChat.Contracts;
+
+/// <summary>
+/// Extensions class
+/// </summary>
+public static class ServiceCollectionExtensions
+{
+    /// <summary>
+    /// Adds all relevant services as well as the Service backing IYTLiveChat to the ServiceCollection and Configures YTLiveChatOptions from appsettings.json
+    /// </summary>
+    /// <param name="builder">IHostApplicationBuilder to add the services to</param>
+    /// <returns>return IHostApplicationBuilder after the services have been added</returns>
+    public static IHostApplicationBuilder AddYTLiveChat(this IHostApplicationBuilder builder)
+    {
+        _ = builder.Services.Configure<YTLiveChatOptions>(builder.Configuration.GetSection(nameof(YTLiveChatOptions)));
+
+        _ = builder.Services.AddTransient<IYTLiveChat, YTLiveChat.Services.YTLiveChat>();
+        _ = builder.Services.AddHttpClient<YTHttpClient>("YouTubeClient", (serviceProvider, httpClient) =>
+        {
+            YTLiveChatOptions ytChatOptions = serviceProvider.GetRequiredService<IOptions<YTLiveChatOptions>>().Value;
+            httpClient.BaseAddress = new Uri(ytChatOptions.YoutubeBaseUrl);
+        });
+        _ = builder.Services.AddSingleton<YTHttpClientFactory>();
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds all relevant services as well as the Service backing IYTLiveChat to the ServiceCollection and Configures YTLiveChatOptions from appsettings.json
+    /// </summary>
+    /// <returns>return IServiceCollection after the services have been added</returns>
+    public static IServiceCollection AddYTLiveChat(this IServiceCollection services, IConfiguration configuration)
+    {
+        _ = services.Configure<YTLiveChatOptions>(configuration.GetSection(nameof(YTLiveChatOptions)));
+
+        _ = services.AddTransient<IYTLiveChat, YTLiveChat.Services.YTLiveChat>();
+        _ = services.AddHttpClient<YTHttpClient>("YouTubeClient", (serviceProvider, httpClient) =>
+        {
+            YTLiveChatOptions ytChatOptions = serviceProvider.GetRequiredService<IOptions<YTLiveChatOptions>>().Value;
+            httpClient.BaseAddress = new Uri(ytChatOptions.YoutubeBaseUrl);
+        });
+        _ = services.AddSingleton<YTHttpClientFactory>();
+
+        return services;
+    }
+}
+</file>
+
+<file path="Services/YTLiveChat.cs">
+using Microsoft.Extensions.Options;
+using YTLiveChat.Contracts;
+using YTLiveChat.Contracts.Services;
+using YTLiveChat.Helpers;
+using YTLiveChat.Models;
+
+namespace YTLiveChat.Services;
+
+internal class YTLiveChat(IOptions<YTLiveChatOptions> options, YTHttpClientFactory httpClientFactory) : IYTLiveChat
+{
+    public event EventHandler<InitialPageLoadedEventArgs>? InitialPageLoaded;
+    public event EventHandler<ChatStoppedEventArgs>? ChatStopped;
+    public event EventHandler<ChatReceivedEventArgs>? ChatReceived;
+    public event EventHandler<ErrorOccurredEventArgs>? ErrorOccurred;
+
+    private FetchOptions? _fetchOptions;
+    private CancellationTokenSource? _cancellationTokenSource;
+
+    private readonly YTHttpClientFactory _httpClientFactory = httpClientFactory;
+    private readonly IOptions<YTLiveChatOptions> _options = options;
+
+    public void Start(string? handle = null, string? channelId = null, string? liveId = null, bool overwrite = false)
+    {
+        if (_cancellationTokenSource == null || _cancellationTokenSource.IsCancellationRequested)
+        {
+            _cancellationTokenSource = new CancellationTokenSource();
+            _ = Task.Run(async () => await StartAsync(handle, channelId, liveId, overwrite, _cancellationTokenSource.Token));
+        }
+    }
+    private async Task StartAsync(string? handle = null, string? channelId = null, string? liveId = null, bool overwrite = false, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            FetchOptions options = await GetOptionsAsync(handle, channelId, liveId, overwrite);
+            if (options == null || string.IsNullOrEmpty(options.LiveId))
+            {
+                OnErrorOccurred(new ErrorOccurredEventArgs(new ArgumentException("FetchOptions invalid")));
+                OnChatStopped(new() { Reason = "Error occurred" });
+                return;
+            }
+
+            OnInitialPageLoaded(new() { LiveId = options.LiveId });
+
+            using YTHttpClient httpClient = _httpClientFactory.Create();
+            using PeriodicTimer timer = new(TimeSpan.FromMilliseconds(_options.Value.RequestFrequency));
+            while (await timer.WaitForNextTickAsync(cancellationToken))
+            {
+                try
+                {
+                    Models.Response.GetLiveChatResponse? response = await httpClient.GetLiveChatAsync(options);
+                    if (response != null)
+                    {
+                        (List<Contracts.Models.ChatItem> items, string continuation) = Parser.ParseGetLiveChatResponse(response);
+                        foreach (Contracts.Models.ChatItem item in items)
+                        {
+                            OnChatReceived(new() { ChatItem = item });
+                        }
+
+                        options.Continuation = continuation;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    OnErrorOccurred(new ErrorOccurredEventArgs(ex));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            OnErrorOccurred(new ErrorOccurredEventArgs(ex));
+            OnChatStopped(new() { Reason = "Error occurred" });
+        }
+    }
+
+    public void Stop()
+    {
+        _cancellationTokenSource?.Cancel();
+        OnChatStopped(new() { Reason = "Stop called" });
+    }
+
+    public void Dispose()
+    {
+        Stop();
+        _cancellationTokenSource?.Dispose();
+        _cancellationTokenSource = null;
+    }
+
+    protected virtual void OnInitialPageLoaded(InitialPageLoadedEventArgs e)
+    {
+        EventHandler<InitialPageLoadedEventArgs>? raiseInitialPageLoaded = InitialPageLoaded;
+        raiseInitialPageLoaded?.Invoke(this, e);
+    }
+
+    protected virtual void OnChatStopped(ChatStoppedEventArgs e)
+    {
+        EventHandler<ChatStoppedEventArgs>? raiseChatStopped = ChatStopped;
+        raiseChatStopped?.Invoke(this, e);
+    }
+
+    protected virtual void OnChatReceived(ChatReceivedEventArgs e)
+    {
+        EventHandler<ChatReceivedEventArgs>? raiseChatRecieved = ChatReceived;
+        raiseChatRecieved?.Invoke(this, e);
+    }
+
+    protected virtual void OnErrorOccurred(ErrorOccurredEventArgs e)
+    {
+        EventHandler<ErrorOccurredEventArgs>? raiseErrorOccurred = ErrorOccurred;
+        raiseErrorOccurred?.Invoke(this, e);
+    }
+
+
+    private async Task<FetchOptions> GetOptionsAsync(string? handle = null, string? channelId = null, string? liveId = null, bool overwrite = false)
+    {
+        if (_fetchOptions == null || overwrite)
+        {
+            YTHttpClient httpClient = _httpClientFactory.Create();
+            string options = await httpClient.GetOptionsAsync(handle, channelId, liveId);
+
+            _fetchOptions = Parser.GetOptionsFromLivePage(options);
+        }
+
+        return _fetchOptions;
+    }
+}
+</file>
+
+</files>
