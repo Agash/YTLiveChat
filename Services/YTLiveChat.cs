@@ -1,7 +1,5 @@
 ﻿using System.Text.Json;
-
 using Microsoft.Extensions.Options;
-
 using YTLiveChat.Contracts;
 using YTLiveChat.Contracts.Services;
 using YTLiveChat.Helpers;

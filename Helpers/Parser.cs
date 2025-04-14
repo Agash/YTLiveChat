@@ -1,10 +1,8 @@
 ﻿using System.Globalization;
 using System.Text.RegularExpressions;
-
 using YTLiveChat.Contracts.Models; // Use the contract namespace
 using YTLiveChat.Models; // Internal models namespace
 using YTLiveChat.Models.Response; // Internal response models namespace
-
 using Action = YTLiveChat.Models.Response.Action; // Explicitly use internal Action
 
 namespace YTLiveChat.Helpers;
@@ -603,13 +601,13 @@ internal static partial class Parser
 
         public static string GetCodeFromSymbolOrCode(string symbolOrCode)
         {
-            return string.IsNullOrWhiteSpace(symbolOrCode)
-                ? "USD"
+            return string.IsNullOrWhiteSpace(symbolOrCode) ? "USD"
                 : symbolOrCode.Length == 3 && symbolOrCode.All(char.IsLetter)
-                ? symbolOrCode.ToUpperInvariant()
-                : s_symbolToCode.TryGetValue(symbolOrCode, out string? code)
-                ? code
-                : symbolOrCode == "$" ? "USD" : symbolOrCode == "¥" ? "JPY" : symbolOrCode.ToUpperInvariant();
+                    ? symbolOrCode.ToUpperInvariant()
+                : s_symbolToCode.TryGetValue(symbolOrCode, out string? code) ? code
+                : symbolOrCode == "$" ? "USD"
+                : symbolOrCode == "¥" ? "JPY"
+                : symbolOrCode.ToUpperInvariant();
         }
     }
 }

@@ -364,3 +364,8 @@ FodyWeavers.xsd
 ytlivechat-updated.xml
 
 megalinter-reports/
+.checkov.yml
+.devskim.json
+.gitleaks.toml
+.grype.yaml
+.idea/externalDependencies.xml

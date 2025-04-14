@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "josefpihrt-vscode.roslynator",
+    "esbenp.prettier-vscode",
+    "csharpier.csharpier-vscode",
+    "Bridgecrew.checkov",
+    "MS-CST-E.vscode-devskim",
+    "AquaSecurityOfficial.trivy-vulnerability-scanner"
+  ]
+}
