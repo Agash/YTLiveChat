@@ -13,23 +13,23 @@ Ever wanted to tap into the electrifying buzz of a YouTube live chat without wre
 
 Perfect for:
 
-*   Building custom chat overlays 🎨
-*   Creating chat-driven games and interactions (like ChatPlaysPokemon!) 🎮
-*   Developing moderation tools 🛡️
-*   Making cool alerts for Super Chats, new members, or gifted subs! 💸🎁
-*   Anything else your creative brain cooks up for live streams! 🧠💡
+* Building custom chat overlays 🎨
+* Creating chat-driven games and interactions (like ChatPlaysPokemon!) 🎮
+* Developing moderation tools 🛡️
+* Making cool alerts for Super Chats, new members, or gifted subs! 💸🎁
+* Anything else your creative brain cooks up for live streams! 🧠💡
 
 ## Features That Sparkle ✨
 
-*   ✅ **Access Live Chat Messages:** Get regular messages, Super Chats, Super Stickers, membership events, and more!
-*   🚫 **No Official API Key Needed:** Skips the YouTube Data API v3 setup and quota limitations.
-*   ⚡ **Real-time(ish) Events:** Uses efficient polling to get updates quickly.
-*   🗣️ **Parses Message Content:** Breaks down messages into text and emoji parts (including custom channel emojis!).
-*   💸 **Super Chat & Sticker Details:** Get amounts, currencies, colors, and sticker images.
-*   👑 **Membership Tracking:** Detects new members, milestones, gift purchases (who gifted!), and gift redemptions (who received!).
-*   🛡️ **Author Information:** Identifies channel owners, moderators, verified users, and members (with badge info!).
-*   🛠️ **Easy .NET Integration:** Simple setup using standard Dependency Injection.
-*   💖 **Built for Streamers & Devs:** Designed with the needs of interactive streaming applications in mind.
+* ✅ **Access Live Chat Messages:** Get regular messages, Super Chats, Super Stickers, membership events, and more!
+* 🚫 **No Official API Key Needed:** Skips the YouTube Data API v3 setup and quota limitations.
+* ⚡ **Real-time(ish) Events:** Uses efficient polling to get updates quickly.
+* 🗣️ **Parses Message Content:** Breaks down messages into text and emoji parts (including custom channel emojis!).
+* 💸 **Super Chat & Sticker Details:** Get amounts, currencies, colors, and sticker images.
+* 👑 **Membership Tracking:** Detects new members, milestones, gift purchases (who gifted!), and gift redemptions (who received!).
+* 🛡️ **Author Information:** Identifies channel owners, moderators, verified users, and members (with badge info!).
+* 🛠️ **Easy .NET Integration:** Simple setup using standard Dependency Injection.
+* 💖 **Built for Streamers & Devs:** Designed with the needs of interactive streaming applications in mind.
 
 ## Get Started in a Flash ⚡
 
@@ -188,24 +188,24 @@ public class MyChatListenerService : IDisposable // Example Service
 
 ## Key Components 🧩
 
-*   **`IYTLiveChat`**: The main service interface. Inject this!
-    *   `Start(handle?, channelId?, liveId?, overwrite?)`: Starts listening. Provide *one* identifier.
-    *   `Stop()`: Stops the listener.
-    *   Events: `InitialPageLoaded`, `ChatReceived`, `ChatStopped`, `ErrorOccurred`.
-*   **`ChatItem`**: Represents a single received item (message, super chat, etc.). Contains all the juicy details!
-*   **`Author`**: Information about the user who sent the item (Name, Channel ID, Thumbnail, Badge).
-*   **`MessagePart`**: Base class for parts of a message.
-    *   **`TextPart`**: Plain text segment.
-    *   **`EmojiPart`**: An emoji (standard or custom), includes image URL.
-*   **`Superchat`**: Details about a Super Chat or Super Sticker (amount, currency, colors, sticker info).
-*   **`MembershipDetails`**: Details about a membership event (type, level name, milestone months, gifter/recipient info).
-*   **`YTLiveChatOptions`**: Configuration class (optional, use via `IOptions<YTLiveChatOptions>`). Set polling frequency (`RequestFrequency`) etc.
+* **`IYTLiveChat`**: The main service interface. Inject this!
+  * `Start(handle?, channelId?, liveId?, overwrite?)`: Starts listening. Provide *one* identifier.
+  * `Stop()`: Stops the listener.
+  * Events: `InitialPageLoaded`, `ChatReceived`, `ChatStopped`, `ErrorOccurred`.
+* **`ChatItem`**: Represents a single received item (message, super chat, etc.). Contains all the juicy details!
+* **`Author`**: Information about the user who sent the item (Name, Channel ID, Thumbnail, Badge).
+* **`MessagePart`**: Base class for parts of a message.
+  * **`TextPart`**: Plain text segment.
+  * **`EmojiPart`**: An emoji (standard or custom), includes image URL.
+* **`Superchat`**: Details about a Super Chat or Super Sticker (amount, currency, colors, sticker info).
+* **`MembershipDetails`**: Details about a membership event (type, level name, milestone months, gifter/recipient info).
+* **`YTLiveChatOptions`**: Configuration class (optional, use via `IOptions<YTLiveChatOptions>`). Set polling frequency (`RequestFrequency`) etc.
 
 ## ⚠️ Important Considerations ⚠️
 
-*   **Unofficial API:** This library uses YouTube's internal web API, which is not officially documented or supported for third-party use. YouTube could change it at any time, potentially breaking this library without warning. Use it at your own risk!
-*   **Be Respectful:** Don't abuse the service. The default request frequency is reasonable; making it too fast might get your IP temporarily blocked by YouTube.
-*   **No Sending Messages:** This library is for *reading* chat only.
+* **Unofficial API:** This library uses YouTube's internal web API, which is not officially documented or supported for third-party use. YouTube could change it at any time, potentially breaking this library without warning. Use it at your own risk!
+* **Be Respectful:** Don't abuse the service. The default request frequency is reasonable; making it too fast might get your IP temporarily blocked by YouTube.
+* **No Sending Messages:** This library is for *reading* chat only.
 
 ## Contributing 🤝
 

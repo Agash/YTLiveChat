@@ -14,6 +14,7 @@ public class ImagePart : MessagePart
     /// URL of the image
     /// </summary>
     public required string Url { get; set; }
+
     /// <summary>
     /// Alt string of the image
     /// </summary>
@@ -35,6 +36,7 @@ public class EmojiPart : ImagePart
     /// Text representation of the emoji
     /// </summary>
     public required string EmojiText { get; set; }
+
     /// <summary>
     /// Whether or not Emoji is a custom emoji of the channel
     /// </summary>
@@ -44,7 +46,8 @@ public class EmojiPart : ImagePart
     /// Create a quasi json representation of an EmojiPart
     /// </summary>
     /// <returns>String representation of an Emoji in quasi json</returns>
-    public override string ToString() => $"{{Emoji: {{EmojiText: {EmojiText}, Alt: {Alt}, Url: {Url}, IsCustomEmoji: {IsCustomEmoji}}}}}";
+    public override string ToString() =>
+        $"{{Emoji: {{EmojiText: {EmojiText}, Alt: {Alt}, Url: {Url}, IsCustomEmoji: {IsCustomEmoji}}}}}";
 };
 
 /// <summary>

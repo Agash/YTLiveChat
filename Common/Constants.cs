@@ -1,5 +1,3 @@
 ﻿namespace YTLiveChat.Common;
 
-internal class Constants
-{
-}
+internal class Constants { }

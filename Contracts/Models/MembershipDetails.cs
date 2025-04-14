@@ -9,24 +9,28 @@ public enum MembershipEventType
     /// The specific type could not be determined.
     /// </summary>
     Unknown,
+
     /// <summary>
     /// A user has become a new member.
     /// </summary>
     New,
+
     /// <summary>
     /// A user has reached a membership duration milestone.
     /// </summary>
     Milestone,
+
     /// <summary>
     /// A user announced they gifted memberships (from LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer).
     /// The author of the ChatItem is the gifter.
     /// </summary>
     GiftPurchase,
+
     /// <summary>
     /// A user received a gifted membership (from LiveChatSponsorshipsGiftRedemptionAnnouncementRenderer).
     /// The author of the ChatItem is the recipient.
     /// </summary>
-    GiftRedemption
+    GiftRedemption,
 }
 
 /// <summary>

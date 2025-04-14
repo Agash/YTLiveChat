@@ -37,13 +37,17 @@ public interface IYTLiveChat : IDisposable
     /// <param name="channelId">The channelId of the channel (eg. "UCtykdsdm9cBfh5JM8xscA0Q")</param>
     /// <param name="liveId">The video ID of the live video (eg. "WZafWA1NVrU")</param>
     /// <param name="overwrite"></param>
-    void Start(string? handle = null, string? channelId = null, string? liveId = null, bool overwrite = false);
+    void Start(
+        string? handle = null,
+        string? channelId = null,
+        string? liveId = null,
+        bool overwrite = false
+    );
 
     /// <summary>
     /// Stops the listeners
     /// </summary>
     void Stop();
-
 }
 
 /// <summary>
@@ -83,6 +87,4 @@ public class ChatReceivedEventArgs : EventArgs
 /// EventArgs for ErrorOccurred event
 /// </summary>
 /// <param name="exception">Exception that triggered the event</param>
-public class ErrorOccurredEventArgs(Exception exception) : ErrorEventArgs(exception)
-{
-}
+public class ErrorOccurredEventArgs(Exception exception) : ErrorEventArgs(exception) { }

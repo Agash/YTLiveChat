@@ -28,5 +28,6 @@ public class YTLiveChatOptions
     /// Defaults to "ytlivechat_debug_items.jsonl" in the application's base directory.
     /// Uses JSON Lines format (one JSON object per line).
     /// </summary>
-    public string DebugLogFilePath { get; set; } = Path.Combine(AppContext.BaseDirectory, "ytlivechat_debug_items.jsonl");
+    public string DebugLogFilePath { get; set; } =
+        Path.Combine(AppContext.BaseDirectory, "ytlivechat_debug_items.jsonl");
 }

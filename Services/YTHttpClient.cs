@@ -7,11 +7,12 @@ namespace YTLiveChat.Services;
 
 internal class YTHttpClient(HttpClient httpClient) : IDisposable
 {
-    private readonly HttpClient _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+    private readonly HttpClient _httpClient =
+        httpClient ?? throw new ArgumentNullException(nameof(httpClient));
 
     private static readonly JsonSerializerOptions s_jsonOptions = new()
     {
-        PropertyNameCaseInsensitive = true
+        PropertyNameCaseInsensitive = true,
     };
 
     /// <summary>
@@ -19,24 +20,25 @@ internal class YTHttpClient(HttpClient httpClient) : IDisposable
     /// </summary>
     /// <param name="options">Fetch options containing API key, continuation token, etc.</param>
     /// <returns>A tuple containing the deserialized response and the raw JSON string, or (null, null) on error.</returns>
-    public async Task<(LiveChatResponse? Response, string? RawJson)> GetLiveChatAsync(FetchOptions options)
+    public async Task<(LiveChatResponse? Response, string? RawJson)> GetLiveChatAsync(
+        FetchOptions options
+    )
     {
         string url = $"/youtubei/v1/live_chat/get_live_chat?key={options.ApiKey}";
         string? rawJson = null;
         try
         {
-            using HttpResponseMessage response = await _httpClient.PostAsJsonAsync(url, new
-            {
-                context = new
+            using HttpResponseMessage response = await _httpClient.PostAsJsonAsync(
+                url,
+                new
                 {
-                    client = new
+                    context = new
                     {
-                        clientVersion = options.ClientVersion,
-                        clientName = "WEB"
-                    }
-                },
-                continuation = options.Continuation,
-            });
+                        client = new { clientVersion = options.ClientVersion, clientName = "WEB" },
+                    },
+                    continuation = options.Continuation,
+                }
+            );
 
             _ = response.EnsureSuccessStatusCode();
 
@@ -45,20 +47,27 @@ internal class YTHttpClient(HttpClient httpClient) : IDisposable
 
             // Then deserialize
             // Consider adding more robust error handling for deserialization
-            LiveChatResponse? responseObject = JsonSerializer.Deserialize<LiveChatResponse>(rawJson, s_jsonOptions);
+            LiveChatResponse? responseObject = JsonSerializer.Deserialize<LiveChatResponse>(
+                rawJson,
+                s_jsonOptions
+            );
             return (responseObject, rawJson);
         }
         catch (HttpRequestException httpEx)
         {
             // Log specific HTTP errors if needed
             // Example: Log the status code if available
-            Console.Error.WriteLine($"HTTP Request Error in GetLiveChatAsync: {httpEx.StatusCode} - {httpEx.Message}");
+            Console.Error.WriteLine(
+                $"HTTP Request Error in GetLiveChatAsync: {httpEx.StatusCode} - {httpEx.Message}"
+            );
             return (null, null);
         }
         catch (JsonException jsonEx)
         {
             // Log deserialization errors
-            Console.Error.WriteLine($"JSON Deserialization Error in GetLiveChatAsync: {jsonEx.Message}");
+            Console.Error.WriteLine(
+                $"JSON Deserialization Error in GetLiveChatAsync: {jsonEx.Message}"
+            );
             Console.Error.WriteLine($"Raw JSON causing error (if available): {rawJson ?? "N/A"}");
             return (null, rawJson); // Return raw JSON even if deserialization fails
         }
