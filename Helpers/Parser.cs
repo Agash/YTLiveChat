@@ -1,8 +1,10 @@
 ﻿using System.Globalization;
 using System.Text.RegularExpressions;
+
 using YTLiveChat.Contracts.Models; // Use the contract namespace
 using YTLiveChat.Models; // Internal models namespace
 using YTLiveChat.Models.Response; // Internal response models namespace
+
 using Action = YTLiveChat.Models.Response.Action; // Explicitly use internal Action
 
 namespace YTLiveChat.Helpers;
@@ -166,7 +168,6 @@ internal static partial class Parser
         }
 
         // --- Author & Badges ---
-        // Start with default author
         Contracts.Models.Author author = new() // Use contract type
         {
             Name = baseRenderer.AuthorName?.Text ?? "Unknown Author",
@@ -176,7 +177,6 @@ internal static partial class Parser
             ),
         };
 
-        // Determine flags and badge *within* the loop
         bool isMembershipBadge = false;
         bool isVerified = false;
         bool isOwner = false;
@@ -190,7 +190,6 @@ internal static partial class Parser
                 if (badgeContainer.LiveChatAuthorBadgeRenderer?.CustomThumbnail != null) // Membership badges
                 {
                     isMembershipBadge = true;
-                    // Populate the authorBadge object directly
                     authorBadge ??= new Contracts.Models.Badge // Use contract type
                     {
                         Thumbnail =
@@ -217,12 +216,10 @@ internal static partial class Parser
                 }
             }
         }
-        // *** Assign the parsed Badge object back to the Author ***
         author.Badge = authorBadge;
 
         // --- Message Content ---
         Contracts.Models.MessagePart[] messageParts = []; // Use contract type
-        // ... (Parsing logic remains the same, uses ToMessageParts which returns contract type) ...
         if (item.LiveChatTextMessageRenderer?.Message?.Runs != null)
         {
             messageParts = item.LiveChatTextMessageRenderer.Message.Runs.ToMessageParts();
@@ -321,6 +318,10 @@ internal static partial class Parser
                     ) == true
                 )
                 {
+                    if (membershipItem?.Message?.Runs != null)
+                    {
+                        messageParts = membershipItem.Message.Runs.ToMessageParts();
+                    }
                     membershipInfo.EventType = Contracts.Models.MembershipEventType.Milestone;
                     Match monthsMatch = MilestoneMonthsRegex()
                         .Match(membershipInfo.HeaderPrimaryText);
@@ -341,94 +342,110 @@ internal static partial class Parser
                         b.LiveChatAuthorBadgeRenderer?.CustomThumbnail != null
                     )
                     ?.LiveChatAuthorBadgeRenderer?.Tooltip;
-                membershipInfo = new()
-                {
-                    LevelName = levelNameFromBadge ?? "Member",
-                    EventType = Contracts.Models.MembershipEventType.GiftPurchase,
-                    HeaderPrimaryText = giftPurchase
-                        .Header?.LiveChatSponsorshipsHeaderRenderer?.PrimaryText?.Runs?.ToMessageParts()
-                        ?.ToSimpleString(),
-                    GifterUsername = giftPurchase
-                        .Header
-                        ?.LiveChatSponsorshipsHeaderRenderer
-                        ?.AuthorName
-                        ?.Text, // Author of this event is the gifter
-                };
-                author.Name =
-                    giftPurchase.Header?.LiveChatSponsorshipsHeaderRenderer?.AuthorName?.Text
-                    ?? author.Name; // Looks like the Message in general doesn't have information on this, so we populate here.
-                author.Thumbnail =
-                    giftPurchase.Header?.LiveChatSponsorshipsHeaderRenderer?.AuthorPhoto?.Thumbnails.ToImage(
-                        author.Name
-                    );
 
-                if (giftPurchase.Header?.LiveChatSponsorshipsHeaderRenderer?.AuthorBadges != null)
+                // *** Update Author for Gift Purchase Event ***
+                // The author of the *event* is the gifter, whose details are in the header
+                var gifterHeader = giftPurchase.Header?.LiveChatSponsorshipsHeaderRenderer;
+                if (gifterHeader != null)
                 {
-                    foreach (
-                        AuthorBadgeContainer badgeContainer in giftPurchase
-                            .Header
-                            ?.LiveChatSponsorshipsHeaderRenderer
-                            ?.AuthorBadges ?? []
-                    )
+                    author.Name = gifterHeader.AuthorName?.Text ?? author.Name;
+                    author.Thumbnail = gifterHeader.AuthorPhoto?.Thumbnails.ToImage(author.Name);
+
+                    // Re-evaluate badges based on the gifter's header info
+                    isMembershipBadge = false; // Reset badge flags for gifter
+                    isVerified = false;
+                    isOwner = false;
+                    isModerator = false;
+                    authorBadge = null; // Reset badge object
+
+                    if (gifterHeader.AuthorBadges != null)
                     {
-                        if (badgeContainer.LiveChatAuthorBadgeRenderer?.CustomThumbnail != null) // Membership badges
+                        foreach (AuthorBadgeContainer badgeContainer in gifterHeader.AuthorBadges)
                         {
-                            isMembershipBadge = true;
-                            // Populate the authorBadge object directly
-                            authorBadge ??= new Contracts.Models.Badge // Use contract type
+                            if (badgeContainer.LiveChatAuthorBadgeRenderer?.CustomThumbnail != null) // Membership badges
                             {
-                                Thumbnail =
-                                    badgeContainer.LiveChatAuthorBadgeRenderer?.CustomThumbnail.Thumbnails?.ToImage(
-                                        badgeContainer.LiveChatAuthorBadgeRenderer?.Tooltip
-                                    ),
-                                Label =
-                                    badgeContainer.LiveChatAuthorBadgeRenderer?.Tooltip ?? "Member",
-                            };
-                        }
-                        else // Standard badges
-                        {
-                            switch (badgeContainer.LiveChatAuthorBadgeRenderer?.Icon?.IconType)
+                                isMembershipBadge = true;
+                                authorBadge ??= new Contracts.Models.Badge // Use contract type
+                                {
+                                    Thumbnail =
+                                        badgeContainer.LiveChatAuthorBadgeRenderer?.CustomThumbnail.Thumbnails?.ToImage(
+                                            badgeContainer.LiveChatAuthorBadgeRenderer?.Tooltip
+                                        ),
+                                    Label =
+                                        badgeContainer.LiveChatAuthorBadgeRenderer?.Tooltip ?? "Member",
+                                };
+                            }
+                            else // Standard badges
                             {
-                                case "OWNER":
-                                    isOwner = true;
-                                    break;
-                                case "VERIFIED":
-                                    isVerified = true;
-                                    break;
-                                case "MODERATOR":
-                                    isModerator = true;
-                                    break;
+                                switch (badgeContainer.LiveChatAuthorBadgeRenderer?.Icon?.IconType)
+                                {
+                                    case "OWNER":
+                                        isOwner = true;
+                                        break;
+                                    case "VERIFIED":
+                                        isVerified = true;
+                                        break;
+                                    case "MODERATOR":
+                                        isModerator = true;
+                                        break;
+                                }
                             }
                         }
                     }
+                    author.Badge = authorBadge; // Assign gifter's badge
                 }
-                // Assign the parsed Badge object back to the Author
-                author.Badge = authorBadge;
 
+                membershipInfo = new()
+                {
+                    // Use the gifter's level if available from badge, otherwise default
+                    LevelName = levelNameFromBadge ?? "Member",
+                    EventType = Contracts.Models.MembershipEventType.GiftPurchase,
+                    HeaderPrimaryText = gifterHeader?.PrimaryText?.Runs?.ToMessageParts()
+                        ?.ToSimpleString(),
+                    GifterUsername = author.Name, // We just populated author with gifter info
+                };
+
+                // *** Updated Gift Count Parsing Logic ***
                 if (membershipInfo.HeaderPrimaryText != null)
                 {
-                    Match giftMatch = GiftedCountRegex().Match(membershipInfo.HeaderPrimaryText);
-                    if (giftMatch.Success && int.TryParse(giftMatch.Groups[1].Value, out int count))
-                    {
-                        membershipInfo.GiftCount = count;
-                    }
-                    else if (
-                        membershipInfo.HeaderPrimaryText.Contains(
-                            "gifted",
-                            StringComparison.OrdinalIgnoreCase
-                        )
-                        || membershipInfo.HeaderPrimaryText.Contains(
-                            "membership gift",
-                            StringComparison.OrdinalIgnoreCase
-                        )
-                    ) // Handle "a membership gift"
-                    {
-                        membershipInfo.GiftCount = 1; // Default to 1
-                    }
-                }
+                    int giftCount = 0; // Default to 0
+                    // Try the new "Sent X ..." format first
+                    Match giftMatch = GiftedSentCountRegex().Match(membershipInfo.HeaderPrimaryText);
 
-                membershipInfo.LevelName = levelNameFromBadge ?? "Member"; // Gifter's level or fallback
+                    if (!giftMatch.Success)
+                    {
+                        // If new format fails, try the old "gifted X ..." format
+                        giftMatch = GiftedCountRegex().Match(membershipInfo.HeaderPrimaryText);
+                    }
+
+                    // Process if either regex matched
+                    if (giftMatch.Success)
+                    {
+                        string countStr = giftMatch.Groups[1].Value;
+                        if (countStr.Equals("a", StringComparison.OrdinalIgnoreCase))
+                        {
+                            giftCount = 1;
+                        }
+                        else if (int.TryParse(countStr, out int count))
+                        {
+                            giftCount = count;
+                        }
+                    }
+                    else if ( // Fallback for "a membership gift" or similar phrasing if regexes fail
+                        membershipInfo.HeaderPrimaryText.Contains(
+                            "gift", // Keep it general
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    )
+                    {
+                        giftCount = 1; // Default to 1 if text implies a single gift
+                    }
+                    membershipInfo.GiftCount = giftCount; // Assign the determined count
+                }
+                // *** End Updated Gift Count Logic ***
+
                 break;
+
 
             case LiveChatSponsorshipsGiftRedemptionAnnouncementRenderer giftRedemption:
                 levelNameFromBadge = baseRenderer
@@ -436,16 +453,34 @@ internal static partial class Parser
                         b.LiveChatAuthorBadgeRenderer?.CustomThumbnail != null
                     )
                     ?.LiveChatAuthorBadgeRenderer?.Tooltip;
+
+                // Author of this event *is* the recipient (already parsed)
                 membershipInfo = new()
                 {
-                    LevelName = levelNameFromBadge ?? "Member",
+                    LevelName = levelNameFromBadge ?? "Member", // Recipient's level
                     EventType = Contracts.Models.MembershipEventType.GiftRedemption,
                     HeaderPrimaryText = giftRedemption
                         .Message?.Runs?.ToMessageParts()
-                        ?.ToSimpleString(), // Usually "Welcome!"
+                        ?.ToSimpleString(), // Usually "Welcome!" or similar
                     RecipientUsername = author.Name, // Author of this event is the recipient
                 };
-                membershipInfo.LevelName = levelNameFromBadge ?? "Member"; // Recipient's level
+
+                // Attempt to extract gifter name from the message runs (often the last part)
+                MessageText? relevantText = (MessageText?)(giftRedemption.Message?.Runs?.LastOrDefault(r => r is MessageText));
+                string? gifterName = relevantText?.Text?.Trim(); // Get first text part
+
+                if (giftRedemption.Message?.Runs?.LastOrDefault(r => r is MessageText) is MessageText mt)
+                {
+                    gifterName = mt.Text?.Trim();
+                    // More robust check: sometimes it's "[GifterName] gifted you..."
+                    Match gifterMatch = GiftRedemptionGifterRegex().Match(membershipInfo.HeaderPrimaryText ?? "");
+                    if (gifterMatch.Success)
+                    {
+                        gifterName = gifterMatch.Groups[1].Value.Trim();
+                    }
+                }
+
+                membershipInfo.GifterUsername = gifterName;
                 break;
         }
 
@@ -465,11 +500,11 @@ internal static partial class Parser
             Message = messageParts,
             Superchat = superchatDetails,
             MembershipDetails = membershipInfo,
-            // *** FIX: Assign the calculated boolean flags ***
             IsVerified = isVerified,
             IsOwner = isOwner,
             IsModerator = isModerator,
-            IsMembership = isMembershipBadge || membershipInfo != null, // Recalculate here or use local var
+            // Determine IsMembership based on if it's a membership event OR the author has a member badge
+            IsMembership = membershipInfo != null || isMembershipBadge,
         };
         return chatItem;
     }
@@ -527,7 +562,7 @@ internal static partial class Parser
         return (items, continuationToken);
     }
 
-    // --- Regex Definitions (remain the same) ---
+    // --- Regex Definitions ---
     [GeneratedRegex(
         "<link rel=\"canonical\" href=\"https:\\/\\/www\\.youtube\\.com\\/watch\\?v=([^\"]+)\">",
         RegexOptions.Compiled
@@ -555,14 +590,22 @@ internal static partial class Parser
     [GeneratedRegex(@"member for (\d+) months?", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex MilestoneMonthsRegex();
 
-    [GeneratedRegex(@"gifted (\d+|a) membership", RegexOptions.IgnoreCase | RegexOptions.Compiled)] // Handle "a membership"
+    [GeneratedRegex(@"Gifted (\d+|a) .*? membership", RegexOptions.IgnoreCase | RegexOptions.Compiled)] // Handle "a membership"
     private static partial Regex GiftedCountRegex();
+
+    [GeneratedRegex(@"^Sent (\d+) .*? gift memberships?$", RegexOptions.IgnoreCase | RegexOptions.Compiled)] // Match start, handle optional 's'
+    private static partial Regex GiftedSentCountRegex();
 
     [GeneratedRegex(
         @"Welcome to (.*?) membership",
         RegexOptions.IgnoreCase | RegexOptions.Compiled
     )]
     private static partial Regex NewMemberLevelRegex();
+
+    // Regex to extract gifter name from redemption message like "GifterName gifted you..."
+    [GeneratedRegex(@"^(.*?) gifted you", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    private static partial Regex GiftRedemptionGifterRegex();
+
 
     // Helper extension method to convert message parts back to a simple string
     private static string ToSimpleString(this IEnumerable<Contracts.Models.MessagePart>? parts) // Use contract type
@@ -597,17 +640,31 @@ internal static partial class Parser
             ["₱"] = "PHP",
             ["฿"] = "THB",
             ["₫"] = "VND",
+            // Add more as needed
         };
 
         public static string GetCodeFromSymbolOrCode(string symbolOrCode)
         {
-            return string.IsNullOrWhiteSpace(symbolOrCode) ? "USD"
-                : symbolOrCode.Length == 3 && symbolOrCode.All(char.IsLetter)
-                    ? symbolOrCode.ToUpperInvariant()
-                : s_symbolToCode.TryGetValue(symbolOrCode, out string? code) ? code
-                : symbolOrCode == "$" ? "USD"
-                : symbolOrCode == "¥" ? "JPY"
-                : symbolOrCode.ToUpperInvariant();
+            if (string.IsNullOrWhiteSpace(symbolOrCode)) return "USD"; // Default
+
+            // Check if it's already a 3-letter code
+            if (symbolOrCode.Length == 3 && symbolOrCode.All(char.IsLetter))
+            {
+                return symbolOrCode.ToUpperInvariant();
+            }
+
+            // Check symbol map
+            if (s_symbolToCode.TryGetValue(symbolOrCode, out string? code))
+            {
+                return code;
+            }
+
+            // Specific common fallbacks if needed (already covered above, but explicit doesn't hurt)
+            if (symbolOrCode == "$") return "USD";
+            if (symbolOrCode == "¥") return "JPY"; // Could be CNY too, JPY is often default in YT context
+
+            // Final fallback: return the input uppercase (maybe it's a less common code)
+            return symbolOrCode.ToUpperInvariant();
         }
     }
 }

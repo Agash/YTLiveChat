@@ -17,11 +17,16 @@
 
 		<MinVerTagPrefix>v</MinVerTagPrefix>
 
-		<Copyright>MIT License</Copyright>
+	  <Copyright>Copyright (c) Agash 2025</Copyright>
+	  <PackageLicenseExpression>MIT</PackageLicenseExpression>
 
-		<RepositoryUrl>https://github.com/Agash/YTLiveChat/</RepositoryUrl>
+	  <RepositoryUrl>https://github.com/Agash/YTLiveChat.git</RepositoryUrl>
 
-		<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+	  <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+	  <PublishRepositoryUrl>true</PublishRepositoryUrl>
+	  <EmbedUntrackedSources>true</EmbedUntrackedSources>
+	  <IncludeSymbols>true</IncludeSymbols>
+	  <SymbolPackageFormat>snupkg</SymbolPackageFormat>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -36,6 +41,9 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
 		</PackageReference>
+	</ItemGroup>
+	
+	<ItemGroup>
 		<None Include="LICENSE.txt" Pack="true" PackagePath="" />
 		<None Include="README.md" Pack="true" PackagePath="" />
 	</ItemGroup>

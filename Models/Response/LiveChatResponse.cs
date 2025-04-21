@@ -372,8 +372,12 @@ internal record LiveChatPaidMessageRenderer : MessageRendererBase
 
     [JsonPropertyName("isV2Style")]
     public bool IsV2Style { get; init; }
-    // [JsonPropertyName("textInputBackgroundColor")] public long TextInputBackgroundColor { get; init; }
-    // [JsonPropertyName("creatorHeartButton")] public CreatorHeartButton? CreatorHeartButton { get; init; } // Include if needed
+    
+    [JsonPropertyName("textInputBackgroundColor")]
+    public long TextInputBackgroundColor { get; init; }
+    
+    // [JsonPropertyName("creatorHeartButton")]
+    // public CreatorHeartButton? CreatorHeartButton { get; init; } // Include if needed
     // [JsonPropertyName("replyButton")] public PdgReplyButton? ReplyButton { get; init; } // Include if needed
 }
 
@@ -423,7 +427,9 @@ internal record LiveChatMembershipItemRenderer : MessageRendererBase
 
     [JsonPropertyName("headerSubtext")]
     public SimpleText? HeaderSubtext { get; init; } // Can be SimpleText or Message
-    // [JsonPropertyName("message")] public Message? Message { get; init; } // Optional user message with membership
+    
+    [JsonPropertyName("message")]
+    public Message? Message { get; init; }
 }
 
 internal record SponsorshipsHeaderContainer
