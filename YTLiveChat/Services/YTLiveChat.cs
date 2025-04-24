@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 using YTLiveChat.Contracts;
@@ -8,58 +9,66 @@ using YTLiveChat.Helpers;
 using YTLiveChat.Models;
 using YTLiveChat.Models.Response;
 
+using Action = YTLiveChat.Models.Response.Action;
+
 namespace YTLiveChat.Services;
 
 internal class YTLiveChat : IYTLiveChat
 {
+    // --- Events ---
     public event EventHandler<InitialPageLoadedEventArgs>? InitialPageLoaded;
     public event EventHandler<ChatStoppedEventArgs>? ChatStopped;
     public event EventHandler<ChatReceivedEventArgs>? ChatReceived;
     public event EventHandler<ErrorOccurredEventArgs>? ErrorOccurred;
 
+    // --- Dependencies & Options ---
+    private readonly YTHttpClientFactory _httpClientFactory;
+    private readonly IOptions<YTLiveChatOptions> _options;
+    private readonly ILogger<YTLiveChat> _logger;
+
+    // --- State ---
     private FetchOptions? _fetchOptions;
     private CancellationTokenSource? _cancellationTokenSource;
 
-    private readonly YTHttpClientFactory _httpClientFactory;
-    private readonly IOptions<YTLiveChatOptions> _options;
+    // --- Retry Logic Configuration ---
+    private const int MaxRetryAttempts = 5; // Max number of retries before giving up
+    private const double BaseRetryDelaySeconds = 1.0; // Initial delay in seconds
+    private const double MaxRetryDelaySeconds = 30.0; // Maximum delay capped
 
     // --- Debug Logging Fields ---
-    private static readonly SemaphoreSlim s_debugLogLock = new(1, 1); // Semaphore for async file access
+    private static readonly SemaphoreSlim s_debugLogLock = new(1, 1);
     private readonly bool _isDebugLoggingEnabled;
     private readonly string _debugLogFilePath;
-    private static readonly JsonSerializerOptions s_debugJsonOptions = new()
-    {
-        WriteIndented = false,
-    }; // Compact JSON for logging
+    private static readonly JsonSerializerOptions s_debugJsonOptions = new() { WriteIndented = false };
 
-    // --- End Debug Logging Fields ---
-
-    public YTLiveChat(IOptions<YTLiveChatOptions> options, YTHttpClientFactory httpClientFactory)
+    public YTLiveChat(
+        IOptions<YTLiveChatOptions> options,
+        YTHttpClientFactory httpClientFactory,
+        ILogger<YTLiveChat> logger)
     {
-        _options = options ?? throw new ArgumentNullException(nameof(options));
-        _httpClientFactory =
-            httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(httpClientFactory);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _options = options;
+        _httpClientFactory = httpClientFactory;
+        _logger = logger;
 
         // --- Initialize Debug Logging ---
         _isDebugLoggingEnabled = _options.Value.DebugLogReceivedJsonItems;
-        _debugLogFilePath =
-            _options.Value.DebugLogFilePath
-            ?? Path.Combine(AppContext.BaseDirectory, "ytlivechat_debug_items.jsonl");
+        _debugLogFilePath = _options.Value.DebugLogFilePath
+                            ?? Path.Combine(AppContext.BaseDirectory, "ytlivechat_debug_items.jsonl");
 
-        // Enable logging in DEBUG builds regardless of config setting for easier development
+        // Override in DEBUG builds for easier development
 #if DEBUG
+        _logger.LogDebug("Debug build detected, enabling JSON item logging.");
         _isDebugLoggingEnabled = true;
-        Console.WriteLine($"[YTLiveChat DEBUG] Debug build detected, enabling JSON logging.");
 #endif
-
         if (_isDebugLoggingEnabled)
         {
-            Console.WriteLine(
-                $"[YTLiveChat DEBUG] JSON Item logging enabled. Output Path: {_debugLogFilePath}"
-            );
+            _logger.LogInformation("JSON Item logging enabled. Output Path: {FilePath}", _debugLogFilePath);
             EnsureDebugLogDirectoryExists();
         }
-        // --- End Initialize Debug Logging ---
     }
 
     private void EnsureDebugLogDirectoryExists()
@@ -70,18 +79,12 @@ internal class YTLiveChat : IYTLiveChat
             if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
             {
                 Directory.CreateDirectory(directory);
-                Console.WriteLine(
-                    $"[YTLiveChat DEBUG] Created directory for debug log: {directory}"
-                );
+                _logger.LogInformation("Created directory for debug log: {DirectoryPath}", directory);
             }
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine(
-                $"[YTLiveChat DEBUG] Error ensuring debug log directory exists ('{_debugLogFilePath}'): {ex.Message}. Debug logging might fail."
-            );
-            // Optionally disable logging if directory setup fails:
-            // _isDebugLoggingEnabled = false;
+            _logger.LogError(ex, "Error ensuring debug log directory exists ('{FilePath}'). Debug logging might fail.", _debugLogFilePath);
         }
     }
 
@@ -89,29 +92,36 @@ internal class YTLiveChat : IYTLiveChat
         string? handle = null,
         string? channelId = null,
         string? liveId = null,
-        bool overwrite = false
-    )
+        bool overwrite = false)
     {
         if (_cancellationTokenSource != null && !_cancellationTokenSource.IsCancellationRequested)
         {
-            Console.WriteLine("[YTLiveChat] Start called but already running.");
+            _logger.LogWarning("Start called but listener is already running.");
             if (!overwrite)
             {
-                return; // Don't restart if already running unless overwrite is true
+                return;
             }
 
-            Console.WriteLine("[YTLiveChat] Overwrite requested, stopping previous instance...");
+            _logger.LogInformation("Overwrite requested, stopping previous instance...");
             Stop(); // Stop existing task before restarting
         }
 
+        _logger.LogInformation("Attempting to start listener...");
         _cancellationTokenSource = new CancellationTokenSource();
-        CancellationToken token = _cancellationTokenSource.Token; // Capture token
+        CancellationToken token = _cancellationTokenSource.Token;
 
-        // Run the main loop in a background thread
-        _ = Task.Run(
-            async () => await StartAsync(handle, channelId, liveId, overwrite, token),
-            token
-        );
+        // Run the main loop in a background thread to avoid blocking the caller
+        _ = Task.Run(async () => await StartAsync(handle, channelId, liveId, overwrite, token), token)
+              .ContinueWith(task => // Log unhandled exceptions from the background task
+              {
+                  if (task.IsFaulted && task.Exception != null)
+                  {
+                      _logger.LogError(task.Exception, "Unhandled exception in background task.");
+
+                      OnErrorOccurred(new ErrorOccurredEventArgs(task.Exception.Flatten().InnerException ?? task.Exception));
+                      OnChatStopped(new() { Reason = "Background task faulted." });
+                  }
+              }, TaskScheduler.Default);
     }
 
     private async Task StartAsync(
@@ -119,206 +129,180 @@ internal class YTLiveChat : IYTLiveChat
         string? channelId,
         string? liveId,
         bool overwrite,
-        CancellationToken cancellationToken
-    )
+        CancellationToken cancellationToken)
     {
-        Console.WriteLine("[YTLiveChat] Starting chat listener task...");
+        _logger.LogInformation("Listener task started.");
+        int currentRetryAttempt = 0;
+
         try
         {
-            _fetchOptions = await GetOptionsAsync(handle, channelId, liveId, overwrite); // Assign directly
-
-            if (string.IsNullOrEmpty(_fetchOptions?.LiveId))
+            // --- Initialization ---
+            _fetchOptions = await GetOptionsAsync(handle, channelId, liveId, overwrite, cancellationToken);
+            if (_fetchOptions?.LiveId is null)
             {
-                OnErrorOccurred(
-                    new ErrorOccurredEventArgs(
-                        new ArgumentException(
-                            "Failed to retrieve valid initial FetchOptions (LiveId is missing)."
-                        )
-                    )
-                );
+                InvalidOperationException initException = new("Failed to retrieve valid initial FetchOptions (LiveId is missing).");
+                OnErrorOccurred(new ErrorOccurredEventArgs(initException));
                 OnChatStopped(new() { Reason = "Failed to get initial options" });
-                return;
+                _logger.LogError("Initialization failed: Could not retrieve valid FetchOptions.");
+                return; // Stop execution if initialization fails
             }
 
             OnInitialPageLoaded(new() { LiveId = _fetchOptions.LiveId });
-            Console.WriteLine(
-                $"[YTLiveChat] Initial page loaded for Live ID: {_fetchOptions.LiveId}. Starting polling..."
-            );
+            _logger.LogInformation("Initial page loaded for Live ID: {LiveId}. Starting polling...", _fetchOptions.LiveId);
 
+            // --- Polling Loop ---
             using YTHttpClient httpClient = _httpClientFactory.Create();
-            using PeriodicTimer timer = new(
-                TimeSpan.FromMilliseconds(_options.Value.RequestFrequency)
-            );
-
-            // Initial delay before first fetch? Optional.
-            // await Task.Delay(100, cancellationToken);
+            using PeriodicTimer timer = new(TimeSpan.FromMilliseconds(_options.Value.RequestFrequency));
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                if (_fetchOptions == null || string.IsNullOrEmpty(_fetchOptions.Continuation))
+                // Wait for the next tick. This handles cancellation internally.
+                if (!await timer.WaitForNextTickAsync(cancellationToken))
                 {
-                    Console.Error.WriteLine(
-                        "[YTLiveChat] Error: Fetch options or continuation token missing. Stopping poll."
-                    );
-                    OnErrorOccurred(
-                        new ErrorOccurredEventArgs(
-                            new InvalidOperationException("Continuation token lost.")
-                        )
-                    );
+                    break; // Timer stopped or task cancelled
+                }
+
+                if (_fetchOptions?.Continuation is null)
+                {
+                    _logger.LogError("Error: Fetch options or continuation token missing. Stopping poll.");
+                    OnErrorOccurred(new ErrorOccurredEventArgs(new InvalidOperationException("Continuation token lost.")));
                     OnChatStopped(new() { Reason = "Continuation token missing" });
                     break; // Exit loop if continuation is lost
                 }
 
-                bool tick = await timer.WaitForNextTickAsync(cancellationToken);
-                if (!tick)
-                    break; // Timer stopped or task cancelled
-
                 try
                 {
-                    // Use the instance field _fetchOptions directly
+                    // Fetch data using the current options
                     (LiveChatResponse? response, string? rawJson) =
-                        await httpClient.GetLiveChatAsync(_fetchOptions);
+                        await httpClient.GetLiveChatAsync(_fetchOptions, cancellationToken);
 
                     // --- Log Raw JSON Item Actions if Enabled ---
-                    if (
-                        _isDebugLoggingEnabled
-                        && response?.ContinuationContents?.LiveChatContinuation?.Actions != null
-                    )
+                    if (_isDebugLoggingEnabled && response?.ContinuationContents?.LiveChatContinuation?.Actions != null)
                     {
-                        // Log only the action part containing items for clarity
-                        await LogRawJsonActionsAsync(
-                            response.ContinuationContents.LiveChatContinuation.Actions
-                        );
+                        await LogRawJsonActionsAsync(response.ContinuationContents.LiveChatContinuation.Actions, cancellationToken);
                     }
-                    // --- End Log Raw JSON ---
 
                     if (response != null)
                     {
+                        // Parse the response
                         (List<Contracts.Models.ChatItem> items, string? continuation) =
                             Parser.ParseLiveChatResponse(response);
 
+                        // Dispatch received items
                         foreach (Contracts.Models.ChatItem item in items)
                         {
                             OnChatReceived(new() { ChatItem = item });
                         }
 
+                        // Update continuation token or handle stream end
                         if (!string.IsNullOrEmpty(continuation))
                         {
-                            // Update the continuation token in the instance field
-                            _fetchOptions = _fetchOptions with
-                            {
-                                Continuation = continuation,
-                            };
+                            _fetchOptions = _fetchOptions with { Continuation = continuation };
+                            // Reset retry count on successful poll
+                            currentRetryAttempt = 0;
                         }
                         else
                         {
-                            // Handle case where no continuation is returned (stream ended?)
-                            Console.WriteLine(
-                                "[YTLiveChat] No continuation token received in response. Stopping poll."
-                            );
+                            _logger.LogInformation("No continuation token received in response. Assuming stream ended or chat disabled.");
                             OnChatStopped(new() { Reason = "Stream ended or continuation lost" });
-                            break;
+                            break; // Exit loop
                         }
                     }
                     else
                     {
-                        // Error fetching/deserializing, potentially logged in YTHttpClient
-                        OnErrorOccurred(
-                            new ErrorOccurredEventArgs(
-                                new Exception("Failed to fetch or deserialize live chat data.")
-                            )
-                        );
-                        Console.Error.WriteLine(
-                            $"[YTLiveChat] Fetch/deserialize error occurred. See previous logs. Retrying after delay..."
-                        );
-                        await Task.Delay(5000, cancellationToken); // Delay before retrying
+                        // Handle null response
+                        // Trigger generic error and attempt retry with backoff
+                        throw new Exception("Failed to fetch or deserialize live chat data (null response received).");
                     }
                 }
                 catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Forbidden)
                 {
+                    // Specific non-retryable HTTP error
+                    _logger.LogError(httpEx, "Received Forbidden (403). Stream might be region locked, require login, or API access changed. Stopping.");
                     OnErrorOccurred(new ErrorOccurredEventArgs(httpEx));
-                    Console.Error.WriteLine("[YTLiveChat] Received Forbidden (403). Stream might be region locked or require login. Stopping.");
                     OnChatStopped(new() { Reason = "Received Forbidden (403)" });
-                    break; // Exit loop
+                    break; // Stop polling
                 }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    Console.WriteLine("[YTLiveChat] Polling loop cancelled.");
-                    break; // Exit loop cleanly
-                }
-                catch (Exception ex) // General catch-all
+                catch (Exception ex) when (ex is not OperationCanceledException) // Catch retryable exceptions
                 {
                     OnErrorOccurred(new ErrorOccurredEventArgs(ex));
-                    Console.Error.WriteLine($"[YTLiveChat] Error during poll cycle: {ex.GetType().Name} - {ex.Message}");
-                    Console.Error.WriteLine("[YTLiveChat] Retrying after delay...");
-                    await Task.Delay(5000, cancellationToken); // Delay before retrying general errors
+                    currentRetryAttempt++;
+
+                    if (currentRetryAttempt > MaxRetryAttempts)
+                    {
+                        _logger.LogError(ex, "Maximum retry attempts ({MaxAttempts}) exceeded. Stopping poll.", MaxRetryAttempts);
+                        OnChatStopped(new() { Reason = $"Failed after {MaxRetryAttempts} retries: {ex.Message}" });
+                        break; // Give up after max retries
+                    }
+
+                    // Calculate exponential backoff delay
+                    double delaySeconds = BaseRetryDelaySeconds * Math.Pow(2, currentRetryAttempt - 1);
+                    delaySeconds = Math.Min(delaySeconds, MaxRetryDelaySeconds); // Cap delay
+                    // Add some jitter (e.g., +/- 20%)
+                    delaySeconds *= 1.0 + ((Random.Shared.NextDouble() * 0.4) - 0.2);
+                    TimeSpan delay = TimeSpan.FromSeconds(delaySeconds);
+
+                    _logger.LogWarning(ex, "Error during poll cycle (Attempt {Attempt}/{MaxAttempts}). Retrying in {Delay}...",
+                        currentRetryAttempt, MaxRetryAttempts, delay);
+
+                    await Task.Delay(delay, cancellationToken); // Wait before retrying
                 }
+                // OperationCanceledException is caught by the outer try-catch
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            Console.WriteLine("[YTLiveChat] StartAsync task initialization cancelled.");
-            // Don't raise ChatStopped here, it will be handled in the finally block
+            _logger.LogInformation("Listener task cancellation requested.");
         }
-        catch (Exception ex) // Catch errors during initial GetOptionsAsync
+        catch (Exception ex) // Catch errors during initialization or unhandled loop errors
         {
+            _logger.LogError(ex, "Critical error during listener task execution.");
             OnErrorOccurred(new ErrorOccurredEventArgs(ex));
-            Console.Error.WriteLine(
-                $"[YTLiveChat] Critical error during initialization: {ex.Message}"
-            );
-            OnChatStopped(new() { Reason = $"Initialization error: {ex.Message}" });
+            OnChatStopped(new() { Reason = $"Critical error: {ex.Message}" });
         }
         finally
         {
-            // Ensure ChatStopped is raised if the task ends due to cancellation or loop exit
+            // Ensure ChatStopped is raised if the task ends and wasn't already raised
             if (cancellationToken.IsCancellationRequested)
             {
                 OnChatStopped(new() { Reason = "Operation Cancelled" });
             }
-            else if (ChatStopped == null || ChatStopped.GetInvocationList().Length == 0) // Check if already stopped for other reasons
-            {
-                // If loop finished naturally without cancellation, it might mean stream ended.
-                // The loop should break and raise ChatStopped with a reason if continuation is lost.
-                // This path might indicate an unexpected loop termination.
-                OnChatStopped(new() { Reason = "Polling loop finished unexpectedly" });
-            }
 
-            Console.WriteLine("[YTLiveChat] Chat listener task finished.");
+            _logger.LogInformation("Listener task finished.");
         }
     }
 
-    // Updated Debug Logging to log only relevant AddChatItem actions
-    private async Task LogRawJsonActionsAsync(List<Models.Response.Action> actions)
+    private async Task LogRawJsonActionsAsync(List<Action> actions, CancellationToken cancellationToken)
     {
-        if (!_isDebugLoggingEnabled || actions == null)
+        if (!_isDebugLoggingEnabled || actions == null || actions.Count == 0)
             return;
 
-        List<AddChatItemActionItem?> itemsToLog = [.. actions
-            .Where(a => a.AddChatItemAction?.Item != null)
-            .Select(a => a.AddChatItemAction!.Item)];
+        // Filter only AddChatItem actions for logging item details
+        List<AddChatItemActionItem> itemsToLog = [.. actions
+            .Select(a => a.AddChatItemAction?.Item)
+            .WhereNotNull()];
 
         if (itemsToLog.Count == 0)
             return;
 
-        await s_debugLogLock.WaitAsync(); // Lock file access
+        await s_debugLogLock.WaitAsync(cancellationToken);
         try
         {
-            using StreamWriter writer = new(
-                _debugLogFilePath,
-                append: true,
-                System.Text.Encoding.UTF8
-            );
+            await using StreamWriter writer = new(_debugLogFilePath, append: true, System.Text.Encoding.UTF8);
             foreach (AddChatItemActionItem? item in itemsToLog)
             {
+                if (cancellationToken.IsCancellationRequested) break;
                 string jsonLine = JsonSerializer.Serialize(item, s_debugJsonOptions);
-                await writer.WriteLineAsync(jsonLine);
+                await writer.WriteLineAsync(jsonLine.AsMemory(), cancellationToken);
             }
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Debug logging cancelled.");
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine(
-                $"[YTLiveChat DEBUG] Error writing raw JSON actions to log file '{_debugLogFilePath}': {ex.Message}"
-            );
+            _logger.LogError(ex, "Error writing raw JSON actions to log file '{FilePath}'", _debugLogFilePath);
         }
         finally
         {
@@ -330,13 +314,20 @@ internal class YTLiveChat : IYTLiveChat
     {
         if (_cancellationTokenSource != null && !_cancellationTokenSource.IsCancellationRequested)
         {
-            Console.WriteLine("[YTLiveChat] Stop requested.");
-            _cancellationTokenSource.Cancel();
-            // ChatStopped event will be raised by the StartAsync task's finally block upon cancellation.
+            _logger.LogInformation("Stop requested.");
+            try
+            {
+                _cancellationTokenSource.Cancel();
+                // ChatStopped event will be raised by the StartAsync task's finally block upon cancellation.
+            }
+            catch (ObjectDisposedException)
+            {
+                _logger.LogWarning("Attempted to cancel a disposed CancellationTokenSource during stop.");
+            }
         }
         else
         {
-            Console.WriteLine("[YTLiveChat] Stop called but already stopped or stopping.");
+            _logger.LogDebug("Stop called but listener was not running or already stopping.");
         }
     }
 
@@ -350,64 +341,76 @@ internal class YTLiveChat : IYTLiveChat
     {
         if (disposing)
         {
-            Stop(); // Ensure cancellation is requested
+            _logger.LogDebug("Disposing YTLiveChat service.");
+            Stop(); // Ensure cancellation is requested and logged if needed
             _cancellationTokenSource?.Dispose();
             s_debugLogLock.Dispose(); // Dispose semaphore
         }
     }
 
-    protected virtual void OnInitialPageLoaded(InitialPageLoadedEventArgs e) =>
-        InitialPageLoaded?.Invoke(this, e);
-
-    protected virtual void OnChatStopped(ChatStoppedEventArgs e) => ChatStopped?.Invoke(this, e);
-
-    protected virtual void OnChatReceived(ChatReceivedEventArgs e) => ChatReceived?.Invoke(this, e);
-
-    protected virtual void OnErrorOccurred(ErrorOccurredEventArgs e) =>
-        ErrorOccurred?.Invoke(this, e);
-
-    private async Task<FetchOptions?> GetOptionsAsync(
-        string? handle = null,
-        string? channelId = null,
-        string? liveId = null,
-        bool overwrite = false
-    )
+    // --- Event Invokers ---
+    protected virtual void OnInitialPageLoaded(InitialPageLoadedEventArgs e)
     {
-        // Use instance field _fetchOptions
+        try { InitialPageLoaded?.Invoke(this, e); }
+        catch (Exception ex) { _logger.LogError(ex, "Error invoking InitialPageLoaded event handler."); }
+    }
+
+    protected virtual void OnChatStopped(ChatStoppedEventArgs e)
+    {
+        try { ChatStopped?.Invoke(this, e); }
+        catch (Exception ex) { _logger.LogError(ex, "Error invoking ChatStopped event handler."); }
+    }
+
+    protected virtual void OnChatReceived(ChatReceivedEventArgs e)
+    {
+        try { ChatReceived?.Invoke(this, e); }
+        catch (Exception ex) { _logger.LogError(ex, "Error invoking ChatReceived event handler for item ID {ItemId}.", e.ChatItem?.Id); }
+    }
+
+    protected virtual void OnErrorOccurred(ErrorOccurredEventArgs e)
+    {
+        try { ErrorOccurred?.Invoke(this, e); }
+        catch (Exception ex) { _logger.LogError(ex, "Error invoking ErrorOccurred event handler."); }
+    }
+
+    // --- Helper for Initial Options ---
+    private async Task<FetchOptions?> GetOptionsAsync(
+        string? handle,
+        string? channelId,
+        string? liveId,
+        bool overwrite,
+        CancellationToken cancellationToken = default)
+    {
         if (_fetchOptions == null || overwrite)
         {
-            Console.WriteLine("[YTLiveChat] Fetching initial options...");
+            _logger.LogInformation("Fetching initial options (Overwrite={Overwrite})...", overwrite);
             try
             {
                 using YTHttpClient httpClient = _httpClientFactory.Create();
-                string pageHtml = await httpClient.GetOptionsAsync(handle, channelId, liveId);
-                _fetchOptions = Parser.GetOptionsFromLivePage(pageHtml); // This might throw if parsing fails
-                Console.WriteLine(
-                    $"[YTLiveChat] Successfully parsed initial options. Live ID: {_fetchOptions?.LiveId}"
-                );
+                string pageHtml = await httpClient.GetOptionsAsync(handle, channelId, liveId, cancellationToken);
+                // Parser might throw if critical info is missing
+                FetchOptions newOptions = Parser.GetOptionsFromLivePage(pageHtml);
+                _logger.LogInformation("Successfully parsed initial options. Live ID: {LiveId}", newOptions.LiveId);
+                _fetchOptions = newOptions;
+            }
+            catch (OperationCanceledException ocEx)
+            {
+                _logger.LogWarning(ocEx, "Initial options fetch cancelled.");
+                _fetchOptions = null; // Ensure null on cancellation during fetch
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine(
-                    $"[YTLiveChat] Failed to get/parse initial options: {ex.Message}"
-                );
+                _logger.LogError(ex, "Failed to get or parse initial options.");
                 _fetchOptions = null; // Ensure it's null on failure
-                OnErrorOccurred(
-                    new ErrorOccurredEventArgs(
-                        new InvalidOperationException(
-                            $"Failed to initialize from YouTube page: {ex.Message}",
-                            ex
-                        )
-                    )
-                );
+                // Error event will be raised by the caller (StartAsync)
+                throw new InvalidOperationException($"Failed to initialize from YouTube page: {ex.Message}", ex);
             }
         }
         else
         {
-            Console.WriteLine("[YTLiveChat] Using cached initial options.");
+            _logger.LogDebug("Using cached initial options. Live ID: {LiveId}", _fetchOptions.LiveId);
         }
 
-        // Return the instance field (which might be null if initialization failed)
         return _fetchOptions;
     }
 }
