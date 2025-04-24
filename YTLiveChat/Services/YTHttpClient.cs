@@ -1,15 +1,15 @@
 ﻿using System.Net.Http.Json;
 using System.Text.Json;
+
+using Microsoft.Extensions.Logging;
+
 using YTLiveChat.Models;
 using YTLiveChat.Models.Response;
 
 namespace YTLiveChat.Services;
 
-internal class YTHttpClient(HttpClient httpClient) : IDisposable
+internal class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient> logger) : IDisposable
 {
-    private readonly HttpClient _httpClient =
-        httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-
     private static readonly JsonSerializerOptions s_jsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -19,18 +19,17 @@ internal class YTHttpClient(HttpClient httpClient) : IDisposable
     /// Fetches the live chat data from YouTube.
     /// </summary>
     /// <param name="options">Fetch options containing API key, continuation token, etc.</param>
+    /// <param name="cancellationToken">Cancellation token to be passed to the HttpClient</param>
     /// <returns>A tuple containing the deserialized response and the raw JSON string, or (null, null) on error.</returns>
     public async Task<(LiveChatResponse? Response, string? RawJson)> GetLiveChatAsync(
-        FetchOptions options
+        FetchOptions options, CancellationToken cancellationToken = default
     )
     {
         string url = $"/youtubei/v1/live_chat/get_live_chat?key={options.ApiKey}";
         string? rawJson = null;
         try
         {
-            using HttpResponseMessage response = await _httpClient.PostAsJsonAsync(
-                url,
-                new
+            using HttpResponseMessage response = await httpClient.PostAsJsonAsync(url, new
                 {
                     context = new
                     {
@@ -38,12 +37,12 @@ internal class YTHttpClient(HttpClient httpClient) : IDisposable
                     },
                     continuation = options.Continuation,
                 }
-            );
+, cancellationToken: cancellationToken);
 
             _ = response.EnsureSuccessStatusCode();
 
             // Read the raw content first
-            rawJson = await response.Content.ReadAsStringAsync();
+            rawJson = await response.Content.ReadAsStringAsync(cancellationToken);
 
             // Then deserialize
             // Consider adding more robust error handling for deserialization
@@ -57,51 +56,60 @@ internal class YTHttpClient(HttpClient httpClient) : IDisposable
         {
             // Log specific HTTP errors if needed
             // Example: Log the status code if available
-            Console.Error.WriteLine(
-                $"HTTP Request Error in GetLiveChatAsync: {httpEx.StatusCode} - {httpEx.Message}"
+            logger.LogError(
+                httpEx,
+                "HTTP Request Error in GetLiveChatAsync: {StatusCode} - {Message}",
+                httpEx.StatusCode,
+                httpEx.Message
             );
             return (null, null);
         }
         catch (JsonException jsonEx)
         {
             // Log deserialization errors
-            Console.Error.WriteLine(
-                $"JSON Deserialization Error in GetLiveChatAsync: {jsonEx.Message}"
+            logger.LogError(
+                jsonEx,
+                "JSON Deserialization Error in GetLiveChatAsync: {Message}/n {RawJSON}",
+                jsonEx.Message,
+                rawJson ?? "N/A"
             );
-            Console.Error.WriteLine($"Raw JSON causing error (if available): {rawJson ?? "N/A"}");
             return (null, rawJson); // Return raw JSON even if deserialization fails
         }
         catch (Exception ex)
         {
             // Log generic errors
-            Console.Error.WriteLine($"Generic Error in GetLiveChatAsync: {ex.Message}");
+            logger.LogCritical(
+                ex,
+                "Generic Error in GetLiveChatAsync: {Message}",
+                ex.Message
+            );
             return (null, rawJson); // Return raw JSON if available
         }
     }
 
-    public async Task<string> GetOptionsAsync(string? handle, string? channelId, string? liveId)
+    public async Task<string> GetOptionsAsync(string? handle, string? channelId, string? liveId, CancellationToken cancellationToken = default)
     {
-        string url = string.Empty;
+        string url;
         if (!string.IsNullOrEmpty(handle))
         {
             handle = handle.StartsWith('@') ? handle : '@' + handle;
             url = $"/{handle}/live";
         }
-
-        if (!string.IsNullOrEmpty(channelId))
+        else if (!string.IsNullOrEmpty(channelId))
         {
             url = $"/channel/{channelId}/live";
         }
-
-        if (!string.IsNullOrEmpty(liveId))
+        else if (!string.IsNullOrEmpty(liveId))
         {
             url = $"/watch?v={liveId}";
         }
+        else
+        {
+            throw new ArgumentException("At least one identifier (handle, channelId, or liveId) must be provided.");
+        }
 
-        ArgumentException.ThrowIfNullOrEmpty(url, "handle, channelId, or liveId"); // Ensure one is provided
-
-        return await _httpClient.GetStringAsync(url);
+        return await httpClient.GetStringAsync(url, cancellationToken);
     }
 
-    public void Dispose() => ((IDisposable)_httpClient).Dispose();
+    public void Dispose() => httpClient.Dispose();
 }

@@ -48,54 +48,36 @@ internal static partial class Parser
     /// <summary>
     /// Extracts the relevant message renderer from a polymorphic item container.
     /// </summary>
-    private static MessageRendererBase? GetBaseRenderer(AddChatItemActionItem? item)
+    private static MessageRendererBase? GetBaseRenderer(AddChatItemActionItem? item) => item switch
     {
-        if (item == null)
-            return null;
-        // Check in likely order of appearance or specificity
-        return item.LiveChatPaidMessageRenderer as MessageRendererBase
-            ?? item.LiveChatPaidStickerRenderer as MessageRendererBase
-            ?? item.LiveChatMembershipItemRenderer as MessageRendererBase
-            ?? item.LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer as MessageRendererBase
-            ?? // Check before text msg
-            item.LiveChatSponsorshipsGiftRedemptionAnnouncementRenderer as MessageRendererBase
-            ?? // Check before text msg
-            item.LiveChatTextMessageRenderer as MessageRendererBase
-            ?? // Standard text message last
-            null; // PlaceholderItemRenderer doesn't inherit from Base
-    }
+        { LiveChatPaidMessageRenderer: not null } => item.LiveChatPaidMessageRenderer,
+        { LiveChatPaidStickerRenderer: not null } => item.LiveChatPaidStickerRenderer,
+        { LiveChatMembershipItemRenderer: not null } => item.LiveChatMembershipItemRenderer,
+        { LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer: not null } => item.LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer,
+        { LiveChatSponsorshipsGiftRedemptionAnnouncementRenderer: not null } => item.LiveChatSponsorshipsGiftRedemptionAnnouncementRenderer,
+        { LiveChatTextMessageRenderer: not null } => item.LiveChatTextMessageRenderer,
+        // PlaceholderItemRenderer doesn't inherit from Base and isn't handled here
+        _ => null
+    };
 
     /// <summary>
     /// Converts a MessageRun (internal model) to a MessagePart (contract model).
     /// </summary>
-    public static Contracts.Models.MessagePart ToMessagePart(this Models.Response.MessageRun run) // Specify internal type
+    public static Contracts.Models.MessagePart ToMessagePart(this Models.Response.MessageRun run) => run switch
     {
-        if (run is Models.Response.MessageText textRun && textRun.Text != null)
+        Models.Response.MessageText { Text: not null } textRun => new Contracts.Models.TextPart { Text = textRun.Text },
+        Models.Response.MessageEmoji { Emoji: not null } emojiRun => new Contracts.Models.EmojiPart
         {
-            // TODO: Potentially handle navigationEndpoint, bold, italics later if needed
-            return new Contracts.Models.TextPart { Text = textRun.Text }; // Use contract type
-        }
-
-        if (run is Models.Response.MessageEmoji emojiRun && emojiRun.Emoji != null)
-        {
-            Emoji emoji = emojiRun.Emoji;
-            bool isCustom = emoji.IsCustomEmoji;
-            string? altText =
-                emoji.Shortcuts?.FirstOrDefault() ?? emoji.SearchTerms?.FirstOrDefault(); // Use shortcut/search term as alt
-            string emojiText = isCustom
-                ? (altText ?? $"[:{emoji.EmojiId}:]")
-                : (emoji.EmojiId ?? ""); // Use alt or ID for custom, ID for standard
-            return new Contracts.Models.EmojiPart // Use contract type
-            {
-                Url = emoji.Image?.Thumbnails?.LastOrDefault()?.Url ?? string.Empty,
-                IsCustomEmoji = isCustom,
-                Alt = altText,
-                EmojiText = emojiText,
-            };
-        }
-        // Fallback for unknown run types
-        return new Contracts.Models.TextPart { Text = "[Unknown Message Part]" }; // Use contract type
-    }
+            Url = emojiRun.Emoji.Image?.Thumbnails?.LastOrDefault()?.Url ?? string.Empty,
+            IsCustomEmoji = emojiRun.Emoji.IsCustomEmoji,
+            Alt = emojiRun.Emoji.Shortcuts?.FirstOrDefault() ?? emojiRun.Emoji.SearchTerms?.FirstOrDefault(),
+            EmojiText = emojiRun.Emoji.IsCustomEmoji
+                        ? (emojiRun.Emoji.Shortcuts?.FirstOrDefault() ?? emojiRun.Emoji.SearchTerms?.FirstOrDefault() ?? $"[:{emojiRun.Emoji.EmojiId}:]")
+                        : (emojiRun.Emoji.EmojiId ?? string.Empty),
+        },
+        // Fallback for unknown or null-property run types
+        _ => new Contracts.Models.TextPart { Text = "[Unknown Message Part]" }
+    };
 
     /// <summary>
     /// Converts an array of MessageRun (internal) to MessagePart[] (contract).
@@ -216,6 +198,7 @@ internal static partial class Parser
                 }
             }
         }
+
         author.Badge = authorBadge;
 
         // --- Message Content ---
@@ -322,6 +305,7 @@ internal static partial class Parser
                     {
                         messageParts = membershipItem.Message.Runs.ToMessageParts();
                     }
+
                     membershipInfo.EventType = Contracts.Models.MembershipEventType.Milestone;
                     Match monthsMatch = MilestoneMonthsRegex()
                         .Match(membershipInfo.HeaderPrimaryText);
@@ -345,7 +329,7 @@ internal static partial class Parser
 
                 // *** Update Author for Gift Purchase Event ***
                 // The author of the *event* is the gifter, whose details are in the header
-                var gifterHeader = giftPurchase.Header?.LiveChatSponsorshipsHeaderRenderer;
+                LiveChatSponsorshipsHeaderRenderer? gifterHeader = giftPurchase.Header?.LiveChatSponsorshipsHeaderRenderer;
                 if (gifterHeader != null)
                 {
                     author.Name = gifterHeader.AuthorName?.Text ?? author.Name;
@@ -392,6 +376,7 @@ internal static partial class Parser
                             }
                         }
                     }
+
                     author.Badge = authorBadge; // Assign gifter's badge
                 }
 
@@ -440,6 +425,7 @@ internal static partial class Parser
                     {
                         giftCount = 1; // Default to 1 if text implies a single gift
                     }
+
                     membershipInfo.GiftCount = giftCount; // Assign the determined count
                 }
                 // *** End Updated Gift Count Logic ***

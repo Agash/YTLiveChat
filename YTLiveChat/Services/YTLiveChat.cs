@@ -1,10 +1,12 @@
 ﻿using System.Text.Json;
+
 using Microsoft.Extensions.Options;
+
 using YTLiveChat.Contracts;
 using YTLiveChat.Contracts.Services;
 using YTLiveChat.Helpers;
 using YTLiveChat.Models;
-using YTLiveChat.Models.Response; // Namespace for the new internal models
+using YTLiveChat.Models.Response;
 
 namespace YTLiveChat.Services;
 
@@ -232,30 +234,22 @@ internal class YTLiveChat : IYTLiveChat
                         await Task.Delay(5000, cancellationToken); // Delay before retrying
                     }
                 }
+                catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                {
+                    OnErrorOccurred(new ErrorOccurredEventArgs(httpEx));
+                    Console.Error.WriteLine("[YTLiveChat] Received Forbidden (403). Stream might be region locked or require login. Stopping.");
+                    OnChatStopped(new() { Reason = "Received Forbidden (403)" });
+                    break; // Exit loop
+                }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
                     Console.WriteLine("[YTLiveChat] Polling loop cancelled.");
                     break; // Exit loop cleanly
                 }
-                catch (Exception ex) // Catch specific exceptions? (e.g., HttpRequestException, JsonException)
+                catch (Exception ex) // General catch-all
                 {
                     OnErrorOccurred(new ErrorOccurredEventArgs(ex));
-                    Console.Error.WriteLine(
-                        $"[YTLiveChat] Error during poll cycle: {ex.GetType().Name} - {ex.Message}"
-                    );
-                    // Decide whether to stop or just delay and retry
-                    if (
-                        ex is HttpRequestException httpEx
-                        && httpEx.StatusCode == System.Net.HttpStatusCode.Forbidden
-                    )
-                    {
-                        Console.Error.WriteLine(
-                            "[YTLiveChat] Received Forbidden (403). Stream might be region locked or require login. Stopping."
-                        );
-                        OnChatStopped(new() { Reason = "Received Forbidden (403)" });
-                        break;
-                    }
-
+                    Console.Error.WriteLine($"[YTLiveChat] Error during poll cycle: {ex.GetType().Name} - {ex.Message}");
                     Console.Error.WriteLine("[YTLiveChat] Retrying after delay...");
                     await Task.Delay(5000, cancellationToken); // Delay before retrying general errors
                 }
@@ -299,12 +293,11 @@ internal class YTLiveChat : IYTLiveChat
         if (!_isDebugLoggingEnabled || actions == null)
             return;
 
-        List<AddChatItemActionItem?> itemsToLog = actions
+        List<AddChatItemActionItem?> itemsToLog = [.. actions
             .Where(a => a.AddChatItemAction?.Item != null)
-            .Select(a => a.AddChatItemAction!.Item) // Select the ItemObj
-            .ToList();
+            .Select(a => a.AddChatItemAction!.Item)];
 
-        if (!itemsToLog.Any())
+        if (itemsToLog.Count == 0)
             return;
 
         await s_debugLogLock.WaitAsync(); // Lock file access
