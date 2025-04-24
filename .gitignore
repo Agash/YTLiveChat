@@ -369,3 +369,10 @@ megalinter-reports/
 .gitleaks.toml
 .grype.yaml
 .idea/externalDependencies.xml
+/.jscpd.json
+/.markdown-link-check.json
+/.markdownlint.json
+/.mega-linter.yml
+/.secretlintrc.json
+/.yamllint.yml
+/.cspell.json
