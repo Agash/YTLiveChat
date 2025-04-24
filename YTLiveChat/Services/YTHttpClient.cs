@@ -30,13 +30,13 @@ internal class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient> logger)
         try
         {
             using HttpResponseMessage response = await httpClient.PostAsJsonAsync(url, new
+            {
+                context = new
                 {
-                    context = new
-                    {
-                        client = new { clientVersion = options.ClientVersion, clientName = "WEB" },
-                    },
-                    continuation = options.Continuation,
-                }
+                    client = new { clientVersion = options.ClientVersion, clientName = "WEB" },
+                },
+                continuation = options.Continuation,
+            }
 , cancellationToken: cancellationToken);
 
             _ = response.EnsureSuccessStatusCode();
@@ -95,17 +95,13 @@ internal class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient> logger)
             handle = handle.StartsWith('@') ? handle : '@' + handle;
             url = $"/{handle}/live";
         }
-        else if (!string.IsNullOrEmpty(channelId))
-        {
-            url = $"/channel/{channelId}/live";
-        }
-        else if (!string.IsNullOrEmpty(liveId))
-        {
-            url = $"/watch?v={liveId}";
-        }
         else
         {
-            throw new ArgumentException("At least one identifier (handle, channelId, or liveId) must be provided.");
+            url = !string.IsNullOrEmpty(channelId)
+                ? $"/channel/{channelId}/live"
+                : !string.IsNullOrEmpty(liveId)
+                            ? $"/watch?v={liveId}"
+                            : throw new ArgumentException("At least one identifier (handle, channelId, or liveId) must be provided.");
         }
 
         return await httpClient.GetStringAsync(url, cancellationToken);
