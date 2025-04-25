@@ -344,7 +344,6 @@ internal class YTLiveChat : IYTLiveChat
             _logger.LogDebug("Disposing YTLiveChat service.");
             Stop(); // Ensure cancellation is requested and logged if needed
             _cancellationTokenSource?.Dispose();
-            s_debugLogLock.Dispose(); // Dispose semaphore
         }
     }
 
