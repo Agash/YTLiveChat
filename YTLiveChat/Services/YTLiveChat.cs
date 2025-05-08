@@ -67,6 +67,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         {
             throw new ArgumentNullException(nameof(options));
         }
+
         if (ytHttpClient is null)
         {
             throw new ArgumentNullException(nameof(ytHttpClient));
@@ -142,6 +143,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             {
                 return; // Don't start a new one if not overwriting
             }
+
             _logger.LogInformation("Overwrite requested, stopping previous instance...");
             Stop(); // Stop the current task before starting a new one
         }

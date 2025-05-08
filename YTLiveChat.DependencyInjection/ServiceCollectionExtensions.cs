@@ -23,10 +23,12 @@ public static class ServiceCollectionExtensions
     public static IHostApplicationBuilder AddYTLiveChat(this IHostApplicationBuilder builder)
     {
         if (builder == null)
+        {
             throw new ArgumentNullException(
                 nameof(builder),
                 "HostApplicationBuilder cannot be null."
             );
+        }
 
         // Configure YTLiveChatOptions from the host configuration section "YTLiveChatOptions"
         builder.Services.Configure<YTLiveChatOptions>(
@@ -80,7 +82,7 @@ public static class ServiceCollectionExtensions
             (serviceProvider, httpClient) =>
             {
                 // Retrieve configured options
-                var ytChatOptions = serviceProvider
+                YTLiveChatOptions ytChatOptions = serviceProvider
                     .GetRequiredService<IOptions<YTLiveChatOptions>>()
                     .Value;
                 // Set base address for the HttpClient instance used by YTHttpClient
@@ -92,9 +94,13 @@ public static class ServiceCollectionExtensions
         _ = services.AddTransient<IYTLiveChat, Services.YTLiveChat>(provider =>
         {
             // Resolve dependencies from the DI container
-            var options = provider.GetRequiredService<IOptions<YTLiveChatOptions>>().Value;
-            var ytHttpClient = provider.GetRequiredService<YTHttpClient>(); // Get the configured YTHttpClient
-            var logger = provider.GetService<ILogger<Services.YTLiveChat>>(); // Logger is optional
+            YTLiveChatOptions options = provider
+                .GetRequiredService<IOptions<YTLiveChatOptions>>()
+                .Value;
+            YTHttpClient ytHttpClient = provider.GetRequiredService<YTHttpClient>(); // Get the configured YTHttpClient
+            ILogger<Services.YTLiveChat>? logger = provider.GetService<
+                ILogger<Services.YTLiveChat>
+            >(); // Logger is optional
 
             // Construct the YTLiveChat service instance
             return new Services.YTLiveChat(options, ytHttpClient, logger);

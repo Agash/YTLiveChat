@@ -21,6 +21,7 @@ while (string.IsNullOrWhiteSpace(liveId))
         Console.ResetColor();
     }
 }
+
 Console.WriteLine($"Target Live ID: {liveId}");
 Console.WriteLine("Attempting to connect...");
 
@@ -69,7 +70,9 @@ catch (Exception ex)
     Console.WriteLine($"An unexpected error occurred during host execution: {ex}");
     Console.ResetColor();
     // Try to log the exception if the logger was successfully configured
-    var logger = builder.Services?.BuildServiceProvider()?.GetService<ILogger<Program>>();
+    ILogger<Program>? logger = builder
+        .Services?.BuildServiceProvider()
+        ?.GetService<ILogger<Program>>();
     logger?.LogCritical(ex, "Host terminated unexpectedly");
     return 1; // Indicate error
 }

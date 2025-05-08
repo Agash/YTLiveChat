@@ -154,6 +154,7 @@ internal class ChatMonitorService : IHostedService, IDisposable
                 _ => ConsoleColor.Gray,
             };
         }
+
         return ConsoleColor.DarkGray; // Default for other complex messages
     }
 
