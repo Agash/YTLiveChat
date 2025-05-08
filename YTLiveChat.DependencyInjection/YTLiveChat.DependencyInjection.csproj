@@ -41,4 +41,7 @@
     <None Include="..\README.md" Pack="true" PackagePath="" />
     <!-- A specific README for this package might be better -->
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\YTLiveChat\YTLiveChat.csproj" />
+  </ItemGroup>
 </Project>
