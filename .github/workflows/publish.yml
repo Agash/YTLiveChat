@@ -1,73 +1,100 @@
-# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
-
 name: publish
+
 on:
-  workflow_dispatch: # Allow running the workflow manually from the GitHub UI
+  workflow_dispatch: # Allow manual runs
   push:
-    branches:
-      - "master" # Run the workflow when pushing to the main branch
+    branches: [ master ] # Trigger on pushes to master
   pull_request:
-    branches:
-      - "*" # Run the workflow for all pull requests
+    branches: [ '*' ] # Trigger on pull requests to any branch (for build/test validation)
   release:
-    types:
-      - published # Run the workflow when a new GitHub release is published
+    types: [ published ] # Trigger ONLY when a release is published
 
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
   DOTNET_NOLOGO: true
-  NuGetDirectory: ${{ github.workspace}}/nuget
+  NuGetDirectory: ${{ github.workspace }}/nuget
 
 defaults:
   run:
-    shell: pwsh
+    shell: pwsh # Use PowerShell for consistency
 
 jobs:
-  create_nuget:
+  build_and_pack:
+    name: Build and Pack NuGet Packages
     runs-on: ubuntu-latest
+    outputs:
+      nuget_path: ${{ env.NuGetDirectory }} # Output the path if needed by other jobs (though deploy uses artifacts)
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Get all history to allow automatic versioning using MinVer
+          fetch-depth: 0 # Required for MinVer to determine version correctly
 
-      # Install the .NET SDK indicated in the global.json file
-      - name: Setup .NET
+      - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
+        # Optionally specify the SDK version matching your global.json if needed
+        # with:
+        #   dotnet-version: '9.0.x' # Example
 
-      # Create the NuGet package in the folder from the environment variable NuGetDirectory
-      - run: dotnet pack YTLiveChat/YTLiveChat.csproj --configuration Release --output ${{ env.NuGetDirectory }}
+      - name: Restore Dependencies
+        run: dotnet restore YTLiveChat.sln
 
-      # Publish the NuGet package as an artifact, so they can be used in the following jobs
-      - uses: actions/upload-artifact@v4
+      - name: Build Solution
+        run: dotnet build YTLiveChat.sln --configuration Release --no-restore
+
+      # Pack the core library
+      - name: Pack Core Library (YTLiveChat)
+        run: dotnet pack YTLiveChat/YTLiveChat.csproj --configuration Release --no-build --output ${{ env.NuGetDirectory }}
+
+      # Pack the Dependency Injection library - it should inherit the version via ProjectReference
+      - name: Pack DI Extension Library (YTLiveChat.DependencyInjection)
+        run: dotnet pack YTLiveChat.DependencyInjection/YTLiveChat.DependencyInjection.csproj --configuration Release --no-build --output ${{ env.NuGetDirectory }}
+
+      - name: List Packages Created # Optional: for debugging workflow runs
+        run: Get-ChildItem "${{ env.NuGetDirectory }}" -Recurse -Include *.nupkg | Select-Object FullName, Length
+
+      - name: Upload NuGet Packages Artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: nuget
-          if-no-files-found: error
+          name: nuget-packages # Artifact name containing both packages
+          if-no-files-found: error # Fail if no packages were created
           retention-days: 7
-          path: ${{ env.NuGetDirectory }}/*.nupkg
+          path: ${{ env.NuGetDirectory }}/*.nupkg # Upload all nupkg files from the output directory
 
+  # Deployment job remains largely the same, but depends on the renamed build_and_pack job
   deploy:
-    # Publish only when creating a GitHub Release
-    # https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository
-    # You can update this logic if you want to manage releases differently
-    if: github.event_name == 'release'
+    name: Deploy Packages to NuGet.org
+    # Run only when a release is published on GitHub
+    if: github.event_name == 'release' && github.event.action == 'published'
     runs-on: ubuntu-latest
-    needs: [create_nuget]
+    needs: [build_and_pack] # Depend on the build and pack job
+    environment: # Optional: Define deployment environment if using GitHub Environments for secrets/approvals
+      name: nuget.org
+      url: https://www.nuget.org/packages/Agash.YTLiveChat # Update URL if needed
+    permissions: # Optional: Define least privilege permissions needed
+      contents: read # Typically needed to read repo contents if not checking out again
+      # id-token: write # Add if using OIDC for NuGet authentication instead of API key
+
     steps:
-      # Download the NuGet package created in the previous job
-      - uses: actions/download-artifact@v4
+      - name: Download NuGet Packages Artifact
+        uses: actions/download-artifact@v4
         with:
-          name: nuget
+          name: nuget-packages # Match the artifact name from the build job
           path: ${{ env.NuGetDirectory }}
 
-      # Install the .NET SDK indicated in the global.json file
-      - name: Setup .NET Core
-        uses: actions/setup-dotnet@v4
+      - name: List Downloaded Packages # Optional: for debugging workflow runs
+        run: Get-ChildItem "${{ env.NuGetDirectory }}" -Filter *.nupkg | Select-Object FullName, Length
 
-      # Publish all NuGet packages to NuGet.org
-      # Use --skip-duplicate to prevent errors if a package with the same version already exists.
-      # If you retry a failed workflow, already published packages will be skipped without error.
-      - name: Publish NuGet package
+      - name: Setup .NET SDK # Setup .NET again in the deploy job
+        uses: actions/setup-dotnet@v4
+        # Optionally specify the SDK version
+
+      - name: Publish NuGet Packages
+        env:
+           NUGET_API_KEY: ${{ secrets.NUGET_APIKEY }} # Use the secret for the API key
         run: |
-          foreach($file in (Get-ChildItem "${{ env.NuGetDirectory }}" -Recurse -Include *.nupkg)) {
-              dotnet nuget push $file --api-key "${{ secrets.NUGET_APIKEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          Get-ChildItem "${{ env.NuGetDirectory }}" -Filter *.nupkg | ForEach-Object {
+              Write-Host "Pushing $($_.FullName)..."
+              # Push each package found in the directory
+              dotnet nuget push $_.FullName --api-key "$env:NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
           }

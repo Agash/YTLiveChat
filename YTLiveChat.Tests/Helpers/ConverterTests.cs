@@ -1,6 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-
-using YTLiveChat.Helpers;
+﻿using YTLiveChat.Helpers;
 
 namespace YTLiveChat.Tests.Helpers;
 

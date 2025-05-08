@@ -1,48 +1,45 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using System.Text.Json;
 using YTLiveChat.Contracts.Models;
 using YTLiveChat.Helpers;
-using YTLiveChat.Models; // For FetchOptions
-using YTLiveChat.Models.Response; // For LiveChatResponse
-using System.Text.Json;
-using System.Globalization;
-using Mono.Cecil.Rocks;
+using YTLiveChat.Models;
+using YTLiveChat.Models.Response;
 
 namespace YTLiveChat.Tests.Helpers;
 
 [TestClass]
 public class ParserTests
 {
-    private static readonly JsonSerializerOptions s_jsonOptions = new() { PropertyNameCaseInsensitive = true };
+    private static readonly JsonSerializerOptions s_jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
 
     // Helper to deserialize the wrapped response
-    private static LiveChatResponse? DeserializeWrappedResponse(string json)
-    {
-        return JsonSerializer.Deserialize<LiveChatResponse>(json, s_jsonOptions);
-    }
+    private static LiveChatResponse? DeserializeWrappedResponse(string json) =>
+        JsonSerializer.Deserialize<LiveChatResponse>(json, s_jsonOptions);
 
     // Helper to get the first ChatItem from a deserialized response
     private static ChatItem? GetFirstChatItem(LiveChatResponse? response)
     {
-        var parsed = Parser.ParseLiveChatResponse(response);
-        return parsed.Items.FirstOrDefault();
+        (List<ChatItem> Items, _) = Parser.ParseLiveChatResponse(response);
+        return Items.FirstOrDefault();
     }
-
 
     [TestMethod]
     public void GetOptionsFromLivePage_ValidHtml_ReturnsOptions()
     {
         // Arrange
         string html = ParserTestData.SampleLivePageHtml;
-        var expectedOptions = new FetchOptions
+        FetchOptions expectedOptions = new()
         {
             LiveId = "EXISTING_LIVE_ID",
             ApiKey = "TEST_API_KEY",
             ClientVersion = "2.20240101.01.00",
-            Continuation = "INITIAL_CONTINUATION_TOKEN"
+            Continuation = "INITIAL_CONTINUATION_TOKEN",
         };
 
         // Act
-        var actualOptions = Parser.GetOptionsFromLivePage(html);
+        FetchOptions actualOptions = Parser.GetOptionsFromLivePage(html);
 
         // Assert
         Assert.AreEqual(expectedOptions.LiveId, actualOptions.LiveId);
@@ -58,7 +55,7 @@ public class ParserTests
         string html = ParserTestData.SampleLivePageHtmlFinished;
 
         // Act & Assert
-        var ex = Assert.ThrowsException<Exception>(() => Parser.GetOptionsFromLivePage(html));
+        Exception ex = Assert.ThrowsException<Exception>(() => Parser.GetOptionsFromLivePage(html));
         Assert.IsTrue(ex.Message.Contains("is finished live"));
         Assert.IsTrue(ex.Message.Contains("FINISHED_LIVE_ID"));
     }
@@ -70,12 +67,11 @@ public class ParserTests
         string html = ParserTestData.SampleLivePageHtmlMissingKey;
 
         // Act & Assert
-        var ex = Assert.ThrowsException<Exception>(() => Parser.GetOptionsFromLivePage(html));
+        Exception ex = Assert.ThrowsException<Exception>(() => Parser.GetOptionsFromLivePage(html));
         Assert.IsTrue(ex.Message.Contains("API Key (INNERTUBE_API_KEY) not found"));
     }
 
     // Add tests for missing Continuation, ClientVersion, Canonical Link
-
 
     [TestMethod]
     public void ParseLiveChatResponse_TextMessage_ReturnsCorrectChatItem()
@@ -84,10 +80,10 @@ public class ParserTests
         string authorName = "TestAuthor";
         string messageText = "Simple message here.";
         string json = ParserTestData.TextMessageJson(author: authorName, message: messageText);
-        var response = DeserializeWrappedResponse(json);
+        LiveChatResponse? response = DeserializeWrappedResponse(json);
 
         // Act
-        var chatItem = GetFirstChatItem(response);
+        ChatItem? chatItem = GetFirstChatItem(response);
 
         // Assert
         Assert.IsNotNull(chatItem);
@@ -107,11 +103,15 @@ public class ParserTests
     public void ParseLiveChatResponse_TextMessageWithEmoji_ReturnsCorrectChatItem()
     {
         // Arrange
-        string json = ParserTestData.TextMessageWithEmojiJson(text1: "Prefix ", emojiText: "😊", text2: " Suffix");
-        var response = DeserializeWrappedResponse(json);
+        string json = ParserTestData.TextMessageWithEmojiJson(
+            text1: "Prefix ",
+            emojiText: "😊",
+            text2: " Suffix"
+        );
+        LiveChatResponse? response = DeserializeWrappedResponse(json);
 
         // Act
-        var chatItem = GetFirstChatItem(response);
+        ChatItem? chatItem = GetFirstChatItem(response);
 
         // Assert
         Assert.IsNotNull(chatItem);
@@ -125,7 +125,6 @@ public class ParserTests
         Assert.IsInstanceOfType<TextPart>(chatItem.Message[2]);
         Assert.AreEqual(" Suffix", ((TextPart)chatItem.Message[2]).Text);
     }
-
 
     [TestMethod]
     public void ParseLiveChatResponse_Superchat_ReturnsCorrectChatItem()
@@ -142,7 +141,6 @@ public class ParserTests
         string expectedBodyTextColor = "000000";
         string expectedHeaderTextColor = "000000";
 
-
         string json = ParserTestData.SuperchatJson(
             amount: amountStr,
             message: message,
@@ -150,11 +148,11 @@ public class ParserTests
             headerColor: headerColorLong,
             bodyTextColor: bodyTextLong,
             headerTextColor: headerTextLong
-            );
-        var response = DeserializeWrappedResponse(json);
+        );
+        LiveChatResponse? response = DeserializeWrappedResponse(json);
 
         // Act
-        var chatItem = GetFirstChatItem(response);
+        ChatItem? chatItem = GetFirstChatItem(response);
 
         // Assert
         Assert.IsNotNull(chatItem);
@@ -179,10 +177,10 @@ public class ParserTests
         string message = "ありがとう！";
 
         string json = ParserTestData.SuperchatJson(amount: amountStr, message: message);
-        var response = DeserializeWrappedResponse(json);
+        LiveChatResponse? response = DeserializeWrappedResponse(json);
 
         // Act
-        var chatItem = GetFirstChatItem(response);
+        ChatItem? chatItem = GetFirstChatItem(response);
 
         // Assert
         Assert.IsNotNull(chatItem);
@@ -191,7 +189,6 @@ public class ParserTests
         Assert.AreEqual(1500M, chatItem.Superchat.AmountValue); // Comma removed
         Assert.AreEqual("JPY", chatItem.Superchat.Currency); // Deduced from ¥
     }
-
 
     [TestMethod]
     public void ParseLiveChatResponse_SuperSticker_ReturnsCorrectChatItem()
@@ -202,11 +199,15 @@ public class ParserTests
         long bgColorLong = -11619841L; // Green FF4CAF50
         string expectedBgColor = "4CAF50";
 
-        string json = ParserTestData.SuperStickerJson(amount: amountStr, stickerAlt: stickerAlt, bgColor: bgColorLong);
-        var response = DeserializeWrappedResponse(json);
+        string json = ParserTestData.SuperStickerJson(
+            amount: amountStr,
+            stickerAlt: stickerAlt,
+            bgColor: bgColorLong
+        );
+        LiveChatResponse? response = DeserializeWrappedResponse(json);
 
         // Act
-        var chatItem = GetFirstChatItem(response);
+        ChatItem? chatItem = GetFirstChatItem(response);
 
         // Assert
         Assert.IsNotNull(chatItem);
@@ -221,7 +222,7 @@ public class ParserTests
         Assert.IsNull(chatItem.Superchat.BodyTextColor);
         Assert.IsNotNull(chatItem.Superchat.Sticker);
         Assert.AreEqual(stickerAlt, chatItem.Superchat.Sticker.Alt);
-        Assert.IsTrue(!string.IsNullOrEmpty(chatItem.Superchat.Sticker.Url));
+        Assert.IsFalse(string.IsNullOrEmpty(chatItem.Superchat.Sticker.Url));
         Assert.IsNull(chatItem.MembershipDetails);
     }
 
@@ -232,20 +233,22 @@ public class ParserTests
         string authorName = "NewMemberGuy";
         string levelName = "Awesome Tier";
         string json = ParserTestData.NewMemberJson(author: authorName, level: levelName);
-        var response = DeserializeWrappedResponse(json);
+        LiveChatResponse? response = DeserializeWrappedResponse(json);
 
         // Act
-        var chatItem = GetFirstChatItem(response);
+        ChatItem? chatItem = GetFirstChatItem(response);
 
         // Assert
         Assert.IsNotNull(chatItem);
         Assert.AreEqual(authorName, chatItem.Author.Name);
-        Assert.AreEqual(levelName, chatItem.Author.Badge?.Label); // Check badge label
+        Assert.IsNotNull(chatItem.Author.Badge);
+        Assert.AreEqual(levelName, chatItem.Author.Badge.Label); // Check badge label
         Assert.IsNotNull(chatItem.MembershipDetails);
         Assert.AreEqual(MembershipEventType.New, chatItem.MembershipDetails.EventType);
         Assert.AreEqual(levelName, chatItem.MembershipDetails.LevelName);
         Assert.AreEqual("New member", chatItem.MembershipDetails.HeaderSubtext);
-        Assert.IsTrue(chatItem.MembershipDetails.HeaderPrimaryText?.Contains(levelName));
+        Assert.IsNotNull(chatItem.MembershipDetails.HeaderPrimaryText);
+        Assert.IsTrue(chatItem.MembershipDetails.HeaderPrimaryText.Contains(levelName));
         Assert.IsNull(chatItem.MembershipDetails.MilestoneMonths);
         Assert.IsNull(chatItem.MembershipDetails.GiftCount);
         Assert.IsNull(chatItem.MembershipDetails.GifterUsername);
@@ -261,11 +264,16 @@ public class ParserTests
         string levelName = "Patron";
         int months = 6;
         string comment = "Still here!";
-        string json = ParserTestData.MembershipMilestoneJson(author: authorName, level: levelName, months: months, userComment: comment);
-        var response = DeserializeWrappedResponse(json);
+        string json = ParserTestData.MembershipMilestoneJson(
+            author: authorName,
+            level: levelName,
+            months: months,
+            userComment: comment
+        );
+        LiveChatResponse? response = DeserializeWrappedResponse(json);
 
         // Act
-        var chatItem = GetFirstChatItem(response);
+        ChatItem? chatItem = GetFirstChatItem(response);
 
         // Assert
         Assert.IsNotNull(chatItem);
@@ -277,7 +285,8 @@ public class ParserTests
         Assert.AreEqual(MembershipEventType.Milestone, chatItem.MembershipDetails.EventType);
         Assert.AreEqual(levelName, chatItem.MembershipDetails.LevelName); // Level name from badge tooltip parsing
         Assert.AreEqual(months, chatItem.MembershipDetails.MilestoneMonths);
-        Assert.IsTrue(chatItem.MembershipDetails.HeaderPrimaryText?.Contains($"{months} months"));
+        Assert.IsNotNull(chatItem.MembershipDetails.HeaderPrimaryText);
+        Assert.IsTrue(chatItem.MembershipDetails.HeaderPrimaryText.Contains($"{months} months"));
         Assert.IsNull(chatItem.MembershipDetails.GiftCount);
         Assert.IsNull(chatItem.MembershipDetails.GifterUsername);
         Assert.IsTrue(chatItem.IsMembership);
@@ -291,11 +300,15 @@ public class ParserTests
         string gifterName = "SantaClaus";
         string levelName = "Elf Tier";
         int count = 10;
-        string json = ParserTestData.GiftPurchaseJson(gifter: gifterName, level: levelName, count: count);
-        var response = DeserializeWrappedResponse(json);
+        string json = ParserTestData.GiftPurchaseJson(
+            gifter: gifterName,
+            level: levelName,
+            count: count
+        );
+        LiveChatResponse? response = DeserializeWrappedResponse(json);
 
         // Act
-        var chatItem = GetFirstChatItem(response);
+        ChatItem? chatItem = GetFirstChatItem(response);
 
         // Assert
         Assert.IsNotNull(chatItem);
@@ -320,11 +333,15 @@ public class ParserTests
         string recipientName = "LuckyWinner";
         string levelName = "Prize Tier";
         string gifterName = "GenerousDonor";
-        string json = ParserTestData.GiftRedemptionJson(recipient: recipientName, level: levelName, gifter: gifterName);
-        var response = DeserializeWrappedResponse(json);
+        string json = ParserTestData.GiftRedemptionJson(
+            recipient: recipientName,
+            level: levelName,
+            gifter: gifterName
+        );
+        LiveChatResponse? response = DeserializeWrappedResponse(json);
 
         // Act
-        var chatItem = GetFirstChatItem(response);
+        ChatItem? chatItem = GetFirstChatItem(response);
 
         // Assert
         Assert.IsNotNull(chatItem);
@@ -353,10 +370,10 @@ public class ParserTests
         // Arrange
         string modName = "Moddy";
         string json = ParserTestData.ModeratorMessageJson(author: modName);
-        var response = DeserializeWrappedResponse(json);
+        LiveChatResponse? response = DeserializeWrappedResponse(json);
 
         // Act
-        var chatItem = GetFirstChatItem(response);
+        ChatItem? chatItem = GetFirstChatItem(response);
 
         // Assert
         Assert.IsNotNull(chatItem);
@@ -375,13 +392,12 @@ public class ParserTests
     {
         // Arrange
         string json = ParserTestData.ResponseWithNoContinuation();
-        var response = DeserializeWrappedResponse(json);
+        LiveChatResponse? response = DeserializeWrappedResponse(json);
 
         // Act
-        var (items, continuation) = Parser.ParseLiveChatResponse(response);
+        (List<ChatItem> items, string? continuation) = Parser.ParseLiveChatResponse(response);
 
         // Assert
-        Assert.IsNotNull(items);
         Assert.IsTrue(items.Count > 0); // Should still parse items
         Assert.IsNull(continuation); // Expecting null continuation
     }

@@ -1,10 +1,8 @@
 ﻿using System.Globalization;
 using System.Text.RegularExpressions;
-
 using YTLiveChat.Contracts.Models; // Use the contract namespace
 using YTLiveChat.Models; // Internal models namespace
 using YTLiveChat.Models.Response; // Internal response models namespace
-
 using Action = YTLiveChat.Models.Response.Action; // Explicitly use internal Action
 
 namespace YTLiveChat.Helpers;
@@ -48,36 +46,50 @@ internal static partial class Parser
     /// <summary>
     /// Extracts the relevant message renderer from a polymorphic item container.
     /// </summary>
-    private static MessageRendererBase? GetBaseRenderer(AddChatItemActionItem? item) => item switch
-    {
-        { LiveChatPaidMessageRenderer: not null } => item.LiveChatPaidMessageRenderer,
-        { LiveChatPaidStickerRenderer: not null } => item.LiveChatPaidStickerRenderer,
-        { LiveChatMembershipItemRenderer: not null } => item.LiveChatMembershipItemRenderer,
-        { LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer: not null } => item.LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer,
-        { LiveChatSponsorshipsGiftRedemptionAnnouncementRenderer: not null } => item.LiveChatSponsorshipsGiftRedemptionAnnouncementRenderer,
-        { LiveChatTextMessageRenderer: not null } => item.LiveChatTextMessageRenderer,
-        // PlaceholderItemRenderer doesn't inherit from Base and isn't handled here
-        _ => null
-    };
+    private static MessageRendererBase? GetBaseRenderer(AddChatItemActionItem? item) =>
+        item switch
+        {
+            { LiveChatPaidMessageRenderer: not null } => item.LiveChatPaidMessageRenderer,
+            { LiveChatPaidStickerRenderer: not null } => item.LiveChatPaidStickerRenderer,
+            { LiveChatMembershipItemRenderer: not null } => item.LiveChatMembershipItemRenderer,
+            { LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer: not null } =>
+                item.LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer,
+            { LiveChatSponsorshipsGiftRedemptionAnnouncementRenderer: not null } =>
+                item.LiveChatSponsorshipsGiftRedemptionAnnouncementRenderer,
+            { LiveChatTextMessageRenderer: not null } => item.LiveChatTextMessageRenderer,
+            // PlaceholderItemRenderer doesn't inherit from Base and isn't handled here
+            _ => null,
+        };
 
     /// <summary>
     /// Converts a MessageRun (internal model) to a MessagePart (contract model).
     /// </summary>
-    public static Contracts.Models.MessagePart ToMessagePart(this Models.Response.MessageRun run) => run switch
-    {
-        Models.Response.MessageText { Text: not null } textRun => new Contracts.Models.TextPart { Text = textRun.Text },
-        Models.Response.MessageEmoji { Emoji: not null } emojiRun => new Contracts.Models.EmojiPart
+    public static Contracts.Models.MessagePart ToMessagePart(this Models.Response.MessageRun run) =>
+        run switch
         {
-            Url = emojiRun.Emoji.Image?.Thumbnails?.LastOrDefault()?.Url ?? string.Empty,
-            IsCustomEmoji = emojiRun.Emoji.IsCustomEmoji,
-            Alt = emojiRun.Emoji.Shortcuts?.FirstOrDefault() ?? emojiRun.Emoji.SearchTerms?.FirstOrDefault(),
-            EmojiText = emojiRun.Emoji.IsCustomEmoji
-                        ? (emojiRun.Emoji.Shortcuts?.FirstOrDefault() ?? emojiRun.Emoji.SearchTerms?.FirstOrDefault() ?? $"[:{emojiRun.Emoji.EmojiId}:]")
+            Models.Response.MessageText { Text: not null } textRun => new Contracts.Models.TextPart
+            {
+                Text = textRun.Text,
+            },
+            Models.Response.MessageEmoji { Emoji: not null } emojiRun =>
+                new Contracts.Models.EmojiPart
+                {
+                    Url = emojiRun.Emoji.Image?.Thumbnails?.LastOrDefault()?.Url ?? string.Empty,
+                    IsCustomEmoji = emojiRun.Emoji.IsCustomEmoji,
+                    Alt =
+                        emojiRun.Emoji.Shortcuts?.FirstOrDefault()
+                        ?? emojiRun.Emoji.SearchTerms?.FirstOrDefault(),
+                    EmojiText = emojiRun.Emoji.IsCustomEmoji
+                        ? (
+                            emojiRun.Emoji.Shortcuts?.FirstOrDefault()
+                            ?? emojiRun.Emoji.SearchTerms?.FirstOrDefault()
+                            ?? $"[:{emojiRun.Emoji.EmojiId}:]"
+                        )
                         : (emojiRun.Emoji.EmojiId ?? string.Empty),
-        },
-        // Fallback for unknown or null-property run types
-        _ => new Contracts.Models.TextPart { Text = "[Unknown Message Part]" }
-    };
+                },
+            // Fallback for unknown or null-property run types
+            _ => new Contracts.Models.TextPart { Text = "[Unknown Message Part]" },
+        };
 
     /// <summary>
     /// Converts an array of MessageRun (internal) to MessagePart[] (contract).
@@ -135,7 +147,8 @@ internal static partial class Parser
     /// </summary>
     public static Contracts.Models.ChatItem? ToChatItem(this Action action) // Return contract type
     {
-        ArgumentNullException.ThrowIfNull(action);
+        if (action == null)
+            throw new ArgumentNullException(nameof(action));
 
         if (action.AddChatItemAction?.Item == null)
             return null;
@@ -329,7 +342,9 @@ internal static partial class Parser
 
                 // *** Update Author for Gift Purchase Event ***
                 // The author of the *event* is the gifter, whose details are in the header
-                LiveChatSponsorshipsHeaderRenderer? gifterHeader = giftPurchase.Header?.LiveChatSponsorshipsHeaderRenderer;
+                LiveChatSponsorshipsHeaderRenderer? gifterHeader = giftPurchase
+                    .Header
+                    ?.LiveChatSponsorshipsHeaderRenderer;
                 if (gifterHeader != null)
                 {
                     author.Name = gifterHeader.AuthorName?.Text ?? author.Name;
@@ -356,7 +371,8 @@ internal static partial class Parser
                                             badgeContainer.LiveChatAuthorBadgeRenderer?.Tooltip
                                         ),
                                     Label =
-                                        badgeContainer.LiveChatAuthorBadgeRenderer?.Tooltip ?? "Member",
+                                        badgeContainer.LiveChatAuthorBadgeRenderer?.Tooltip
+                                        ?? "Member",
                                 };
                             }
                             else // Standard badges
@@ -385,7 +401,8 @@ internal static partial class Parser
                     // Use the gifter's level if available from badge, otherwise default
                     LevelName = levelNameFromBadge ?? "Member",
                     EventType = Contracts.Models.MembershipEventType.GiftPurchase,
-                    HeaderPrimaryText = gifterHeader?.PrimaryText?.Runs?.ToMessageParts()
+                    HeaderPrimaryText = gifterHeader
+                        ?.PrimaryText?.Runs?.ToMessageParts()
                         ?.ToSimpleString(),
                     GifterUsername = author.Name, // We just populated author with gifter info
                 };
@@ -395,7 +412,8 @@ internal static partial class Parser
                 {
                     int giftCount = 0; // Default to 0
                     // Try the new "Sent X ..." format first
-                    Match giftMatch = GiftedSentCountRegex().Match(membershipInfo.HeaderPrimaryText);
+                    Match giftMatch = GiftedSentCountRegex()
+                        .Match(membershipInfo.HeaderPrimaryText);
 
                     if (!giftMatch.Success)
                     {
@@ -428,10 +446,8 @@ internal static partial class Parser
 
                     membershipInfo.GiftCount = giftCount; // Assign the determined count
                 }
-                // *** End Updated Gift Count Logic ***
 
                 break;
-
 
             case LiveChatSponsorshipsGiftRedemptionAnnouncementRenderer giftRedemption:
                 levelNameFromBadge = baseRenderer
@@ -452,14 +468,20 @@ internal static partial class Parser
                 };
 
                 // Attempt to extract gifter name from the message runs (often the last part)
-                MessageText? relevantText = (MessageText?)(giftRedemption.Message?.Runs?.LastOrDefault(r => r is MessageText));
+                MessageText? relevantText = (MessageText?)(
+                    giftRedemption.Message?.Runs?.LastOrDefault(r => r is MessageText)
+                );
                 string? gifterName = relevantText?.Text?.Trim(); // Get first text part
 
-                if (giftRedemption.Message?.Runs?.LastOrDefault(r => r is MessageText) is MessageText mt)
+                if (
+                    giftRedemption.Message?.Runs?.LastOrDefault(r => r is MessageText)
+                    is MessageText mt
+                )
                 {
                     gifterName = mt.Text?.Trim();
                     // More robust check: sometimes it's "[GifterName] gifted you..."
-                    Match gifterMatch = GiftRedemptionGifterRegex().Match(membershipInfo.HeaderPrimaryText ?? "");
+                    Match gifterMatch = GiftRedemptionGifterRegex()
+                        .Match(membershipInfo.HeaderPrimaryText ?? "");
                     if (gifterMatch.Success)
                     {
                         gifterName = gifterMatch.Groups[1].Value.Trim();
@@ -548,7 +570,8 @@ internal static partial class Parser
         return (items, continuationToken);
     }
 
-    // --- Regex Definitions ---
+    #region Regex Definitions
+#if NET7_0_OR_GREATER
     [GeneratedRegex(
         "<link rel=\"canonical\" href=\"https:\\/\\/www\\.youtube\\.com\\/watch\\?v=([^\"]+)\">",
         RegexOptions.Compiled
@@ -576,10 +599,16 @@ internal static partial class Parser
     [GeneratedRegex(@"member for (\d+) months?", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex MilestoneMonthsRegex();
 
-    [GeneratedRegex(@"Gifted (\d+|a) .*? membership", RegexOptions.IgnoreCase | RegexOptions.Compiled)] // Handle "a membership"
+    [GeneratedRegex(
+        @"Gifted (\d+|a) .*? membership",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled
+    )] // Handle "a membership"
     private static partial Regex GiftedCountRegex();
 
-    [GeneratedRegex(@"^Sent (\d+) .*? gift memberships?$", RegexOptions.IgnoreCase | RegexOptions.Compiled)] // Match start, handle optional 's'
+    [GeneratedRegex(
+        @"^Sent (\d+) .*? gift memberships?$",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled
+    )] // Match start, handle optional 's'
     private static partial Regex GiftedSentCountRegex();
 
     [GeneratedRegex(
@@ -591,7 +620,87 @@ internal static partial class Parser
     // Regex to extract gifter name from redemption message like "GifterName gifted you..."
     [GeneratedRegex(@"^(.*?) gifted you", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex GiftRedemptionGifterRegex();
+#else
+    // Fallback for .NET Standard 2.1
+    private static readonly Regex _liveIdRegex = new(
+        "<link rel=\"canonical\" href=\"https:\\/\\/www\\.youtube\\.com\\/watch\\?v=([^\"]+)\">",
+        RegexOptions.Compiled
+    );
 
+    private static Regex LiveIdRegex() => _liveIdRegex;
+
+    private static readonly Regex _replayRegex = new(
+        "\"isReplay\":\\s*(true)",
+        RegexOptions.Compiled
+    );
+
+    private static Regex ReplayRegex() => _replayRegex;
+
+    private static readonly Regex _apiKeyRegex = new(
+        "\"INNERTUBE_API_KEY\":\\s*\"([^\"]*)\"",
+        RegexOptions.Compiled
+    );
+
+    private static Regex ApiKeyRegex() => _apiKeyRegex;
+
+    private static readonly Regex _clientVersionRegex = new(
+        "\"INNERTUBE_CONTEXT_CLIENT_VERSION\":\\s*\"([^\"]*)\"",
+        RegexOptions.Compiled
+    );
+
+    private static Regex ClientVersionRegex() => _clientVersionRegex;
+
+    private static readonly Regex _continuationRegex = new(
+        "\"continuation\":\\s*\"([^\"]*)\"",
+        RegexOptions.Compiled
+    );
+
+    private static Regex ContinuationRegex() => _continuationRegex;
+
+    private static readonly Regex _amountCurrencyRegex = new(
+        @"([€$£¥])?\s*([\d.,]+)\s*(?:([A-Z]{3}))?",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant
+    );
+
+    private static Regex AmountCurrencyRegex() => _amountCurrencyRegex;
+
+    private static readonly Regex _milestoneMonthsRegex = new(
+        @"member for (\d+) months?",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled
+    );
+
+    private static Regex MilestoneMonthsRegex() => _milestoneMonthsRegex;
+
+    private static readonly Regex _giftedCountRegex = new(
+        @"Gifted (\d+|a) .*? membership",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled
+    );
+
+    private static Regex GiftedCountRegex() => _giftedCountRegex;
+
+    private static readonly Regex _giftedSentCountRegex = new(
+        @"^Sent (\d+) .*? gift memberships?$",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled
+    );
+
+    private static Regex GiftedSentCountRegex() => _giftedSentCountRegex;
+
+    private static readonly Regex _newMemberLevelRegex = new(
+        @"Welcome to (.*?) membership",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled
+    );
+
+    private static Regex NewMemberLevelRegex() => _newMemberLevelRegex;
+
+    private static readonly Regex _giftRedemptionGifterRegex = new(
+        @"^(.*?) gifted you",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled
+    );
+
+    private static Regex GiftRedemptionGifterRegex() => _giftRedemptionGifterRegex;
+#endif
+
+    #endregion
 
     // Helper extension method to convert message parts back to a simple string
     private static string ToSimpleString(this IEnumerable<Contracts.Models.MessagePart>? parts) // Use contract type
@@ -631,7 +740,8 @@ internal static partial class Parser
 
         public static string GetCodeFromSymbolOrCode(string symbolOrCode)
         {
-            if (string.IsNullOrWhiteSpace(symbolOrCode)) return "USD"; // Default
+            if (string.IsNullOrWhiteSpace(symbolOrCode))
+                return "USD"; // Default
 
             // Check if it's already a 3-letter code
             if (symbolOrCode.Length == 3 && symbolOrCode.All(char.IsLetter))
@@ -646,8 +756,10 @@ internal static partial class Parser
             }
 
             // Specific common fallbacks if needed (already covered above, but explicit doesn't hurt)
-            if (symbolOrCode == "$") return "USD";
-            if (symbolOrCode == "¥") return "JPY"; // Could be CNY too, JPY is often default in YT context
+            if (symbolOrCode == "$")
+                return "USD";
+            if (symbolOrCode == "¥")
+                return "JPY"; // Could be CNY too, JPY is often default in YT context
 
             // Final fallback: return the input uppercase (maybe it's a less common code)
             return symbolOrCode.ToUpperInvariant();

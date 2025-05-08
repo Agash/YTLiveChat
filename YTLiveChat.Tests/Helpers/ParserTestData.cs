@@ -42,40 +42,48 @@ internal static class ParserTestData
         </script></head><body></body></html>
         """;
 
-
     // --- JSON Samples ---
 
     // Base structure for wrapping item renderers into a valid LiveChatResponse
-    private static string WrapItemInResponse(string itemRendererJson, string continuation = "NEXT_CONTINUATION")
+    private static string WrapItemInResponse(
+        string itemRendererJson,
+        string? continuation = "NEXT_CONTINUATION"
+    )
     {
-        string continuationJson = continuation == null
-            ? ""
-            : $$"""
-                ,"continuations": [ { "timedContinuationData": { "continuation": "{{continuation}}", "timeoutMs": 5000 } } ]
-                """;
+        string continuationJson =
+            continuation == null
+                ? ""
+                : $$"""
+                    ,"continuations": [ { "timedContinuationData": { "continuation": "{{continuation}}", "timeoutMs": 5000 } } ]
+                    """;
 
         return $$"""
-        {
-          "responseContext": { /* ... */ },
-          "continuationContents": {
-            "liveChatContinuation": {
-              "actions": [
-                {
-                  "addChatItemAction": {
-                    "item": {{itemRendererJson}}
-                  }
+            {
+              "responseContext": { /* ... */ },
+              "continuationContents": {
+                "liveChatContinuation": {
+                  "actions": [
+                    {
+                      "addChatItemAction": {
+                        "item": {{itemRendererJson}}
+                      }
+                    }
+                  ]{{continuationJson}}
                 }
-              ]{{continuationJson}}
+              }
             }
-          }
-        }
-        """;
+            """;
     }
 
-
-    public static string TextMessageJson(string id = "text-id-1", string author = "TestUser", string channelId = "UC123", string message = "Hello world!")
+    public static string TextMessageJson(
+        string id = "text-id-1",
+        string author = "TestUser",
+        string channelId = "UC123",
+        string message = "Hello world!"
+    )
     {
-        return WrapItemInResponse($$"""
+        return WrapItemInResponse(
+            $$"""
             {
               "liveChatTextMessageRenderer": {
                 "id": "{{id}}",
@@ -89,10 +97,18 @@ internal static class ParserTestData
                 // Add badges etc. if needed for specific tests
               }
             }
-            """);
+            """
+        );
     }
 
-    public static string TextMessageWithEmojiJson(string id = "emoji-id-1", string author = "EmojiFan", string channelId = "UC456", string text1 = "Look: ", string emojiText = "😊", string text2 = "!")
+    public static string TextMessageWithEmojiJson(
+        string id = "emoji-id-1",
+        string author = "EmojiFan",
+        string channelId = "UC456",
+        string text1 = "Look: ",
+        string emojiText = "😊",
+        string text2 = "!"
+    )
     {
         // A simplified Emoji structure for testing
         string emojiRunJson = $$"""
@@ -106,7 +122,8 @@ internal static class ParserTestData
               }
             }
             """;
-        return WrapItemInResponse($$"""
+        return WrapItemInResponse(
+            $$"""
             {
               "liveChatTextMessageRenderer": {
                 "id": "{{id}}",
@@ -123,13 +140,32 @@ internal static class ParserTestData
                 }
               }
             }
-            """);
+            """
+        );
     }
 
-    public static string SuperchatJson(string id = "sc-id-1", string author = "Supporter", string channelId = "UC789", string amount = "$5.00", string? message = "Great stream!", long bodyColor = -15376192L /* Blue */, long headerColor = -14680065L /* Darker Blue */, long bodyTextColor = -1L /* White */, long headerTextColor = -1L /* White */)
+    public static string SuperchatJson(
+        string id = "sc-id-1",
+        string author = "Supporter",
+        string channelId = "UC789",
+        string amount = "$5.00",
+        string? message = "Great stream!",
+        long bodyColor =
+            -15376192L /* Blue */
+        ,
+        long headerColor =
+            -14680065L /* Darker Blue */
+        ,
+        long bodyTextColor =
+            -1L /* White */
+        ,
+        long headerTextColor = -1L /* White */
+    )
     {
-        string messageJson = message == null ? "null" : $$"""{ "runs": [ { "text": "{{message}}" } ] }""";
-        return WrapItemInResponse($$"""
+        string messageJson =
+            message == null ? "null" : $$"""{ "runs": [ { "text": "{{message}}" } ] }""";
+        return WrapItemInResponse(
+            $$"""
             {
               "liveChatPaidMessageRenderer": {
                 "id": "{{id}}",
@@ -146,15 +182,27 @@ internal static class ParserTestData
                 "authorNameTextColor": -16777216 // Black example
               }
             }
-            """);
+            """
+        );
     }
 
-    public static string SuperStickerJson(string id = "sticker-id-1", string author = "StickerFan", string channelId = "UCA BC", string amount = "¥1,000", long bgColor = 4280154210L /* Greenish? - FF1E88E5 -> -14680065 */, string stickerUrl = "https://sticker...", string stickerAlt = "Cute Sticker")
+    public static string SuperStickerJson(
+        string id = "sticker-id-1",
+        string author = "StickerFan",
+        string channelId = "UCA BC",
+        string amount = "¥1,000",
+        long bgColor =
+            4280154210L /* Greenish? - FF1E88E5 -> -14680065 */
+        ,
+        string stickerUrl = "https://sticker...",
+        string stickerAlt = "Cute Sticker"
+    )
     {
         // Adjust bgColor to match expected type (long)
         long actualBgColor = -11619841L; // Green FF4CAF50 example
 
-        return WrapItemInResponse($$"""
+        return WrapItemInResponse(
+            $$"""
             {
               "liveChatPaidStickerRenderer": {
                 "id": "{{id}}",
@@ -175,149 +223,184 @@ internal static class ParserTestData
                 "stickerDisplayHeight": 80
               }
             }
-            """);
+            """
+        );
     }
 
-
-    public static string NewMemberJson(string id = "member-id-1", string author = "Newbie", string channelId = "UCDEF", string level = "Supporter Tier")
+    public static string NewMemberJson(
+        string id = "member-id-1",
+        string author = "Newbie",
+        string channelId = "UCDEF",
+        string level = "Supporter Tier"
+    )
     {
         // Simulate badge tooltip providing level name
         string badgeJson = $$"""
-             {
-               "liveChatAuthorBadgeRenderer": {
-                 "customThumbnail": { "thumbnails": [ { "url": "https://badge..." } ] },
-                 "tooltip": "{{level}}",
-                 "accessibility": { "accessibilityData": { "label": "{{level}}" } }
-               }
-             }
-             """;
+            {
+              "liveChatAuthorBadgeRenderer": {
+                "customThumbnail": { "thumbnails": [ { "url": "https://badge..." } ] },
+                "tooltip": "{{level}}",
+                "accessibility": { "accessibilityData": { "label": "{{level}}" } }
+              }
+            }
+            """;
 
-        return WrapItemInResponse($$"""
-             {
-               "liveChatMembershipItemRenderer": {
-                 "id": "{{id}}",
-                 "timestampUsec": "{{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000}}",
-                 "authorName": { "simpleText": "{{author}}" },
-                 "authorExternalChannelId": "{{channelId}}",
-                 "authorPhoto": { "thumbnails": [ { "url": "https://..." } ] },
-                 "authorBadges": [ {{badgeJson}} ],
-                 "headerPrimaryText": { "runs": [ { "text": "Welcome to {{level}} membership!" } ] }, // Example format
-                 "headerSubtext": { "simpleText": "New member" }
-                 // "message" might be null or present for new members
-               }
-             }
-             """);
+        return WrapItemInResponse(
+            $$"""
+            {
+              "liveChatMembershipItemRenderer": {
+                "id": "{{id}}",
+                "timestampUsec": "{{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000}}",
+                "authorName": { "simpleText": "{{author}}" },
+                "authorExternalChannelId": "{{channelId}}",
+                "authorPhoto": { "thumbnails": [ { "url": "https://..." } ] },
+                "authorBadges": [ {{badgeJson}} ],
+                "headerPrimaryText": { "runs": [ { "text": "Welcome to {{level}} membership!" } ] }, // Example format
+                "headerSubtext": { "simpleText": "New member" }
+                // "message" might be null or present for new members
+              }
+            }
+            """
+        );
     }
 
-
-    public static string MembershipMilestoneJson(string id = "milestone-id-1", string author = "Veteran", string channelId = "UCGHI", string level = "Gold Tier", int months = 12, string userComment = "Still loving it!")
+    public static string MembershipMilestoneJson(
+        string id = "milestone-id-1",
+        string author = "Veteran",
+        string channelId = "UCGHI",
+        string level = "Gold Tier",
+        int months = 12,
+        string userComment = "Still loving it!"
+    )
     {
         string badgeJson = $$"""
-             {
-               "liveChatAuthorBadgeRenderer": {
-                 "customThumbnail": { "thumbnails": [ { "url": "https://badge..." } ] },
-                 "tooltip": "{{level}} ({{months}} months)", // Tooltip might include duration
-                 "accessibility": { "accessibilityData": { "label": "{{level}} ({{months}} months)" } }
-               }
-             }
-             """;
-        string messageJson = userComment == null ? "null" : $$"""{ "runs": [ { "text": "{{userComment}}" } ] }""";
+            {
+              "liveChatAuthorBadgeRenderer": {
+                "customThumbnail": { "thumbnails": [ { "url": "https://badge..." } ] },
+                "tooltip": "{{level}} ({{months}} months)", // Tooltip might include duration
+                "accessibility": { "accessibilityData": { "label": "{{level}} ({{months}} months)" } }
+              }
+            }
+            """;
+        string messageJson =
+            userComment == null ? "null" : $$"""{ "runs": [ { "text": "{{userComment}}" } ] }""";
 
-        return WrapItemInResponse($$"""
-             {
-               "liveChatMembershipItemRenderer": {
-                 "id": "{{id}}",
-                 "timestampUsec": "{{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000}}",
-                 "authorName": { "simpleText": "{{author}}" },
-                 "authorExternalChannelId": "{{channelId}}",
-                 "authorPhoto": { "thumbnails": [ { "url": "https://..." } ] },
-                 "authorBadges": [ {{badgeJson}} ],
-                 "headerPrimaryText": { "runs": [ { "text": "Member for {{months}} months" } ] },
-                 "headerSubtext": null, // Often null for milestones
-                 "message": {{messageJson}} // User's comment
-               }
-             }
-             """);
+        return WrapItemInResponse(
+            $$"""
+            {
+              "liveChatMembershipItemRenderer": {
+                "id": "{{id}}",
+                "timestampUsec": "{{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000}}",
+                "authorName": { "simpleText": "{{author}}" },
+                "authorExternalChannelId": "{{channelId}}",
+                "authorPhoto": { "thumbnails": [ { "url": "https://..." } ] },
+                "authorBadges": [ {{badgeJson}} ],
+                "headerPrimaryText": { "runs": [ { "text": "Member for {{months}} months" } ] },
+                "headerSubtext": null, // Often null for milestones
+                "message": {{messageJson}} // User's comment
+              }
+            }
+            """
+        );
     }
 
-
-    public static string GiftPurchaseJson(string id = "gift-purchase-id-1", string gifter = "GenerousGuy", string channelId = "UCJKL", string level = "Silver Tier", int count = 5)
+    public static string GiftPurchaseJson(
+        string id = "gift-purchase-id-1",
+        string gifter = "GenerousGuy",
+        string channelId = "UCJKL",
+        string level = "Silver Tier",
+        int count = 5
+    )
     {
         // Gift Purchase Announcement: Author in header IS the gifter
         string badgeJson = $$"""
-             {
-               "liveChatAuthorBadgeRenderer": {
-                 "customThumbnail": { "thumbnails": [ { "url": "https://badge..." } ] },
-                 "tooltip": "{{level}}", // Gifter's level badge
-                 "accessibility": { "accessibilityData": { "label": "{{level}}" } }
-               }
-             }
-             """;
+            {
+              "liveChatAuthorBadgeRenderer": {
+                "customThumbnail": { "thumbnails": [ { "url": "https://badge..." } ] },
+                "tooltip": "{{level}}", // Gifter's level badge
+                "accessibility": { "accessibilityData": { "label": "{{level}}" } }
+              }
+            }
+            """;
         string headerJson = $$"""
-             {
-               "liveChatSponsorshipsHeaderRenderer": {
-                 "authorName": { "simpleText": "{{gifter}}" },
-                 "authorPhoto": { "thumbnails": [ { "url": "https://..." } ] },
-                 "primaryText": { "runs": [ { "text": "Gifted {{count}} {{level}} memberships" } ] },
-                 "authorBadges": [ {{badgeJson}} ]
-                 // No authorExternalChannelId in header typically
-               }
-             }
-             """;
+            {
+              "liveChatSponsorshipsHeaderRenderer": {
+                "authorName": { "simpleText": "{{gifter}}" },
+                "authorPhoto": { "thumbnails": [ { "url": "https://..." } ] },
+                "primaryText": { "runs": [ { "text": "Gifted {{count}} {{level}} memberships" } ] },
+                "authorBadges": [ {{badgeJson}} ]
+                // No authorExternalChannelId in header typically
+              }
+            }
+            """;
 
-        return WrapItemInResponse($$"""
-             {
-                "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer": {
-                    "id": "{{id}}",
-                    "timestampUsec": "{{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000}}",
-                    "header": {{headerJson}}
-                    // authorExternalChannelId might be here or derived from header context
-                    // For testing, assume parser gets it from header context if needed or relies on ChatItem author population logic
-                 }
-             }
-             """);
+        return WrapItemInResponse(
+            $$"""
+            {
+               "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer": {
+                   "id": "{{id}}",
+                   "timestampUsec": "{{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000}}",
+                   "header": {{headerJson}}
+                   // authorExternalChannelId might be here or derived from header context
+                   // For testing, assume parser gets it from header context if needed or relies on ChatItem author population logic
+                }
+            }
+            """
+        );
     }
 
-    public static string GiftRedemptionJson(string id = "gift-redeem-id-1", string recipient = "LuckyUser", string channelId = "UCMNO", string level = "Bronze Tier", string gifter = "MysteryBenefactor")
+    public static string GiftRedemptionJson(
+        string id = "gift-redeem-id-1",
+        string recipient = "LuckyUser",
+        string channelId = "UCMNO",
+        string level = "Bronze Tier",
+        string gifter = "MysteryBenefactor"
+    )
     {
         // Gift Redemption: Author IS the recipient
         string badgeJson = $$"""
-             {
-               "liveChatAuthorBadgeRenderer": {
-                 "customThumbnail": { "thumbnails": [ { "url": "https://badge..." } ] },
-                 "tooltip": "{{level}}", // Recipient's new level badge
-                 "accessibility": { "accessibilityData": { "label": "{{level}}" } }
-               }
-             }
-             """;
+            {
+              "liveChatAuthorBadgeRenderer": {
+                "customThumbnail": { "thumbnails": [ { "url": "https://badge..." } ] },
+                "tooltip": "{{level}}", // Recipient's new level badge
+                "accessibility": { "accessibilityData": { "label": "{{level}}" } }
+              }
+            }
+            """;
 
         // Message often includes gifter name
         string messageJson = $$"""
-         {
-            "runs": [
-                { "text": "Welcome! You received a gift membership from " },
-                { "text": "{{gifter}}", "bold": true }, // Gifter name might be bolded
-                { "text": "!" }
-             ]
-         }
-         """;
+            {
+               "runs": [
+                   { "text": "Welcome! You received a gift membership from " },
+                   { "text": "{{gifter}}", "bold": true }, // Gifter name might be bolded
+                   { "text": "!" }
+                ]
+            }
+            """;
 
-        return WrapItemInResponse($$"""
-             {
-               "liveChatSponsorshipsGiftRedemptionAnnouncementRenderer": {
-                 "id": "{{id}}",
-                 "timestampUsec": "{{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000}}",
-                 "authorName": { "simpleText": "{{recipient}}" },
-                 "authorExternalChannelId": "{{channelId}}",
-                 "authorPhoto": { "thumbnails": [ { "url": "https://..." } ] },
-                 "authorBadges": [ {{badgeJson}} ],
-                 "message": {{messageJson}}
-               }
-             }
-             """);
+        return WrapItemInResponse(
+            $$"""
+            {
+              "liveChatSponsorshipsGiftRedemptionAnnouncementRenderer": {
+                "id": "{{id}}",
+                "timestampUsec": "{{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000}}",
+                "authorName": { "simpleText": "{{recipient}}" },
+                "authorExternalChannelId": "{{channelId}}",
+                "authorPhoto": { "thumbnails": [ { "url": "https://..." } ] },
+                "authorBadges": [ {{badgeJson}} ],
+                "message": {{messageJson}}
+              }
+            }
+            """
+        );
     }
 
-    public static string ModeratorMessageJson(string id = "mod-msg-1", string author = "ModUser", string channelId = "UCMod")
+    public static string ModeratorMessageJson(
+        string id = "mod-msg-1",
+        string author = "ModUser",
+        string channelId = "UCMod"
+    )
     {
         string badgeJson = """
             {
@@ -328,7 +411,8 @@ internal static class ParserTestData
               }
             }
             """;
-        return WrapItemInResponse($$"""
+        return WrapItemInResponse(
+            $$"""
             {
               "liveChatTextMessageRenderer": {
                 "id": "{{id}}",
@@ -340,14 +424,13 @@ internal static class ParserTestData
                 "message": { "runs": [ { "text": "Please keep chat respectful." } ] }
               }
             }
-            """);
+            """
+        );
     }
 
     // Add more samples: Owner, Verified, Member messages, edge cases (empty message, missing fields etc.)
 
-    public static string ResponseWithNoContinuation()
-    {
+    public static string ResponseWithNoContinuation() =>
         // Simulate a response where the stream might have ended
-        return WrapItemInResponse(TextMessageJson(message: "Last message maybe?"), continuation: null);
-    }
+        WrapItemInResponse(TextMessageJson(message: "Last message maybe?"), continuation: null);
 }

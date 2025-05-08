@@ -33,13 +33,14 @@ namespace YTLiveChat.Models.Response;
 // Reusable Base Classes & Common Structures
 // ==========================================================================
 
-internal record AccessibilityData
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+public record AccessibilityData
 {
     [JsonPropertyName("label")]
     public string? Label { get; init; }
 }
 
-internal record Accessibility
+public record Accessibility
 {
     [JsonPropertyName("accessibilityData")]
     public AccessibilityData? AccessibilityData { get; init; }
@@ -48,19 +49,19 @@ internal record Accessibility
     public string? Label { get; init; }
 }
 
-internal record Icon
+public record Icon
 {
     [JsonPropertyName("iconType")]
     public string? IconType { get; init; }
 }
 
-internal record SimpleText
+public record SimpleText
 {
     [JsonPropertyName("simpleText")]
     public string? Text { get; init; }
 }
 
-internal record Thumbnail
+public record Thumbnail
 {
     [JsonPropertyName("url")]
     public string? Url { get; init; }
@@ -72,13 +73,13 @@ internal record Thumbnail
     public int Height { get; init; }
 }
 
-internal record AuthorPhoto
+public record AuthorPhoto
 {
     [JsonPropertyName("thumbnails")]
     public List<Thumbnail>? Thumbnails { get; init; }
 }
 
-internal record WebCommandMetadata
+public record WebCommandMetadata
 {
     [JsonPropertyName("ignoreNavigation")]
     public bool IgnoreNavigation { get; init; }
@@ -93,19 +94,19 @@ internal record WebCommandMetadata
     public string? WebPageType { get; init; }
 }
 
-internal record CommandMetadata
+public record CommandMetadata
 {
     [JsonPropertyName("webCommandMetadata")]
     public WebCommandMetadata? WebCommandMetadata { get; init; }
 }
 
-internal record LiveChatItemContextMenuEndpoint
+public record LiveChatItemContextMenuEndpoint
 {
     [JsonPropertyName("params")]
     public string? Params { get; init; }
 }
 
-internal record ContextMenuEndpoint
+public record ContextMenuEndpoint
 {
     [JsonPropertyName("clickTrackingParams")]
     public string? ClickTrackingParams { get; init; }
@@ -120,9 +121,9 @@ internal record ContextMenuEndpoint
 // Represents a text segment or emoji within a message
 // Using JsonConverter for polymorphism as done in the original project.
 [JsonConverter(typeof(Helpers.MessageRunConverter))] // Keep existing converter if suitable
-internal abstract record MessageRun;
+public abstract record MessageRun;
 
-internal record MessageText : MessageRun
+public record MessageText : MessageRun
 {
     [JsonPropertyName("text")]
     public string? Text { get; init; }
@@ -140,7 +141,7 @@ internal record MessageText : MessageRun
     public string? FontFace { get; init; }
 }
 
-internal record MessageEmoji : MessageRun
+public record MessageEmoji : MessageRun
 {
     [JsonPropertyName("emoji")]
     public Emoji? Emoji { get; init; }
@@ -152,26 +153,26 @@ internal record MessageEmoji : MessageRun
     public bool IsCustomEmoji { get; init; }
 }
 
-internal record Message
+public record Message
 {
     [JsonPropertyName("runs")]
     public List<MessageRun>? Runs { get; init; }
 }
 
-internal record CustomThumbnail
+public record CustomThumbnail
 {
     [JsonPropertyName("thumbnails")]
     public List<Thumbnail>? Thumbnails { get; init; }
 }
 
-internal record AuthorBadgeContainer // NEW RECORD
+public record AuthorBadgeContainer // NEW RECORD
 {
     // This property name MUST match the key in the JSON array elements
     [JsonPropertyName("liveChatAuthorBadgeRenderer")]
     public LiveChatAuthorBadgeRenderer? LiveChatAuthorBadgeRenderer { get; init; }
 }
 
-internal record LiveChatAuthorBadgeRenderer
+public record LiveChatAuthorBadgeRenderer
 {
     [JsonPropertyName("customThumbnail")]
     public CustomThumbnail? CustomThumbnail { get; init; }
@@ -186,7 +187,7 @@ internal record LiveChatAuthorBadgeRenderer
     public Icon? Icon { get; init; }
 }
 
-internal record EmojiImage
+public record EmojiImage
 {
     [JsonPropertyName("thumbnails")]
     public List<Thumbnail>? Thumbnails { get; init; }
@@ -195,7 +196,7 @@ internal record EmojiImage
     public Accessibility? Accessibility { get; init; }
 }
 
-internal record Emoji
+public record Emoji
 {
     [JsonPropertyName("emojiId")]
     public string? EmojiId { get; init; }
@@ -219,7 +220,7 @@ internal record Emoji
     public List<string>? VariantIds { get; init; }
 }
 
-internal record InvalidationId
+public record InvalidationId
 {
     [JsonPropertyName("objectSource")]
     public int ObjectSource { get; init; }
@@ -237,7 +238,7 @@ internal record InvalidationId
     public string? ProtoCreationTimestampMs { get; init; }
 }
 
-internal record InvalidationContinuationData
+public record InvalidationContinuationData
 {
     [JsonPropertyName("invalidationId")]
     public InvalidationId? InvalidationId { get; init; }
@@ -252,7 +253,7 @@ internal record InvalidationContinuationData
     public string? ClickTrackingParams { get; init; }
 }
 
-internal record MainAppWebResponseContext
+public record MainAppWebResponseContext
 {
     [JsonPropertyName("loggedOut")]
     public bool LoggedOut { get; init; }
@@ -261,7 +262,7 @@ internal record MainAppWebResponseContext
     public string? TrackingParam { get; init; }
 }
 
-internal record Param
+public record Param
 {
     [JsonPropertyName("key")]
     public string? Key { get; init; }
@@ -270,7 +271,7 @@ internal record Param
     public string? Value { get; init; }
 }
 
-internal record ServiceTrackingParam
+public record ServiceTrackingParam
 {
     [JsonPropertyName("service")]
     public string? Service { get; init; }
@@ -279,13 +280,13 @@ internal record ServiceTrackingParam
     public List<Param>? Params { get; init; }
 }
 
-internal record WebResponseContextExtensionData
+public record WebResponseContextExtensionData
 {
     [JsonPropertyName("hasDecorated")]
     public bool HasDecorated { get; init; }
 }
 
-internal record ResponseContext
+public record ResponseContext
 {
     [JsonPropertyName("visitorData")]
     public string? VisitorData { get; init; }
@@ -301,7 +302,7 @@ internal record ResponseContext
 }
 
 // Base for all item renderers that can appear in chat
-internal record MessageRendererBase
+public record MessageRendererBase
 {
     [JsonPropertyName("id")]
     public string? Id { get; init; }
@@ -331,20 +332,20 @@ internal record MessageRendererBase
     public string? TrackingParams { get; init; }
 }
 
-internal record LiveChatTextMessageRenderer : MessageRendererBase
+public record LiveChatTextMessageRenderer : MessageRendererBase
 {
     [JsonPropertyName("message")]
     public Message? Message { get; init; }
     // [JsonPropertyName("beforeContentButtons")] public List<ButtonContainer>? BeforeContentButtons { get; init; } // Include if needed
 }
 
-internal record PurchaseAmountText // Used by PaidMessage and PaidSticker
+public record PurchaseAmountText // Used by PaidMessage and PaidSticker
 {
     [JsonPropertyName("simpleText")]
     public string? Text { get; init; }
 }
 
-internal record LiveChatPaidMessageRenderer : MessageRendererBase
+public record LiveChatPaidMessageRenderer : MessageRendererBase
 {
     [JsonPropertyName("message")]
     public Message? Message { get; init; } // Optional message
@@ -381,7 +382,7 @@ internal record LiveChatPaidMessageRenderer : MessageRendererBase
     // [JsonPropertyName("replyButton")] public PdgReplyButton? ReplyButton { get; init; } // Include if needed
 }
 
-internal record Sticker
+public record Sticker
 {
     [JsonPropertyName("thumbnails")]
     public List<Thumbnail>? Thumbnails { get; init; }
@@ -390,7 +391,7 @@ internal record Sticker
     public Accessibility? Accessibility { get; init; }
 }
 
-internal record LiveChatPaidStickerRenderer : MessageRendererBase
+public record LiveChatPaidStickerRenderer : MessageRendererBase
 {
     [JsonPropertyName("sticker")]
     public Sticker? Sticker { get; init; }
@@ -420,7 +421,7 @@ internal record LiveChatPaidStickerRenderer : MessageRendererBase
     public bool IsV2Style { get; init; }
 }
 
-internal record LiveChatMembershipItemRenderer : MessageRendererBase
+public record LiveChatMembershipItemRenderer : MessageRendererBase
 {
     [JsonPropertyName("headerPrimaryText")]
     public Message? HeaderPrimaryText { get; init; }
@@ -432,13 +433,13 @@ internal record LiveChatMembershipItemRenderer : MessageRendererBase
     public Message? Message { get; init; }
 }
 
-internal record SponsorshipsHeaderContainer
+public record SponsorshipsHeaderContainer
 {
     [JsonPropertyName("liveChatSponsorshipsHeaderRenderer")]
     public LiveChatSponsorshipsHeaderRenderer? LiveChatSponsorshipsHeaderRenderer { get; init; }
 }
 
-internal record Source // Image source, used within IconSource
+public record Source // Image source, used within IconSource
 {
     [JsonPropertyName("url")]
     public string? Url { get; init; }
@@ -446,13 +447,13 @@ internal record Source // Image source, used within IconSource
     // [JsonPropertyName("processor")] public Processor? Processor { get; init; } // Simplified for now
 }
 
-internal record IconSource // Used for header image in sponsorships
+public record IconSource // Used for header image in sponsorships
 {
     [JsonPropertyName("sources")]
     public List<Source>? Sources { get; init; }
 }
 
-internal record LiveChatSponsorshipsHeaderRenderer // Used within Gift Purchase
+public record LiveChatSponsorshipsHeaderRenderer // Used within Gift Purchase
 {
     [JsonPropertyName("authorName")]
     public SimpleText? AuthorName { get; init; }
@@ -476,7 +477,7 @@ internal record LiveChatSponsorshipsHeaderRenderer // Used within Gift Purchase
     public IconSource? Image { get; init; }
 }
 
-internal record LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer : MessageRendererBase // Note: Inherits Base for consistency, though some fields might be in Header
+public record LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer : MessageRendererBase // Note: Inherits Base for consistency, though some fields might be in Header
 {
     // Timestamp, AuthorChannelId are in base
     [JsonPropertyName("header")]
@@ -484,14 +485,14 @@ internal record LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer : MessageRe
     // ID might be in base or header, needs verification
 }
 
-internal record LiveChatSponsorshipsGiftRedemptionAnnouncementRenderer : MessageRendererBase
+public record LiveChatSponsorshipsGiftRedemptionAnnouncementRenderer : MessageRendererBase
 {
     // ID, Timestamp, AuthorChannelId, AuthorName, AuthorPhoto, Badges, ContextMenu in base
     [JsonPropertyName("message")]
     public Message? Message { get; init; } // The "Welcome!" message
 }
 
-internal record LiveChatPlaceholderItemRenderer // Used for deleted/pending messages
+public record LiveChatPlaceholderItemRenderer // Used for deleted/pending messages
 {
     [JsonPropertyName("id")]
     public string? Id { get; init; }
@@ -501,7 +502,7 @@ internal record LiveChatPlaceholderItemRenderer // Used for deleted/pending mess
 }
 
 // Polymorphic container for the 'item' in AddChatItemAction
-internal record AddChatItemActionItem
+public record AddChatItemActionItem
 {
     [JsonPropertyName("liveChatTextMessageRenderer")]
     public LiveChatTextMessageRenderer? LiveChatTextMessageRenderer { get; init; }
@@ -529,7 +530,7 @@ internal record AddChatItemActionItem
     public JsonObject? LiveChatViewerEngagementMessageRenderer { get; init; } // Fallback
 }
 
-internal record AddChatItemAction
+public record AddChatItemAction
 {
     [JsonPropertyName("item")]
     public AddChatItemActionItem? Item { get; init; }
@@ -538,14 +539,14 @@ internal record AddChatItemAction
     public string? ClientId { get; init; }
 }
 
-internal record RemoveChatItemAction
+public record RemoveChatItemAction
 {
     [JsonPropertyName("targetItemId")]
     public string? TargetItemId { get; init; }
 }
 
 // Polymorphic container for replacement item
-internal record ReplacementItem
+public record ReplacementItem
 {
     [JsonPropertyName("liveChatTextMessageRenderer")]
     public LiveChatTextMessageRenderer? LiveChatTextMessageRenderer { get; init; }
@@ -555,7 +556,7 @@ internal record ReplacementItem
     // Add other potential replacement renderers if needed
 }
 
-internal record ReplaceChatItemAction
+public record ReplaceChatItemAction
 {
     [JsonPropertyName("targetItemId")]
     public string? TargetItemId { get; init; }
@@ -564,14 +565,14 @@ internal record ReplaceChatItemAction
     public ReplacementItem? ReplacementItem { get; init; }
 }
 
-internal record RemoveChatItemByAuthorAction
+public record RemoveChatItemByAuthorAction
 {
     [JsonPropertyName("externalChannelId")]
     public string? ExternalChannelId { get; init; }
 }
 
 // Polymorphic container for actions
-internal record Action
+public record Action
 {
     [JsonPropertyName("addChatItemAction")]
     public AddChatItemAction? AddChatItemAction { get; init; }
@@ -594,7 +595,7 @@ internal record Action
     public IDictionary<string, JsonElement>? ExtensionData { get; set; }
 }
 
-internal record LiveChatContinuation
+public record LiveChatContinuation
 {
     [JsonPropertyName("continuations")]
     public List<Continuation>? Continuations { get; init; }
@@ -606,7 +607,7 @@ internal record LiveChatContinuation
     public string? TrackingParams { get; init; }
 }
 
-internal record Continuation // Container for different continuation types
+public record Continuation // Container for different continuation types
 {
     [JsonPropertyName("invalidationContinuationData")]
     public InvalidationContinuationData? InvalidationContinuationData { get; init; }
@@ -616,7 +617,7 @@ internal record Continuation // Container for different continuation types
     // Add other continuation types if observed (e.g., liveChatReplayContinuationData)
 }
 
-internal record TimedContinuationData // Another type of continuation token
+public record TimedContinuationData // Another type of continuation token
 {
     [JsonPropertyName("timeoutMs")]
     public int TimeoutMs { get; init; }
@@ -629,7 +630,7 @@ internal record TimedContinuationData // Another type of continuation token
 }
 
 // --- Framework Updates Structures ---
-internal record Timestamp
+public record Timestamp
 {
     [JsonPropertyName("seconds")]
     public string? Seconds { get; init; }
@@ -638,7 +639,7 @@ internal record Timestamp
     public int Nanos { get; init; }
 }
 
-internal record MutationPayload // Polymorphic container for mutation payloads
+public record MutationPayload // Polymorphic container for mutation payloads
 {
     // Add specific payloads as they are identified (e.g., emoji fountain, toolbars)
     // [JsonPropertyName("emojiFountainDataEntity")] public EmojiFountainDataEntity? EmojiFountainDataEntity { get; init; }
@@ -651,7 +652,7 @@ internal record MutationPayload // Polymorphic container for mutation payloads
     public IDictionary<string, JsonElement>? ExtensionData { get; set; }
 }
 
-internal record Mutation
+public record Mutation
 {
     [JsonPropertyName("entityKey")]
     public string? EntityKey { get; init; }
@@ -663,7 +664,7 @@ internal record Mutation
     public MutationPayload? Payload { get; init; }
 }
 
-internal record EntityBatchUpdate
+public record EntityBatchUpdate
 {
     [JsonPropertyName("mutations")]
     public List<Mutation>? Mutations { get; init; }
@@ -672,7 +673,7 @@ internal record EntityBatchUpdate
     public Timestamp? Timestamp { get; init; }
 }
 
-internal record FrameworkUpdates
+public record FrameworkUpdates
 {
     [JsonPropertyName("entityBatchUpdate")]
     public EntityBatchUpdate? EntityBatchUpdate { get; init; }
@@ -680,13 +681,13 @@ internal record FrameworkUpdates
 
 // --- End Framework Updates ---
 
-internal record LiveChatStreamingResponseExtension
+public record LiveChatStreamingResponseExtension
 {
     [JsonPropertyName("lastPublishAtUsec")]
     public string? LastPublishAtUsec { get; init; }
 }
 
-internal record ContinuationContents
+public record ContinuationContents
 {
     [JsonPropertyName("liveChatContinuation")]
     public LiveChatContinuation? LiveChatContinuation { get; init; }
@@ -708,7 +709,7 @@ internal record ContinuationContents
 // --- Structures specifically related to Reaction Control Panel (Type_4 from original) ---
 // Simplified here as they are less critical than chat messages for basic functionality
 // Add more detail if reaction panel interaction is needed.
-internal record ReactionControlPanelOverlayViewModel
+public record ReactionControlPanelOverlayViewModel
 {
     [JsonPropertyName("reactionControlPanel")]
     public JsonObject? ReactionControlPanel { get; init; } // Use JsonObject for simplicity
@@ -722,14 +723,14 @@ internal record ReactionControlPanelOverlayViewModel
 }
 
 // --- Structures specifically related to Signal Action (Type_5 from original) ---
-internal record SignalAction
+public record SignalAction
 {
     [JsonPropertyName("signal")]
     public string? Signal { get; init; } // e.g., "HIDE_LIVE_CHAT"
 }
 
 // --- Structures specifically related to Participant Renderer (Type_6 from original) ---
-internal record LiveChatParticipantRenderer
+public record LiveChatParticipantRenderer
 {
     [JsonPropertyName("authorName")]
     public SimpleText? AuthorName { get; init; }
@@ -742,7 +743,7 @@ internal record LiveChatParticipantRenderer
 }
 
 // --- Navigation Endpoint ---
-internal record NavigationEndpoint
+public record NavigationEndpoint
 {
     [JsonPropertyName("clickTrackingParams")]
     public string? ClickTrackingParams { get; init; }
@@ -755,7 +756,7 @@ internal record NavigationEndpoint
     // Add other endpoint types like browseEndpoint, watchEndpoint if needed
 }
 
-internal record UrlEndpoint
+public record UrlEndpoint
 {
     [JsonPropertyName("url")]
     public string? Url { get; init; }
@@ -770,7 +771,7 @@ internal record UrlEndpoint
 // ==========================================================================
 // The Root API Response Record
 // ==========================================================================
-internal record LiveChatResponse
+public record LiveChatResponse
 {
     [JsonPropertyName("responseContext")]
     public ResponseContext? ResponseContext { get; init; }
@@ -804,3 +805,5 @@ internal record LiveChatResponse
     [JsonPropertyName("liveChatParticipantRenderer")]
     public LiveChatParticipantRenderer? LiveChatParticipantRenderer { get; init; } // Type_6 like (single participant)
 }
+
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member

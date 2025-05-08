@@ -376,3 +376,4 @@ megalinter-reports/
 /.secretlintrc.json
 /.yamllint.yml
 /.cspell.json
+ytlivechat.xml
