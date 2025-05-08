@@ -105,7 +105,8 @@ internal static partial class Parser
     {
         if (string.IsNullOrWhiteSpace(amountString))
             return (0M, "USD");
-        amountString = amountString.Replace(",", "").Replace("\u00A0", " ").Trim(); // Normalize spaces/commas
+
+        amountString = amountString!.Replace(",", "").Replace("\u00A0", " ").Trim(); // Normalize spaces/commas
         Match match = AmountCurrencyRegex().Match(amountString);
         if (match.Success)
         {
@@ -308,10 +309,10 @@ internal static partial class Parser
                     }
                 }
                 else if (
-                    membershipInfo.HeaderPrimaryText?.Contains(
+                    membershipInfo.HeaderPrimaryText?.IndexOf(
                         "member for",
                         StringComparison.OrdinalIgnoreCase
-                    ) == true
+                    ) >= 0
                 )
                 {
                     if (membershipItem?.Message?.Runs != null)
@@ -435,10 +436,10 @@ internal static partial class Parser
                         }
                     }
                     else if ( // Fallback for "a membership gift" or similar phrasing if regexes fail
-                        membershipInfo.HeaderPrimaryText.Contains(
+                        membershipInfo.HeaderPrimaryText.IndexOf(
                             "gift", // Keep it general
                             StringComparison.OrdinalIgnoreCase
-                        )
+                        ) >= 0
                     )
                     {
                         giftCount = 1; // Default to 1 if text implies a single gift

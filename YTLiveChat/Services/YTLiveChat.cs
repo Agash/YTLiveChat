@@ -243,10 +243,10 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             );
 
             // --- Polling Loop (Conditional Timer/Delay) ---
-#if !NETSTANDARD2_1
-            await PollingLoopWithPeriodicTimerAsync(cancellationToken);
-#else
+#if NETSTANDARD2_1 || NETSTANDARD2_0
             await PollingLoopWithTaskDelayAsync(cancellationToken);
+#else
+            await PollingLoopWithPeriodicTimerAsync(cancellationToken);
 #endif
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -275,7 +275,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         }
     }
 
-#if !NETSTANDARD2_1
+#if !NETSTANDARD2_1 && !NETSTANDARD2_0
     /// <summary>
     /// Polling loop implementation using PeriodicTimer (for .NET 6+).
     /// </summary>
@@ -485,7 +485,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                         {
                             _fetchOptionsInternal = _fetchOptionsInternal with
                             {
-                                Continuation = continuation,
+                                Continuation = continuation!,
                             };
                             currentRetryAttempt = 0; // Reset retries on success
                         }
@@ -598,7 +598,27 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         await s_debugLogLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            // Use FileStream and StreamWriter for efficient async writing
+#if NETSTANDARD2_0 || NETSTANDARD2_1
+            // CS8417 fix: Use synchronous 'using' for NS2.0/NS2.1
+            using FileStream fs = new(
+                _debugLogFilePath,
+                FileMode.Append,
+                FileAccess.Write,
+                FileShare.Read,
+                4096,
+                useAsync: true
+            ); // useAsync is a hint
+            using StreamWriter writer = new(fs, System.Text.Encoding.UTF8);
+            foreach (AddChatItemActionItem item in itemsToLog)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                    break; // Check cancellation, but can't pass token to WriteLineAsync
+                string jsonLine = JsonSerializer.Serialize(item, s_debugJsonOptions);
+                // CS7036 fix: Use WriteLineAsync(string) overload for NS2.0/NS2.1
+                await writer.WriteLineAsync(jsonLine).ConfigureAwait(false);
+            }
+#else
+            // Use await using for newer frameworks
             await using FileStream fs = new(
                 _debugLogFilePath,
                 FileMode.Append,
@@ -608,16 +628,15 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 useAsync: true
             );
             await using StreamWriter writer = new(fs, System.Text.Encoding.UTF8);
-
             foreach (AddChatItemActionItem item in itemsToLog)
             {
-                cancellationToken.ThrowIfCancellationRequested(); // Check cancellation inside loop
+                cancellationToken.ThrowIfCancellationRequested();
                 string jsonLine = JsonSerializer.Serialize(item, s_debugJsonOptions);
-
                 await writer
                     .WriteLineAsync(jsonLine.AsMemory(), cancellationToken)
                     .ConfigureAwait(false);
             }
+#endif
         }
         catch (OperationCanceledException)
         {

@@ -80,7 +80,7 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
                 response.EnsureSuccessStatusCode(); // This will throw HttpRequestException
             }
 
-#if NETSTANDARD2_1
+#if NETSTANDARD2_1 || NETSTANDARD2_0
             rawJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 #else
             rawJson = await response
@@ -95,7 +95,7 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
         }
         catch (HttpRequestException httpEx)
         {
-#if NETSTANDARD2_1
+#if NETSTANDARD2_1 || NETSTANDARD2_0
             // StatusCode not available, log message only
             _logger.LogError(
                 httpEx,
@@ -155,7 +155,7 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
         string urlPath; // Relative path
         if (!string.IsNullOrEmpty(handle))
         {
-            handle = handle.StartsWith('@') ? handle : '@' + handle;
+            handle = handle!.StartsWith("@") ? handle : '@' + handle;
             urlPath = $"/{handle}/live";
         }
         else
@@ -168,7 +168,7 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
                 );
         }
         // HttpClient.GetStringAsync will combine BaseAddress and urlPath
-#if NETSTANDARD2_1
+#if NETSTANDARD2_1 || NETSTANDARD2_0
         return await _httpClient.GetStringAsync(urlPath).ConfigureAwait(false);
 #else
         return await _httpClient.GetStringAsync(urlPath, cancellationToken).ConfigureAwait(false);
