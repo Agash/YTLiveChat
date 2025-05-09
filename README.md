@@ -1,11 +1,8 @@
 ﻿# YTLiveChat: Your Unofficial Gateway to YouTube Live Chat! 🎉🚀💬
 
 [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Agash/YTLiveChat/publish.yml?style=flat-square&logo=github&logoColor=white)](https://github.com/Agash/YTLiveChat/actions)
-[![NuGet Version](https://img.shields.io/nuget/v/Agash.YTLiveChat.svg?style=flat-square&logo=nuget&logoColor=white)](https://www.nuget.org/packages/Agash.YTLiveChat/)
+[![NuGet Version](https://img.shields.io/nuget/v/Agash.YTLiveChat.DependencyInjection.svg?style=flat-square&logo=nuget&logoColor=white)](https://www.nuget.org/packages/Agash.YTLiveChat.DependencyInjection/) [![NuGet Version](https://img.shields.io/nuget/v/Agash.YTLiveChat.svg?style=flat-square&logo=nuget&logoColor=white)](https://www.nuget.org/packages/Agash.YTLiveChat/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-
-<!-- Add Build Status Badge Here -->
-<!-- [![Build Status](https://dev.azure.com/your-org/your-project/_apis/build/status/your-build-definition?branchName=main)](https://dev.azure.com/your-org/your-project/_build/latest?definitionId=your-build-definition&branchName=main) -->
 
 Hey Stream Devs, VTuber Tech Wizards, and Chat Interaction Creators! 👋
 
@@ -30,82 +27,132 @@ Perfect for:
 - 💸 **Super Chat & Sticker Details:** Get amounts, currencies, colors, and sticker images.
 - 👑 **Membership Tracking:** Detects new members, milestones, gift purchases (who gifted!), and gift redemptions (who received!).
 - 🛡️ **Author Information:** Identifies channel owners, moderators, verified users, and members (with badge info!).
-- 🛠️ **Easy .NET Integration:** Simple setup using standard Dependency Injection.
+- ⚙️ **Flexible Integration:** Use with standard Dependency Injection or instantiate manually.
+- <img src="https://img.shields.io/badge/.NET%20Standard%202.0+-blue?style=flat-square&logo=dotnet" alt=".NET Standard 2.0+"> **Wide Compatibility:** Targets .NET Standard 2.0+, .NET Standard 2.1, and modern .NET (e.g., .NET 9).
 - 💖 **Built for Streamers & Devs:** Designed with the needs of interactive streaming applications in mind.
 
-## Get Started in a Flash ⚡
+## Installation 🚀
 
-It's super easy to integrate YTLiveChat into your .NET application.
+You have two main ways to use this library:
 
-**1. Install the Package:**
+**Option 1: Core Library Only (Recommended for non-DI scenarios like Unity)**
+
+Install the core package. You will need to manage `HttpClient` and `YTLiveChatOptions` yourself.
 
 ```bash
 dotnet add package Agash.YTLiveChat
 ```
 
-**2. Configure Services (using Dependency Injection):**
+**Option 2: With Dependency Injection Extensions (Recommended for ASP.NET Core, Generic Host)**
 
-In your `Program.cs` or wherever you configure your services:
+Install the DI extensions package, which automatically includes the core library and helpers for setup.
+
+```bash
+dotnet add package Agash.YTLiveChat.DependencyInjection
+```
+
+## Usage Examples ⚡
+
+### Using Dependency Injection (Recommended for HostBuilder/ASP.NET Core)
+
+This is the simplest way if you're using `Microsoft.Extensions.DependencyInjection`.
+
+**1. Configure Services:**
+
+In your `Program.cs` or wherever you configure your services (using `IHostBuilder` or `WebApplicationBuilder`):
 
 ```csharp
-using YTLiveChat.Contracts; // <-- Add this using!
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using YTLiveChat.Contracts; // Options class
+using YTLiveChat.DependencyInjection; // Extension methods
 
 // --- Example using Generic Host Builder ---
 HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 
-// Add YTLiveChat and configure options if needed (optional)
-builder.AddYTLiveChat();
-// builder.Services.Configure<YTLiveChatOptions>(builder.Configuration.GetSection("MyYtChatSettings")); // Optional: Configure from appsettings.json
+// Add YTLiveChat services and configure options from appsettings.json (section "YTLiveChatOptions")
+builder.Services.AddYTLiveChat(builder.Configuration);
 
-// --- Example using IServiceCollection directly (e.g., in ASP.NET Core) ---
-// var builder = WebApplication.CreateBuilder(args);
-// builder.Services.AddYTLiveChat(builder.Configuration); // Pass configuration
+// Or configure options programmatically
+// builder.Services.Configure<YTLiveChatOptions>(options => {
+//     options.RequestFrequency = 1500; // Poll every 1.5 seconds
+//     options.DebugLogReceivedJsonItems = true; // Log raw items
+// });
+// builder.Services.AddYTLiveChat(); // Call after configuring options if not passing IConfiguration
 
-// ... your other service registrations
 
+// --- Example using IServiceCollection directly (e.g., in Startup.cs) ---
+// public void ConfigureServices(IServiceCollection services)
+// {
+//     // Assuming 'Configuration' is an IConfiguration instance
+//     services.AddYTLiveChat(Configuration);
+//     // ... other services
+// }
+
+// Add your own service that uses IYTLiveChat
+builder.Services.AddHostedService<MyChatListenerService>(); // Example listener service
+
+// --- Build and Run ---
 var host = builder.Build();
-
-// Resolve and use IYTLiveChat somewhere in your app!
-// var chatService = host.Services.GetRequiredService<IYTLiveChat>();
-// chatService.Start(liveId: "YOUR_YOUTUBE_LIVE_VIDEO_ID");
-
-// host.Run(); // Or start your application
+host.Run(); // Or start your application
 ```
 
-**3. Listen for Chat Magic!**
+**2. Implement Your Listener:**
 
-Inject `IYTLiveChat` into your service or class and start listening:
+Inject `IYTLiveChat` into your service.
 
 ```csharp
 using YTLiveChat.Contracts.Models;
 using YTLiveChat.Contracts.Services;
-using Microsoft.Extensions.Logging; // Assuming you have logging setup
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Hosting;
+using System;
+using System.Linq; // For LINQ methods like Select, All
+using System.Threading;
+using System.Threading.Tasks;
 
-public class MyChatListenerService : IDisposable // Example Service
+public class MyChatListenerService : IHostedService, IDisposable
 {
     private readonly IYTLiveChat _ytLiveChat;
     private readonly ILogger<MyChatListenerService> _logger;
+    private bool _disposed = false;
 
     public MyChatListenerService(IYTLiveChat ytLiveChat, ILogger<MyChatListenerService> logger)
     {
         _ytLiveChat = ytLiveChat;
         _logger = logger;
+    }
 
-        // Subscribe to the events! ✨
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Starting listener service.");
         _ytLiveChat.InitialPageLoaded += OnInitialPageLoaded;
         _ytLiveChat.ChatReceived += OnChatReceived;
         _ytLiveChat.ChatStopped += OnChatStopped;
         _ytLiveChat.ErrorOccurred += OnErrorOccurred;
+
+        // Start listening to a specific live stream
+        // Replace "YOUR_LIVE_ID" with the actual Video ID
+        _ytLiveChat.Start(liveId: "YOUR_LIVE_ID");
+        // Alternatively use handle: _ytLiveChat.Start(handle: "@ChannelHandle");
+        // Or channelId: _ytLiveChat.Start(channelId: "UCxxxxxxxxxxxxxxx");
+
+        return Task.CompletedTask;
     }
 
-    public void StartListening(string videoId)
+     public Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Starting YouTube Live Chat listener for Video ID: {VideoId}", videoId);
-        // You can start by handle ("@ChannelHandle"), channelId ("UC...") or liveId ("VIDEO_ID")
-        _ytLiveChat.Start(liveId: videoId);
+        _logger.LogInformation("Stopping listener service.");
+        // Unsubscribe is important!
+        _ytLiveChat.InitialPageLoaded -= OnInitialPageLoaded;
+        _ytLiveChat.ChatReceived -= OnChatReceived;
+        _ytLiveChat.ChatStopped -= OnChatStopped;
+        _ytLiveChat.ErrorOccurred -= OnErrorOccurred;
+        _ytLiveChat.Stop(); // Ensure chat stops polling
+        return Task.CompletedTask;
     }
 
+    // --- Event Handlers (OnInitialPageLoaded, OnChatReceived, etc.) ---
     private void OnInitialPageLoaded(object? sender, InitialPageLoadedEventArgs e)
     {
         _logger.LogInformation("🎉 Successfully loaded initial chat data for Live ID: {LiveId}", e.LiveId);
@@ -141,7 +188,7 @@ public class MyChatListenerService : IDisposable // Example Service
                     _logger.LogInformation($"✨ NEW MEMBER: Welcome {item.Author.Name} ({details.LevelName})!");
                     break;
                 case MembershipEventType.Milestone:
-                    _logger.LogInformation($"🎉 MILESTONE: {item.Author.Name} has been a {details.LevelName} for {details.MilestoneMonths} months!");
+                    _logger.LogInformation($"🎉 MILESTONE: {item.Author.Name} has been a {details.LevelName} member for {details.MilestoneMonths} months!");
                     break;
                 case MembershipEventType.GiftPurchase:
                     // NOTE: Author is the GIFTER here!
@@ -175,39 +222,186 @@ public class MyChatListenerService : IDisposable // Example Service
 
     public void Dispose()
     {
-        _logger.LogInformation("Disposing Chat Listener Service and stopping chat.");
-        _ytLiveChat.Stop(); // Ensure listener is stopped
-        // Unsubscribe (important to prevent memory leaks!)
-        _ytLiveChat.InitialPageLoaded -= OnInitialPageLoaded;
-        _ytLiveChat.ChatReceived -= OnChatReceived;
-        _ytLiveChat.ChatStopped -= OnChatStopped;
-        _ytLiveChat.ErrorOccurred -= OnErrorOccurred;
-        _ytLiveChat.Dispose();
+        Dispose(true);
         GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                _logger.LogDebug("Disposing MyChatListenerService.");
+                // Unsubscribe from events to prevent memory leaks if StopAsync wasn't called
+                _ytLiveChat.InitialPageLoaded -= OnInitialPageLoaded;
+                _ytLiveChat.ChatReceived -= OnChatReceived;
+                _ytLiveChat.ChatStopped -= OnChatStopped;
+                _ytLiveChat.ErrorOccurred -= OnErrorOccurred;
+
+                // The IYTLiveChat instance itself is managed by DI and disposed by the host
+            }
+            _disposed = true;
+        }
     }
 }
 ```
 
+### Manual Instantiation (Core Library Only - e.g., for Unity)
+
+If you're not using Dependency Injection, you can instantiate the services manually.
+
+```csharp
+using YTLiveChat.Contracts;
+using YTLiveChat.Contracts.Models;
+using YTLiveChat.Contracts.Services;
+using YTLiveChat.Services; // Namespace for implementation classes
+using Microsoft.Extensions.Logging.Abstractions; // For NullLogger if you don't have logging
+using Microsoft.Extensions.Logging; // For ILogger interface
+using System.Net.Http; // Required for HttpClient
+using System;
+using System.Linq; // For LINQ methods
+using System.Threading.Tasks; // For Task
+
+public class ManualChatManager : IDisposable
+{
+    private readonly HttpClient _httpClient;
+    private readonly IYTLiveChat _ytLiveChat;
+    // Optional: Use a proper logger if available, otherwise NullLogger
+    private readonly ILogger<YTLiveChat.Services.YTLiveChat> _chatLogger = NullLogger<YTLiveChat.Services.YTLiveChat>.Instance;
+    private readonly ILogger<YTHttpClient> _httpClientLogger = NullLogger<YTHttpClient>.Instance;
+    private bool _disposed = false;
+
+
+    public ManualChatManager()
+    {
+        // 1. Configure Options
+        var options = new YTLiveChatOptions
+        {
+            RequestFrequency = 1200, // Custom poll rate
+            // YoutubeBaseUrl = "https://www.youtube.com" // Default
+        };
+
+        // 2. Create and Configure HttpClient (MANAGE ITS LIFETIME YOURSELF!)
+        // IMPORTANT: HttpClient is intended to be long-lived. Create one instance and reuse it.
+        _httpClient = new HttpClient()
+        {
+            BaseAddress = new Uri(options.YoutubeBaseUrl)
+        };
+        // Add any default headers if needed, e.g., User-Agent
+        // _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("MyApp/1.0");
+
+        // 3. Create YTHttpClient
+        var ytHttpClient = new YTHttpClient(_httpClient, _httpClientLogger);
+
+        // 4. Create YTLiveChat Service
+        _ytLiveChat = new YTLiveChat.Services.YTLiveChat(options, ytHttpClient, _chatLogger);
+
+        // 5. Subscribe to Events
+        _ytLiveChat.InitialPageLoaded += OnInitialPageLoaded;
+        _ytLiveChat.ChatReceived += OnChatReceived;
+        _ytLiveChat.ChatStopped += OnChatStopped;
+        _ytLiveChat.ErrorOccurred += OnErrorOccurred;
+    }
+
+    public void StartMonitoring(string liveId)
+    {
+        Console.WriteLine($"Starting manual monitoring for {liveId}");
+        _ytLiveChat.Start(liveId: liveId);
+    }
+
+    public void StopMonitoring()
+    {
+         Console.WriteLine("Stopping manual monitoring");
+        _ytLiveChat.Stop();
+    }
+
+    // --- Event Handlers ---
+    private void OnInitialPageLoaded(object? sender, InitialPageLoadedEventArgs e)
+    {
+        Console.WriteLine($"[INFO] Initial page loaded for {e.LiveId}");
+    }
+    private void OnChatReceived(object? sender, ChatReceivedEventArgs e)
+    {
+        Console.WriteLine($"[CHAT] {e.ChatItem.Author.Name}: {string.Join("", e.ChatItem.Message.Select(p => p.ToString()))}");
+         // Add more detailed handling for Superchats, Memberships etc. if needed
+    }
+    private void OnChatStopped(object? sender, ChatStoppedEventArgs e)
+    {
+         Console.WriteLine($"[INFO] Chat stopped: {e.Reason ?? "Unknown"}");
+    }
+    private void OnErrorOccurred(object? sender, ErrorOccurredEventArgs e)
+    {
+         Console.WriteLine($"[ERROR] {e.GetException()}");
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+         if (!_disposed)
+        {
+            if (disposing)
+            {
+                Console.WriteLine("Disposing ManualChatManager...");
+                // Unsubscribe
+                _ytLiveChat.InitialPageLoaded -= OnInitialPageLoaded;
+                _ytLiveChat.ChatReceived -= OnChatReceived;
+                _ytLiveChat.ChatStopped -= OnChatStopped;
+                _ytLiveChat.ErrorOccurred -= OnErrorOccurred;
+
+                // Dispose the core service
+                _ytLiveChat.Dispose();
+
+                // Dispose the HttpClient *if* this class owns its lifetime
+                _httpClient.Dispose();
+            }
+            _disposed = true;
+        }
+    }
+}
+
+// --- Example Usage ---
+// public static class Program
+// {
+//     public static async Task Main(string[] args)
+//     {
+//         var manager = new ManualChatManager();
+//         manager.StartMonitoring("YOUR_LIVE_ID"); // Replace with actual ID
+//         Console.WriteLine("Monitoring started. Press Enter to stop.");
+//         Console.ReadLine(); // Keep running until Enter is pressed
+//         manager.StopMonitoring();
+//         manager.Dispose();
+//         Console.WriteLine("Manager disposed. Exiting.");
+//     }
+// }
+```
+
 ## Key Components 🧩
 
-- **`IYTLiveChat`**: The main service interface. Inject this!
-  - `Start(handle?, channelId?, liveId?, overwrite?)`: Starts listening. Provide _one_ identifier.
-  - `Stop()`: Stops the listener.
+- **`IYTLiveChat`**: The main service interface. Use this for interaction (DI or manual).
+  - `Start(handle?, channelId?, liveId?, overwrite?)`: Starts listening. Provide _one_ identifier. `overwrite` controls if a running instance should be stopped first.
+  - `Stop()`: Stops the listener gracefully.
   - Events: `InitialPageLoaded`, `ChatReceived`, `ChatStopped`, `ErrorOccurred`.
-- **`ChatItem`**: Represents a single received item (message, super chat, etc.). Contains all the juicy details!
+- **`ChatItem`**: Represents a single received item (message, super chat, membership event, etc.). Contains all the juicy details!
 - **`Author`**: Information about the user who sent the item (Name, Channel ID, Thumbnail, Badge).
 - **`MessagePart`**: Base class for parts of a message.
   - **`TextPart`**: Plain text segment.
-  - **`EmojiPart`**: An emoji (standard or custom), includes image URL.
+  - **`EmojiPart`**: An emoji (standard or custom), includes image URL and alt text.
 - **`Superchat`**: Details about a Super Chat or Super Sticker (amount, currency, colors, sticker info).
 - **`MembershipDetails`**: Details about a membership event (type, level name, milestone months, gifter/recipient info).
-- **`YTLiveChatOptions`**: Configuration class (optional, use via `IOptions<YTLiveChatOptions>`). Set polling frequency (`RequestFrequency`) etc.
+- **`YTLiveChatOptions`**: Configuration class. Set polling frequency (`RequestFrequency`), base URL, debug logging options. Used via `IOptions<YTLiveChatOptions>` in DI or passed directly in manual setup.
 
 ## ⚠️ Important Considerations ⚠️
 
 - **Unofficial API:** This library uses YouTube's internal web API, which is not officially documented or supported for third-party use. YouTube could change it at any time, potentially breaking this library without warning. Use it at your own risk!
-- **Be Respectful:** Don't abuse the service. The default request frequency is reasonable; making it too fast might get your IP temporarily blocked by YouTube.
+- **Be Respectful:** Don't abuse the service. The default request frequency (`RequestFrequency` option, default 1000ms) is reasonable; making it too fast might get your IP temporarily blocked by YouTube.
 - **No Sending Messages:** This library is for _reading_ chat only.
+- **HttpClient Lifetime:** When using manual instantiation, remember that `HttpClient` is designed for reuse. Create a single instance and pass it to `YTHttpClient`. Do not create a new `HttpClient` for each `YTHttpClient` instance if you create multiple managers.
 
 ## Contributing 🤝
 

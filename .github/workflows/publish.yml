@@ -1,73 +1,102 @@
-# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
-
 name: publish
+
 on:
-  workflow_dispatch: # Allow running the workflow manually from the GitHub UI
+  workflow_dispatch:
   push:
-    branches:
-      - "master" # Run the workflow when pushing to the main branch
+    branches: [ master ]
   pull_request:
-    branches:
-      - "*" # Run the workflow for all pull requests
+    branches: [ '*' ]
   release:
-    types:
-      - published # Run the workflow when a new GitHub release is published
+    types: [ published ]
 
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
   DOTNET_NOLOGO: true
-  NuGetDirectory: ${{ github.workspace}}/nuget
+  NuGetDirectory: ${{ github.workspace }}/nuget
 
 defaults:
   run:
     shell: pwsh
 
 jobs:
-  create_nuget:
+  build_test_and_pack:
+    name: Build, Test, and Pack NuGet Packages
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Get all history to allow automatic versioning using MinVer
+          fetch-depth: 0
 
-      # Install the .NET SDK indicated in the global.json file
-      - name: Setup .NET
+      - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
 
-      # Create the NuGet package in the folder from the environment variable NuGetDirectory
-      - run: dotnet pack YTLiveChat/YTLiveChat.csproj --configuration Release --output ${{ env.NuGetDirectory }}
+      - name: Restore Dependencies
+        run: dotnet restore YTLiveChat.sln
 
-      # Publish the NuGet package as an artifact, so they can be used in the following jobs
-      - uses: actions/upload-artifact@v4
+      - name: Build Solution
+        run: dotnet build YTLiveChat.sln --configuration Release --no-restore
+        
+      - name: Run Tests for .NET 9.0
+        run: dotnet test YTLiveChat.Tests/YTLiveChat.Tests.csproj --configuration Release --framework net9.0 --no-build --logger "trx;LogFileName=test-results-net9.trx"
+
+      - name: Run Tests for .NET 8.0
+        run: dotnet test YTLiveChat.Tests/YTLiveChat.Tests.csproj --configuration Release --framework net8.0 --no-build --logger "trx;LogFileName=test-results-net8.trx"
+      
+      # Optional: Add a step to publish test results if you want them as artifacts or for PR checks
+      - name: Upload Test Results
+        if: always() # Run this step even if previous steps fail, to upload any partial results
+        uses: actions/upload-artifact@v4
         with:
-          name: nuget
+          name: test-results
+          path: '**/*.trx' # Path to trx files in the test project's output
+          retention-days: 7
+
+      - name: Pack Core Library (YTLiveChat)
+        run: dotnet pack YTLiveChat/YTLiveChat.csproj --configuration Release --no-build --output ${{ env.NuGetDirectory }}
+
+      - name: Pack DI Extension Library (YTLiveChat.DependencyInjection)
+        run: dotnet pack YTLiveChat.DependencyInjection/YTLiveChat.DependencyInjection.csproj --configuration Release --no-build --output ${{ env.NuGetDirectory }}
+
+      - name: List Packages Created
+        run: Get-ChildItem "${{ env.NuGetDirectory }}" -Recurse -Include *.nupkg | Select-Object FullName, Length
+
+      - name: Upload NuGet Packages Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
           if-no-files-found: error
           retention-days: 7
           path: ${{ env.NuGetDirectory }}/*.nupkg
 
   deploy:
-    # Publish only when creating a GitHub Release
-    # https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository
-    # You can update this logic if you want to manage releases differently
-    if: github.event_name == 'release'
+    name: Deploy Packages to NuGet.org
+    if: github.event_name == 'release' && github.event.action == 'published'
     runs-on: ubuntu-latest
-    needs: [create_nuget]
+    needs: [build_test_and_pack] # Depend on the combined job
+    environment:
+      name: nuget.org
+      url: https://www.nuget.org/packages/Agash.YTLiveChat
+    permissions:
+      contents: read
     steps:
-      # Download the NuGet package created in the previous job
-      - uses: actions/download-artifact@v4
+      - name: Download NuGet Packages Artifact
+        uses: actions/download-artifact@v4
         with:
-          name: nuget
+          name: nuget-packages
           path: ${{ env.NuGetDirectory }}
 
-      # Install the .NET SDK indicated in the global.json file
-      - name: Setup .NET Core
+      - name: List Downloaded Packages
+        run: Get-ChildItem "${{ env.NuGetDirectory }}" -Filter *.nupkg | Select-Object FullName, Length
+
+      - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
 
-      # Publish all NuGet packages to NuGet.org
-      # Use --skip-duplicate to prevent errors if a package with the same version already exists.
-      # If you retry a failed workflow, already published packages will be skipped without error.
-      - name: Publish NuGet package
+      - name: Publish NuGet Packages
+        env:
+           NUGET_API_KEY: ${{ secrets.NUGET_APIKEY }}
         run: |
-          foreach($file in (Get-ChildItem "${{ env.NuGetDirectory }}" -Recurse -Include *.nupkg)) {
-              dotnet nuget push $file --api-key "${{ secrets.NUGET_APIKEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          Get-ChildItem "${{ env.NuGetDirectory }}" -Filter *.nupkg | ForEach-Object {
+              Write-Host "Pushing $($_.FullName)..."
+              dotnet nuget push $_.FullName --api-key "$env:NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
           }
