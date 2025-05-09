@@ -1,13 +1,13 @@
 name: publish
 
 on:
-  workflow_dispatch: # Allow manual runs
+  workflow_dispatch:
   push:
-    branches: [ master ] # Trigger on pushes to master
+    branches: [ master ]
   pull_request:
-    branches: [ '*' ] # Trigger on pull requests to any branch (for build/test validation)
+    branches: [ '*' ]
   release:
-    types: [ published ] # Trigger ONLY when a release is published
+    types: [ published ]
 
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
@@ -16,85 +16,87 @@ env:
 
 defaults:
   run:
-    shell: pwsh # Use PowerShell for consistency
+    shell: pwsh
 
 jobs:
-  build_and_pack:
-    name: Build and Pack NuGet Packages
+  build_test_and_pack:
+    name: Build, Test, and Pack NuGet Packages
     runs-on: ubuntu-latest
-    outputs:
-      nuget_path: ${{ env.NuGetDirectory }} # Output the path if needed by other jobs (though deploy uses artifacts)
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Required for MinVer to determine version correctly
+          fetch-depth: 0
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
-        # Optionally specify the SDK version matching your global.json if needed
-        # with:
-        #   dotnet-version: '9.0.x' # Example
 
       - name: Restore Dependencies
         run: dotnet restore YTLiveChat.sln
 
       - name: Build Solution
         run: dotnet build YTLiveChat.sln --configuration Release --no-restore
+        
+      - name: Run Tests for .NET 9.0 (Core Lib: net9.0)
+        run: dotnet test YTLiveChat.Tests/YTLiveChat.Tests.csproj --configuration Release --framework net9.0 --no-build --logger "trx;LogFileName=test-results-net9.trx"
 
-      # Pack the core library
+      - name: Run Tests for .NET 8.0 (Core Lib: netstandard2.1)
+        run: dotnet test YTLiveChat.Tests/YTLiveChat.Tests.csproj --configuration Release --framework net8.0 --no-build --logger "trx;LogFileName=test-results-net8.trx"
+      
+      # Optional: Add a step to publish test results if you want them as artifacts or for PR checks
+      - name: Upload Test Results
+        if: always() # Run this step even if previous steps fail, to upload any partial results
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/*.trx' # Path to trx files in the test project's output
+          retention-days: 7
+
       - name: Pack Core Library (YTLiveChat)
         run: dotnet pack YTLiveChat/YTLiveChat.csproj --configuration Release --no-build --output ${{ env.NuGetDirectory }}
 
-      # Pack the Dependency Injection library - it should inherit the version via ProjectReference
       - name: Pack DI Extension Library (YTLiveChat.DependencyInjection)
         run: dotnet pack YTLiveChat.DependencyInjection/YTLiveChat.DependencyInjection.csproj --configuration Release --no-build --output ${{ env.NuGetDirectory }}
 
-      - name: List Packages Created # Optional: for debugging workflow runs
+      - name: List Packages Created
         run: Get-ChildItem "${{ env.NuGetDirectory }}" -Recurse -Include *.nupkg | Select-Object FullName, Length
 
       - name: Upload NuGet Packages Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: nuget-packages # Artifact name containing both packages
-          if-no-files-found: error # Fail if no packages were created
+          name: nuget-packages
+          if-no-files-found: error
           retention-days: 7
-          path: ${{ env.NuGetDirectory }}/*.nupkg # Upload all nupkg files from the output directory
+          path: ${{ env.NuGetDirectory }}/*.nupkg
 
-  # Deployment job remains largely the same, but depends on the renamed build_and_pack job
   deploy:
     name: Deploy Packages to NuGet.org
-    # Run only when a release is published on GitHub
     if: github.event_name == 'release' && github.event.action == 'published'
     runs-on: ubuntu-latest
-    needs: [build_and_pack] # Depend on the build and pack job
-    environment: # Optional: Define deployment environment if using GitHub Environments for secrets/approvals
+    needs: [build_test_and_pack] # Depend on the combined job
+    environment:
       name: nuget.org
-      url: https://www.nuget.org/packages/Agash.YTLiveChat # Update URL if needed
-    permissions: # Optional: Define least privilege permissions needed
-      contents: read # Typically needed to read repo contents if not checking out again
-      # id-token: write # Add if using OIDC for NuGet authentication instead of API key
-
+      url: https://www.nuget.org/packages/Agash.YTLiveChat
+    permissions:
+      contents: read
     steps:
       - name: Download NuGet Packages Artifact
         uses: actions/download-artifact@v4
         with:
-          name: nuget-packages # Match the artifact name from the build job
+          name: nuget-packages
           path: ${{ env.NuGetDirectory }}
 
-      - name: List Downloaded Packages # Optional: for debugging workflow runs
+      - name: List Downloaded Packages
         run: Get-ChildItem "${{ env.NuGetDirectory }}" -Filter *.nupkg | Select-Object FullName, Length
 
-      - name: Setup .NET SDK # Setup .NET again in the deploy job
+      - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
-        # Optionally specify the SDK version
 
       - name: Publish NuGet Packages
         env:
-           NUGET_API_KEY: ${{ secrets.NUGET_APIKEY }} # Use the secret for the API key
+           NUGET_API_KEY: ${{ secrets.NUGET_APIKEY }}
         run: |
           Get-ChildItem "${{ env.NuGetDirectory }}" -Filter *.nupkg | ForEach-Object {
               Write-Host "Pushing $($_.FullName)..."
-              # Push each package found in the directory
               dotnet nuget push $_.FullName --api-key "$env:NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
           }
