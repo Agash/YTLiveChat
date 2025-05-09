@@ -35,7 +35,7 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
     /// Returns (null, rawJsonWithError) if JSON deserialization fails after logging it.
     /// Returns (null, null) for other critical exceptions after logging them.
     /// </returns>
-    public async Task<(LiveChatResponse? Response, string? RawJson)> GetLiveChatAsync(
+    public virtual async Task<(LiveChatResponse? Response, string? RawJson)> GetLiveChatAsync(
         FetchOptions options,
         CancellationToken cancellationToken = default
     )
@@ -145,7 +145,7 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>The raw HTML content of the page.</returns>
     /// <exception cref="ArgumentException">Thrown if none of handle, channelId, or liveId are provided.</exception>
-    public async Task<string> GetOptionsAsync(
+    public virtual async Task<string> GetOptionsAsync(
         string? handle,
         string? channelId,
         string? liveId,

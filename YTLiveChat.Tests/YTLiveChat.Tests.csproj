@@ -1,7 +1,6 @@
 ﻿<Project Sdk="MSTest.Sdk/3.6.4">
-
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFrameworks>net9.0;net8.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -11,11 +10,9 @@
       -->
     <TestingPlatformShowTestsFailure>true</TestingPlatformShowTestsFailure>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Moq" Version="4.20.72" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\YTLiveChat\YTLiveChat.csproj" />
   </ItemGroup>

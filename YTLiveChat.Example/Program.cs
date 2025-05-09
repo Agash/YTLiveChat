@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using YTLiveChat.DependencyInjection; // Your DI extensions namespace
-using YTLiveChat.Example; // Namespace for ChatMonitorService and ExampleRunOptions
+using YTLiveChat.DependencyInjection;
+using YTLiveChat.Example;
 
 Console.WriteLine("YTLiveChat Example Monitor");
 Console.WriteLine("-------------------------");
@@ -26,7 +26,7 @@ Console.WriteLine($"Target Live ID: {liveId}");
 Console.WriteLine("Attempting to connect...");
 
 // --- Host Setup ---
-HostApplicationBuilder builder = Host.CreateApplicationBuilder(args); // args can still be passed for other host configurations if needed
+HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 
 // Configure Logging
 builder.Logging.ClearProviders();
@@ -53,10 +53,9 @@ try
     using IHost host = builder.Build();
     Console.WriteLine("Host built. Running... (Press Ctrl+C to stop)");
     // Run the host. This will start the ChatMonitorService.
-    // It will continue running until StopApplication is called or Ctrl+C is pressed.
     await host.RunAsync();
-    Console.WriteLine("Host execution finished."); // This line might be reached if StopApplication is called gracefully
-    return 0; // Indicate success
+    Console.WriteLine("Host execution finished.");
+    return 0;
 }
 catch (OperationCanceledException)
 {

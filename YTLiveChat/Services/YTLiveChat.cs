@@ -59,7 +59,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     public YTLiveChat(
         YTLiveChatOptions options,
         YTHttpClient ytHttpClient,
-        ILogger<YTLiveChat>? logger // Logger is optional
+        ILogger<YTLiveChat>? logger = null // Logger is optional
     )
     {
         // Classic null checks for netstandard2.1 compatibility
@@ -83,10 +83,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             _options.DebugLogFilePath
             ?? Path.Combine(AppContext.BaseDirectory, "ytlivechat_debug_items.jsonl");
 
-        // Optionally force debug logging in DEBUG builds, regardless of options
 #if DEBUG
-        // Uncomment the next line to force debug logging ON in DEBUG builds
-        // _isDebugLoggingEnabled = true;
+        // Optionally force debug logging in DEBUG builds, regardless of options
+        _isDebugLoggingEnabled = true;
         _logger.LogDebug(
             "DEBUG build detected. JSON item logging state determined by YTLiveChatOptions: {IsEnabled}",
             _isDebugLoggingEnabled
@@ -699,18 +698,29 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     {
         if (disposing)
         {
-            _logger.LogDebug("Disposing YTLiveChat service.");
-            Stop(); // Ensure cancellation is requested
-            // Wait briefly for the task to potentially complete cancellation if needed?
-            // Or rely on callers managing the lifetime appropriately.
-            _cancellationTokenSource?.Dispose();
+            _logger.LogDebug("Disposing YTLiveChat service. Calling Stop().");
+            Stop(); // Ensures cancellation is signaled
+
+            // Dispose the CancellationTokenSource if it hasn't been already
+            // (e.g., if Start was never called or called multiple times with overwrite)
+            try
+            {
+                _cancellationTokenSource?.Dispose();
+            }
+            catch (ObjectDisposedException)
+            {
+                _logger.LogDebug(
+                    "CancellationTokenSource was already disposed during YTLiveChat.Dispose."
+                );
+            }
+
             _cancellationTokenSource = null;
-            _pollingTask = null; // Clear task reference
 
-            // Dispose SemaphoreSlim
-            s_debugLogLock.Dispose();
+            // Clear the task reference. The task itself will complete due to cancellation.
+            // We don't `await` it here as Dispose is synchronous.
+            _pollingTask = null;
 
-            // Do not dispose _ytHttpClient as its lifetime is managed externally
+            _logger.LogDebug("YTLiveChat service Dispose complete.");
         }
     }
 

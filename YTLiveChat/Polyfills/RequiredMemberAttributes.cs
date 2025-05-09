@@ -1,6 +1,7 @@
 ﻿#if NETSTANDARD2_0 || NETSTANDARD2_1
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+
+#pragma warning disable IDE0130 // Does not match folder structure
+#pragma warning disable IDE0290 // Use primary constructor
 
 namespace System.Runtime.CompilerServices
 {
@@ -59,4 +60,8 @@ namespace System.Runtime.CompilerServices
     [ComponentModel.EditorBrowsable(ComponentModel.EditorBrowsableState.Never)]
     internal static class IsExternalInit { }
 }
+
+#pragma warning restore IDE0130 // Does not match folder structure
+#pragma warning restore IDE0290 // Use primary constructor
+
 #endif
