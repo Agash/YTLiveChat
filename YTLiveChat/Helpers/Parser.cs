@@ -276,15 +276,30 @@ internal static partial class Parser
                         b.LiveChatAuthorBadgeRenderer?.CustomThumbnail != null
                     )
                     ?.LiveChatAuthorBadgeRenderer?.Tooltip;
+
+                // Correctly parse HeaderSubtext when it has runs
+                string? parsedHeaderSubtext = membershipItem.HeaderSubtext?.SimpleText; // Try simple text first
+                if (
+                    string.IsNullOrEmpty(parsedHeaderSubtext)
+                    && membershipItem.HeaderSubtext?.Runs != null
+                )
+                {
+                    // If simple text is null/empty but runs exist, combine them
+                    parsedHeaderSubtext = membershipItem
+                        .HeaderSubtext.Runs.ToMessageParts()
+                        .ToSimpleString();
+                }
+
                 membershipInfo = new()
                 {
                     LevelName = levelNameFromBadge ?? "Member",
-                    HeaderSubtext = membershipItem.HeaderSubtext?.Text,
+                    HeaderSubtext = parsedHeaderSubtext, // Use the correctly parsed subtext
                     HeaderPrimaryText = membershipItem
                         .HeaderPrimaryText?.Runs?.ToMessageParts()
                         ?.ToSimpleString(),
                 };
 
+                // Adjust New Member Detection to also check the parsedHeaderSubtext for "Welcome"
                 if (
                     membershipInfo.HeaderPrimaryText?.StartsWith(
                         "Welcome",
@@ -294,18 +309,43 @@ internal static partial class Parser
                         "New member",
                         StringComparison.OrdinalIgnoreCase
                     ) == true
+                    || membershipInfo.HeaderSubtext?.StartsWith(
+                        "Welcome to",
+                        StringComparison.OrdinalIgnoreCase
+                    ) == true // Check for "Welcome to" in HeaderSubtext
                 )
                 {
                     membershipInfo.EventType = Contracts.Models.MembershipEventType.New;
-                    if (
-                        membershipInfo.LevelName == "Member"
-                        && membershipInfo.HeaderPrimaryText != null
-                    )
+
+                    // Attempt to parse level name if not clearly defined by a specific badge
+                    // Prioritize HeaderSubtext for "Welcome to {LevelName}!" pattern
+                    if (string.IsNullOrEmpty(levelNameFromBadge) || levelNameFromBadge == "Member")
                     {
-                        Match levelMatch = NewMemberLevelRegex()
-                            .Match(membershipInfo.HeaderPrimaryText);
-                        if (levelMatch.Success)
-                            membershipInfo.LevelName = levelMatch.Groups[1].Value.Trim();
+                        bool levelSet = false;
+                        if (!string.IsNullOrEmpty(membershipInfo.HeaderSubtext))
+                        {
+                            // Regex for "Welcome to {LevelName}!" in HeaderSubtext
+                            Match subtextLevelMatch = NewMemberLevelFromSubtextRegex()
+                                .Match(membershipInfo.HeaderSubtext);
+                            if (subtextLevelMatch.Success)
+                            {
+                                membershipInfo.LevelName = subtextLevelMatch.Groups[1].Value.Trim();
+                                levelSet = true;
+                            }
+                        }
+
+                        // Fallback to HeaderPrimaryText if not found in HeaderSubtext
+                        if (!levelSet && !string.IsNullOrEmpty(membershipInfo.HeaderPrimaryText))
+                        {
+                            Match primaryTextLevelMatch = NewMemberLevelRegex()
+                                .Match(membershipInfo.HeaderPrimaryText);
+                            if (primaryTextLevelMatch.Success)
+                            {
+                                membershipInfo.LevelName = primaryTextLevelMatch
+                                    .Groups[1]
+                                    .Value.Trim();
+                            }
+                        }
                     }
                 }
                 else if (
@@ -618,6 +658,9 @@ internal static partial class Parser
     )]
     private static partial Regex NewMemberLevelRegex();
 
+    [GeneratedRegex(@"Welcome to (.*?)!", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    private static partial Regex NewMemberLevelFromSubtextRegex();
+
     // Regex to extract gifter name from redemption message like "GifterName gifted you..."
     [GeneratedRegex(@"^(.*?) gifted you", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex GiftRedemptionGifterRegex();
@@ -693,6 +736,13 @@ internal static partial class Parser
 
     private static Regex NewMemberLevelRegex() => _newMemberLevelRegex;
 
+    private static readonly Regex _newMemberLevelFromSubtextRegex = new(
+        @"Welcome to (.*?)!",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled
+    );
+
+    private static Regex NewMemberLevelFromSubtextRegex() => _newMemberLevelFromSubtextRegex;
+
     private static readonly Regex _giftRedemptionGifterRegex = new(
         @"^(.*?) gifted you",
         RegexOptions.IgnoreCase | RegexOptions.Compiled
@@ -704,7 +754,7 @@ internal static partial class Parser
     #endregion
 
     // Helper extension method to convert message parts back to a simple string
-    private static string ToSimpleString(this IEnumerable<Contracts.Models.MessagePart>? parts) // Use contract type
+    internal static string ToSimpleString(this IEnumerable<Contracts.Models.MessagePart>? parts) // Use contract type
     {
         return string.Join(
             "",
@@ -713,6 +763,7 @@ internal static partial class Parser
                 {
                     Contracts.Models.TextPart tp => tp.Text,
                     Contracts.Models.EmojiPart ep => ep.EmojiText,
+                    Contracts.Models.ImagePart ip => ip.Alt,
                     _ => "",
                 }
             ) ?? []

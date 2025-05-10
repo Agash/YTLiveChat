@@ -159,6 +159,19 @@ public record Message
     public List<MessageRun>? Runs { get; init; }
 }
 
+/// <summary>
+/// Represents a text structure that can either be a simple string
+/// or a collection of runs (complex formatting).
+/// </summary>
+public record HeaderText // Made public as it's part of a public model's property
+{
+    [JsonPropertyName("simpleText")]
+    public string? SimpleText { get; init; }
+
+    [JsonPropertyName("runs")]
+    public List<MessageRun>? Runs { get; init; }
+}
+
 public record CustomThumbnail
 {
     [JsonPropertyName("thumbnails")]
@@ -424,10 +437,10 @@ public record LiveChatPaidStickerRenderer : MessageRendererBase
 public record LiveChatMembershipItemRenderer : MessageRendererBase
 {
     [JsonPropertyName("headerPrimaryText")]
-    public Message? HeaderPrimaryText { get; init; }
+    public HeaderText? HeaderPrimaryText { get; init; }
 
     [JsonPropertyName("headerSubtext")]
-    public SimpleText? HeaderSubtext { get; init; } // Can be SimpleText or Message
+    public HeaderText? HeaderSubtext { get; init; } // Can be SimpleText or Message
 
     [JsonPropertyName("message")]
     public Message? Message { get; init; }
@@ -462,7 +475,7 @@ public record LiveChatSponsorshipsHeaderRenderer // Used within Gift Purchase
     public AuthorPhoto? AuthorPhoto { get; init; }
 
     [JsonPropertyName("primaryText")]
-    public Message? PrimaryText { get; init; }
+    public HeaderText? PrimaryText { get; init; }
 
     [JsonPropertyName("authorBadges")]
     public List<AuthorBadgeContainer>? AuthorBadges { get; init; }

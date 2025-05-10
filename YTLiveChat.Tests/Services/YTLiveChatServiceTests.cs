@@ -15,20 +15,20 @@ namespace YTLiveChat.Tests.Services;
 public class YTLiveChatServiceTests
 {
     private const int TestRequestFrequencyMilliseconds = 100;
-    private const int DefaultTestTimeoutSeconds = 7; // Increased default timeout slightly more for parallel runs
+    private const int DefaultTestTimeoutSeconds = 7;
 
     private Mock<YTHttpClient> _mockYtHttpClient = null!;
     private YTLiveChatOptions _ytLiveChatOptions = null!;
     private Mock<ILogger<YTLiveChat.Services.YTLiveChat>> _mockLogger = null!;
     private YTLiveChat.Services.YTLiveChat _service = null!;
-    private CancellationTokenSource _testMethodCts = null!; // CTS for each test method
+    private CancellationTokenSource _testMethodCts = null!;
 
     public TestContext TestContext { get; set; } = null!;
 
     [TestInitialize]
     public void TestInitialize()
     {
-        _testMethodCts = new CancellationTokenSource(); // New CTS for each test
+        _testMethodCts = new CancellationTokenSource();
         _ytLiveChatOptions = new YTLiveChatOptions
         {
             RequestFrequency = TestRequestFrequencyMilliseconds,
@@ -58,25 +58,17 @@ public class YTLiveChatServiceTests
             TestContext.TestName
         );
 
-        // Signal any ongoing operations within the test method itself to stop
         _testMethodCts.Cancel();
         _testMethodCts.Dispose();
 
-        // Dispose the service, which calls Stop() internally
         _service.Dispose();
 
-        // Give a very brief moment for any outstanding tasks from _service to acknowledge cancellation.
-        // This is a pragmatic approach if _service.Dispose() isn't fully awaiting its internal task.
-        // In an ideal world, IYTLiveChat would offer an async DisposeAsync or StopAsync that could be awaited.
         try
         {
-            // Allow a short period for the background task to notice cancellation and exit.
-            // This helps prevent its logging/operations from bleeding into the next test.
-            await Task.Delay(TestRequestFrequencyMilliseconds * 2, CancellationToken.None); // Wait a bit longer than one poll interval
+            await Task.Delay(TestRequestFrequencyMilliseconds * 2, CancellationToken.None);
         }
         catch (TaskCanceledException)
-        {
-            // Expected if the delay itself is cancelled by a test runner's timeout, though unlikely here
+        { /* Expected if test itself timed out */
         }
 
         _mockLogger.Object.LogInformation(
@@ -85,7 +77,6 @@ public class YTLiveChatServiceTests
         );
     }
 
-    // Helper to wait for TCS with the test method's CancellationToken
     private async Task<T> WaitForTcsResult<T>(TaskCompletionSource<T> tcs, string eventName)
     {
         try
@@ -102,7 +93,7 @@ public class YTLiveChatServiceTests
                 TestContext.TestName,
                 eventName
             );
-            throw; // Re-throw to fail the test
+            throw;
         }
         catch (OperationCanceledException) when (_testMethodCts.IsCancellationRequested)
         {
@@ -111,7 +102,7 @@ public class YTLiveChatServiceTests
                 TestContext.TestName,
                 eventName
             );
-            throw; // Re-throw to indicate test cancellation
+            throw;
         }
     }
 
@@ -125,15 +116,18 @@ public class YTLiveChatServiceTests
         string nextContinuationAfterPoll = "nextCont_AfterPoll_01";
 
         _mockLogger.Object.LogInformation("[{TestName}] Setting up mocks.", TestContext.TestName);
+
         string pageHtml = UtilityTestData.GetSampleLivePageHtml(
             liveId,
             apiKey,
             clientVersion,
             initialContinuationFromHtml
         );
+
         string itemRendererContentJson = TextMessageTestData.SimpleTextMessage1();
         string itemObjectJson =
             $$"""{ "liveChatTextMessageRenderer": {{itemRendererContentJson}} }""";
+
         string responseJsonForFirstPoll = UtilityTestData.WrapItemsInLiveChatResponse(
             [itemObjectJson],
             nextContinuationAfterPoll
@@ -152,9 +146,10 @@ public class YTLiveChatServiceTests
             .Setup(client =>
                 client.GetLiveChatAsync(
                     It.Is<FetchOptions>(fo =>
-                        fo.Continuation == initialContinuationFromHtml
+                        fo.LiveId == liveId
                         && fo.ApiKey == apiKey
                         && fo.ClientVersion == clientVersion
+                        && fo.Continuation == initialContinuationFromHtml
                     ),
                     It.IsAny<CancellationToken>()
                 )
@@ -188,7 +183,24 @@ public class YTLiveChatServiceTests
         Assert.IsNotNull(receivedArgs);
         Assert.AreEqual("MSG_ID_SIMPLE_01", receivedArgs.ChatItem.Id);
 
-        _mockYtHttpClient.VerifyAll(); // If you add .Verifiable() to setups
+        _mockYtHttpClient.Verify(
+            client => client.GetOptionsAsync(null, null, liveId, It.IsAny<CancellationToken>()),
+            Times.Once
+        );
+        _mockYtHttpClient.Verify(
+            client =>
+                client.GetLiveChatAsync(
+                    It.Is<FetchOptions>(fo =>
+                        fo.LiveId == liveId
+                        && fo.ApiKey == apiKey
+                        && fo.ClientVersion == clientVersion
+                        && fo.Continuation == initialContinuationFromHtml
+                    ),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once,
+            "First GetLiveChatAsync call was not made with expected FetchOptions."
+        );
     }
 
     [TestMethod]
@@ -236,7 +248,9 @@ public class YTLiveChatServiceTests
         string clientVersion = "cv_MultiPoll_02";
         string initialContinuationFromHtml = "cont_Multi_A_02";
         string continuationAfterFirstPoll = "cont_Multi_B_02";
-        string continuationAfterSecondPoll = "cont_Multi_C_02";
+        string continuationAfterSecondPoll = "cont_Multi_C_02"; // For third poll if added
+
+        _mockLogger.Object.LogInformation("[{TestName}] Setting up mocks.", TestContext.TestName);
 
         string pageHtml = UtilityTestData.GetSampleLivePageHtml(
             liveId,
@@ -250,6 +264,7 @@ public class YTLiveChatServiceTests
             )
             .ReturnsAsync(pageHtml);
 
+        // First Poll Setup
         string renderer1Content = TextMessageTestData.SimpleTextMessage1();
         string item1Json = $$"""{ "liveChatTextMessageRenderer": {{renderer1Content}} }""";
         string response1Json = UtilityTestData.WrapItemsInLiveChatResponse(
@@ -259,7 +274,7 @@ public class YTLiveChatServiceTests
         LiveChatResponse? liveChatResponse1 = JsonSerializer.Deserialize<LiveChatResponse>(
             response1Json
         );
-
+        Assert.IsNotNull(liveChatResponse1);
         _mockYtHttpClient
             .Setup(client =>
                 client.GetLiveChatAsync(
@@ -270,8 +285,9 @@ public class YTLiveChatServiceTests
                 )
             )
             .ReturnsAsync((liveChatResponse1, response1Json))
-            .Verifiable();
+            .Verifiable("First poll was not executed with correct parameters.");
 
+        // Second Poll Setup
         string renderer2Content = TextMessageTestData.TextMessageWithStandardEmoji();
         string item2Json = $$"""{ "liveChatTextMessageRenderer": {{renderer2Content}} }""";
         string response2Json = UtilityTestData.WrapItemsInLiveChatResponse(
@@ -281,7 +297,7 @@ public class YTLiveChatServiceTests
         LiveChatResponse? liveChatResponse2 = JsonSerializer.Deserialize<LiveChatResponse>(
             response2Json
         );
-
+        Assert.IsNotNull(liveChatResponse2);
         _mockYtHttpClient
             .Setup(client =>
                 client.GetLiveChatAsync(
@@ -292,7 +308,7 @@ public class YTLiveChatServiceTests
                 )
             )
             .ReturnsAsync((liveChatResponse2, response2Json))
-            .Verifiable();
+            .Verifiable("Second poll was not executed with correct parameters.");
 
         List<ChatItem> receivedItems = [];
         TaskCompletionSource<bool> initialPageLoadedTcs = new(
@@ -322,6 +338,9 @@ public class YTLiveChatServiceTests
         await WaitForTcsResult(secondItemReceivedTcs, "SecondItem_Multi");
 
         Assert.AreEqual(2, receivedItems.Count);
+        Assert.AreEqual("MSG_ID_SIMPLE_01", receivedItems[0].Id);
+        Assert.AreEqual("MSG_ID_STD_EMOJI_01", receivedItems[1].Id);
+
         _mockYtHttpClient.VerifyAll();
     }
 
@@ -345,6 +364,7 @@ public class YTLiveChatServiceTests
         LiveChatResponse? liveChatResponse = JsonSerializer.Deserialize<LiveChatResponse>(
             responseJson
         );
+        Assert.IsNotNull(liveChatResponse);
         _mockYtHttpClient
             .Setup(c =>
                 c.GetLiveChatAsync(
@@ -381,5 +401,124 @@ public class YTLiveChatServiceTests
         );
         Assert.IsNotNull(stoppedArgs);
         Assert.AreEqual("Stream ended or continuation lost", stoppedArgs.Reason);
+    }
+
+    // --- New Service Tests for SuperChat and Membership ---
+    [TestMethod]
+    public async Task PollingLoop_ReceivesSuperChat_EventFiredWithCorrectData()
+    {
+        string liveId = "superChatTest001";
+        string apiKey = "apiKeySC";
+        string clientVersion = "cvSC";
+        string initialCont = "initialContSC";
+        string nextCont = "nextContSC";
+
+        _mockYtHttpClient
+            .Setup(c => c.GetOptionsAsync(null, null, liveId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                UtilityTestData.GetSampleLivePageHtml(liveId, apiKey, clientVersion, initialCont)
+            );
+
+        string superChatRendererJson = SuperChatTestData.SuperChatMessageFromLatestLog(); // Uses $10.00 SC
+        string itemObjectJson =
+            $$"""{ "liveChatPaidMessageRenderer": {{superChatRendererJson}} }""";
+        string responseJson = UtilityTestData.WrapItemsInLiveChatResponse(
+            [itemObjectJson],
+            nextCont
+        );
+        LiveChatResponse? liveChatResponse = JsonSerializer.Deserialize<LiveChatResponse>(
+            responseJson
+        );
+        Assert.IsNotNull(liveChatResponse);
+
+        _mockYtHttpClient
+            .Setup(c =>
+                c.GetLiveChatAsync(
+                    It.Is<FetchOptions>(fo =>
+                        fo.Continuation == initialCont && fo.ApiKey == apiKey
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((liveChatResponse, responseJson));
+
+        TaskCompletionSource<ChatReceivedEventArgs> chatReceivedTcs = new(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        _service.InitialPageLoaded += (s, e) =>
+            _mockLogger.Object.LogInformation("Initial Page Loaded for SC Test");
+        _service.ChatReceived += (s, e) => chatReceivedTcs.TrySetResult(e);
+
+        _service.Start(liveId: liveId);
+
+        ChatReceivedEventArgs receivedArgs = await WaitForTcsResult(
+            chatReceivedTcs,
+            "SuperChatReceived"
+        );
+        Assert.IsNotNull(receivedArgs.ChatItem);
+        Assert.AreEqual("SC_ID_LATEST_01", receivedArgs.ChatItem.Id);
+        Assert.IsNotNull(receivedArgs.ChatItem.Superchat);
+        Assert.AreEqual("$10.00", receivedArgs.ChatItem.Superchat.AmountString);
+        Assert.AreEqual(10.00m, receivedArgs.ChatItem.Superchat.AmountValue);
+        Assert.AreEqual("USD", receivedArgs.ChatItem.Superchat.Currency);
+    }
+
+    [TestMethod]
+    public async Task PollingLoop_ReceivesNewMember_EventFiredWithCorrectData()
+    {
+        string liveId = "newMemberTest001";
+        string apiKey = "apiKeyNM";
+        string clientVersion = "cvNM";
+        string initialCont = "initialContNM";
+        string nextCont = "nextContNM";
+
+        _mockYtHttpClient
+            .Setup(c => c.GetOptionsAsync(null, null, liveId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                UtilityTestData.GetSampleLivePageHtml(liveId, apiKey, clientVersion, initialCont)
+            );
+
+        string newMemberRendererJson = MembershipTestData.NewMemberChickenMcNugget();
+        string itemObjectJson =
+            $$"""{ "liveChatMembershipItemRenderer": {{newMemberRendererJson}} }""";
+        string responseJson = UtilityTestData.WrapItemsInLiveChatResponse(
+            [itemObjectJson],
+            nextCont
+        );
+        LiveChatResponse? liveChatResponse = JsonSerializer.Deserialize<LiveChatResponse>(
+            responseJson
+        );
+        Assert.IsNotNull(liveChatResponse);
+
+        _mockYtHttpClient
+            .Setup(c =>
+                c.GetLiveChatAsync(
+                    It.Is<FetchOptions>(fo =>
+                        fo.Continuation == initialCont && fo.ApiKey == apiKey
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((liveChatResponse, responseJson));
+
+        TaskCompletionSource<ChatReceivedEventArgs> chatReceivedTcs = new(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        _service.InitialPageLoaded += (s, e) =>
+            _mockLogger.Object.LogInformation("Initial Page Loaded for New Member Test");
+        _service.ChatReceived += (s, e) => chatReceivedTcs.TrySetResult(e);
+
+        _service.Start(liveId: liveId);
+
+        ChatReceivedEventArgs receivedArgs = await WaitForTcsResult(
+            chatReceivedTcs,
+            "NewMemberReceived"
+        );
+        Assert.IsNotNull(receivedArgs.ChatItem);
+        Assert.AreEqual("NEW_MEMBER_CHICKEN_ID", receivedArgs.ChatItem.Id);
+        Assert.IsNotNull(receivedArgs.ChatItem.MembershipDetails);
+        Assert.AreEqual(MembershipEventType.New, receivedArgs.ChatItem.MembershipDetails.EventType);
+        Assert.AreEqual("Member (6 months)", receivedArgs.ChatItem.MembershipDetails.LevelName);
+        Assert.IsTrue(receivedArgs.ChatItem.IsMembership);
     }
 }
