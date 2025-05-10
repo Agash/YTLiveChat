@@ -318,10 +318,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                         && response?.ContinuationContents?.LiveChatContinuation?.Actions != null
                     )
                     {
-                        await LogRawJsonActionsAsync(
-                            response.ContinuationContents.LiveChatContinuation.Actions,
-                            cancellationToken
-                        );
+                        await LogRawJsonActionsAsync(rawJson, cancellationToken);
                     }
 
                     // Process response
@@ -466,10 +463,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                         && response?.ContinuationContents?.LiveChatContinuation?.Actions != null
                     )
                     {
-                        await LogRawJsonActionsAsync(
-                            response.ContinuationContents.LiveChatContinuation.Actions,
-                            cancellationToken
-                        );
+                        await LogRawJsonActionsAsync(rawJson, cancellationToken);
                     }
 
                     // Process response
@@ -578,25 +572,14 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     /// <summary>
     /// Logs raw JSON action items if debug logging is enabled.
     /// </summary>
-    private async Task LogRawJsonActionsAsync(
-        List<Models.Response.Action> actions,
-        CancellationToken cancellationToken
-    )
+    private async Task LogRawJsonActionsAsync(string? rawJson, CancellationToken cancellationToken)
     {
-        if (!_isDebugLoggingEnabled || actions == null || actions.Count == 0)
-            return;
-
-        // Extract only the relevant item data for logging
-        List<AddChatItemActionItem> itemsToLog =
-        [
-            .. actions.Select(a => a.AddChatItemAction?.Item).WhereNotNull(),
-        ];
-
-        if (itemsToLog.Count == 0)
+        if (!_isDebugLoggingEnabled || string.IsNullOrEmpty(rawJson))
             return;
 
         // Use SemaphoreSlim for thread-safe file access
         await s_debugLogLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+
         try
         {
 #if NETSTANDARD2_0 || NETSTANDARD2_1
@@ -610,14 +593,8 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 useAsync: true
             ); // useAsync is a hint
             using StreamWriter writer = new(fs, System.Text.Encoding.UTF8);
-            foreach (AddChatItemActionItem item in itemsToLog)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                    break; // Check cancellation, but can't pass token to WriteLineAsync
-                string jsonLine = JsonSerializer.Serialize(item, s_debugJsonOptions);
-                // CS7036 fix: Use WriteLineAsync(string) overload for NS2.0/NS2.1
-                await writer.WriteLineAsync(jsonLine).ConfigureAwait(false);
-            }
+
+            await writer.WriteLineAsync(rawJson).ConfigureAwait(false);
 #else
             // Use await using for newer frameworks
             await using FileStream fs = new(
@@ -629,14 +606,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 useAsync: true
             );
             await using StreamWriter writer = new(fs, System.Text.Encoding.UTF8);
-            foreach (AddChatItemActionItem item in itemsToLog)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                string jsonLine = JsonSerializer.Serialize(item, s_debugJsonOptions);
-                await writer
-                    .WriteLineAsync(jsonLine.AsMemory(), cancellationToken)
-                    .ConfigureAwait(false);
-            }
+            await writer
+                .WriteLineAsync(rawJson.AsMemory(), cancellationToken)
+                .ConfigureAwait(false);
 #endif
         }
         catch (OperationCanceledException)
