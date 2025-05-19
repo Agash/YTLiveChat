@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Authors>Agash Thamo.</Authors>
     <Description>Dependency Injection extensions for Agash.YTLiveChat library.</Description>
@@ -33,15 +33,15 @@
     </PackageReference>
     <PackageReference
       Include="Microsoft.Extensions.DependencyInjection.Abstractions"
-      Version="9.0.4"
+      Version="9.0.5"
     />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.4" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.4" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.4" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.4" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.5" />
     <PackageReference
       Include="Microsoft.Extensions.Options.ConfigurationExtensions"
-      Version="9.0.4"
+      Version="9.0.5"
     />
   </ItemGroup>
   <ItemGroup>
