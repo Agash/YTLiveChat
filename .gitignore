@@ -377,3 +377,6 @@ megalinter-reports/
 /.yamllint.yml
 /.cspell.json
 ytlivechat.xml
+filter_array.py
+ytlivechat_contains_poll.json
+ytlivechat_poll_objects.json

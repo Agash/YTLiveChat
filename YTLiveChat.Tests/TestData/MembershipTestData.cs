@@ -1,5 +1,4 @@
-﻿// YTLiveChat.Tests/TestData/MembershipTestData.cs
-namespace YTLiveChat.Tests.TestData;
+﻿namespace YTLiveChat.Tests.TestData;
 
 internal static class MembershipTestData
 {

@@ -1,5 +1,4 @@
-﻿// YTLiveChat.Tests/TestData/SuperChatTestData.cs
-namespace YTLiveChat.Tests.TestData;
+﻿namespace YTLiveChat.Tests.TestData;
 
 /// <summary>
 /// Provides test data for Super Chat and Super Sticker messages.

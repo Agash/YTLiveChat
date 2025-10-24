@@ -94,16 +94,16 @@ public static class ServiceCollectionExtensions
         _ = services.AddTransient<IYTLiveChat, Services.YTLiveChat>(provider =>
         {
             // Resolve dependencies from the DI container
-            YTLiveChatOptions options = provider
-                .GetRequiredService<IOptions<YTLiveChatOptions>>()
-                .Value;
+            IOptions<YTLiveChatOptions> options = provider.GetRequiredService<
+                IOptions<YTLiveChatOptions>
+            >();
             YTHttpClient ytHttpClient = provider.GetRequiredService<YTHttpClient>(); // Get the configured YTHttpClient
             ILogger<Services.YTLiveChat>? logger = provider.GetService<
                 ILogger<Services.YTLiveChat>
             >(); // Logger is optional
 
             // Construct the YTLiveChat service instance
-            return new Services.YTLiveChat(options, ytHttpClient, logger);
+            return new Services.YTLiveChat(options.Value, ytHttpClient, logger);
         });
     }
 }
