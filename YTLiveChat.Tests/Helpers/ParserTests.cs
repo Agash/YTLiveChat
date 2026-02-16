@@ -692,6 +692,47 @@ public class ParserTests
         Assert.IsTrue(chatItem.IsMembership);
     }
 
+    [TestMethod]
+    public void ToChatItem_TickerPaidMessageFromLog8_ParsesAsTickerSuperchat()
+    {
+        Models.Response.Action? action = JsonSerializer.Deserialize<Models.Response.Action>(
+            RawActionTestData.TickerPaidMessageFromLog8(),
+            s_jsonOptions
+        );
+        Assert.IsNotNull(action);
+
+        ChatItem? chatItem = action.ToChatItem();
+        Assert.IsNotNull(chatItem);
+        Assert.IsTrue(chatItem.IsTicker);
+        Assert.AreEqual("ChwKGkNMLWt4ZFRuM1pJREZiN0t3Z1Fkc3N3VFlR", chatItem.Id);
+        Assert.AreEqual("@すずむら337", chatItem.Author.Name);
+        Assert.IsNotNull(chatItem.Superchat);
+        Assert.AreEqual("¥500", chatItem.Superchat.AmountString);
+        Assert.AreEqual(500M, chatItem.Superchat.AmountValue);
+        Assert.AreEqual("JPY", chatItem.Superchat.Currency);
+        Assert.AreEqual(3, chatItem.Message.Length);
+    }
+
+    [TestMethod]
+    public void ToChatItem_TickerSponsorFromLog8_ParsesAsTickerMembership()
+    {
+        Models.Response.Action? action = JsonSerializer.Deserialize<Models.Response.Action>(
+            RawActionTestData.TickerSponsorItemFromLog8(),
+            s_jsonOptions
+        );
+        Assert.IsNotNull(action);
+
+        ChatItem? chatItem = action.ToChatItem();
+        Assert.IsNotNull(chatItem);
+        Assert.IsTrue(chatItem.IsTicker);
+        Assert.IsNotNull(chatItem.MembershipDetails);
+        Assert.AreEqual(MembershipEventType.Milestone, chatItem.MembershipDetails.EventType);
+        Assert.AreEqual(7, chatItem.MembershipDetails.MilestoneMonths);
+        Assert.AreEqual("Member (6 months)", chatItem.MembershipDetails.MembershipBadgeLabel);
+        Assert.AreEqual("@mutukisegawa3526", chatItem.Author.Name);
+        Assert.AreEqual("可愛すぎて止まった心臓動き出した", ((TextPart)chatItem.Message[0]).Text);
+    }
+
     // --- ParseLiveChatResponse Tests ---
     [TestMethod]
     public void ParseLiveChatResponse_SingleItem_ParsesCorrectly()

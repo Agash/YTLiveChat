@@ -66,4 +66,9 @@ public class ChatItem
     /// Present when chat message includes the crown rank button.
     /// </summary>
     public int? ViewerLeaderboardRank { get; set; }
+
+    /// <summary>
+    /// Indicates this item originated from a ticker action (top bar) rather than standard addChatItem action.
+    /// </summary>
+    public bool IsTicker { get; set; }
 }

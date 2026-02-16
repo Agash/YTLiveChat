@@ -63,6 +63,42 @@ internal static partial class Parser
             _ => null,
         };
 
+    private static AddChatItemActionItem? GetTickerBackedAddChatItem(Action action)
+    {
+        AddLiveChatTickerItemActionItem? tickerItem = action.AddLiveChatTickerItemAction?.Item;
+        if (tickerItem == null)
+        {
+            return null;
+        }
+
+        LiveChatPaidMessageRenderer? paidRenderer = tickerItem
+            .LiveChatTickerPaidMessageItemRenderer
+            ?.ShowItemEndpoint
+            ?.ShowLiveChatItemEndpoint
+            ?.Renderer
+            ?.LiveChatPaidMessageRenderer;
+        if (paidRenderer != null)
+        {
+            return new AddChatItemActionItem { LiveChatPaidMessageRenderer = paidRenderer };
+        }
+
+        LiveChatMembershipItemRenderer? membershipRenderer = tickerItem
+            .LiveChatTickerSponsorItemRenderer
+            ?.ShowItemEndpoint
+            ?.ShowLiveChatItemEndpoint
+            ?.Renderer
+            ?.LiveChatMembershipItemRenderer;
+        if (membershipRenderer != null)
+        {
+            return new AddChatItemActionItem
+            {
+                LiveChatMembershipItemRenderer = membershipRenderer,
+            };
+        }
+
+        return null;
+    }
+
     /// <summary>
     /// Converts a MessageRun (internal model) to a MessagePart (contract model).
     /// </summary>
@@ -225,24 +261,47 @@ internal static partial class Parser
             return null;
         }
 
-        List<string> textRuns =
-        [
-            .. runs.OfType<Models.Response.MessageText>()
-                .Select(r => r.Text)
-                .Where(t => !string.IsNullOrWhiteSpace(t))
-                .Select(t => t!),
-        ];
+        string? first = null;
+        string? middle = null;
+        string? last = null;
+        int count = 0;
+        foreach (Models.Response.MessageRun run in runs)
+        {
+            if (run is not Models.Response.MessageText textRun)
+            {
+                continue;
+            }
 
-        if (textRuns.Count != 3)
+            string? value = textRun.Text;
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                continue;
+            }
+            string nonNullValue = value!;
+
+            count++;
+            switch (count)
+            {
+                case 1:
+                    first = nonNullValue;
+                    break;
+                case 2:
+                    middle = nonNullValue.Trim();
+                    break;
+                case 3:
+                    last = nonNullValue.Trim();
+                    break;
+                default:
+                    return null;
+            }
+        }
+
+        if (count != 3 || first == null || middle == null || last == null)
         {
             return null;
         }
 
-        string first = textRuns[0];
-        string middle = textRuns[1].Trim();
-        string last = textRuns[2].Trim();
-
-        if (string.IsNullOrWhiteSpace(middle))
+        if (middle.Length == 0)
         {
             return null;
         }
@@ -263,10 +322,17 @@ internal static partial class Parser
         if (action == null)
             throw new ArgumentNullException(nameof(action));
 
-        if (action.AddChatItemAction?.Item == null)
+        bool isTickerAction = false;
+        AddChatItemActionItem? item = action.AddChatItemAction?.Item;
+        if (item == null)
+        {
+            item = GetTickerBackedAddChatItem(action);
+            isTickerAction = item != null;
+        }
+
+        if (item == null)
             return null;
 
-        AddChatItemActionItem item = action.AddChatItemAction.Item;
         MessageRendererBase? baseRenderer = GetBaseRenderer(item);
 
         if (baseRenderer == null)
@@ -745,6 +811,7 @@ internal static partial class Parser
             // Determine IsMembership based on if it's a membership event OR the author has a member badge
             IsMembership = membershipInfo != null || isMembershipBadge,
             ViewerLeaderboardRank = viewerLeaderboardRank,
+            IsTicker = isTickerAction,
         };
         return chatItem;
     }
@@ -790,10 +857,12 @@ internal static partial class Parser
         string? Continuation
     ) ParseLiveChatResponseWithActionIndex(LiveChatResponse? response)
     {
-        List<(Contracts.Models.ChatItem Item, int ActionIndex)> items = [];
+        List<Action>? actions = response?.ContinuationContents?.LiveChatContinuation?.Actions;
+        List<(Contracts.Models.ChatItem Item, int ActionIndex)> items = actions == null
+            ? []
+            : new List<(Contracts.Models.ChatItem Item, int ActionIndex)>(actions.Count);
         string? continuationToken = null;
 
-        List<Action>? actions = response?.ContinuationContents?.LiveChatContinuation?.Actions;
         if (actions != null)
         {
             for (int i = 0; i < actions.Count; i++)

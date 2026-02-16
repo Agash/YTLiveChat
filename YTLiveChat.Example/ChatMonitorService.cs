@@ -231,6 +231,11 @@ internal class ChatMonitorService : IHostedService, IDisposable
                 WriteTag($"#{rank}", ConsoleColor.DarkYellow);
             }
 
+            if (item.IsTicker)
+            {
+                WriteTag("TICKER", ConsoleColor.DarkMagenta);
+            }
+
             if (item.IsOwner)
             {
                 WriteTag("OWNER", ConsoleColor.Red);

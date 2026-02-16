@@ -566,6 +566,63 @@ public record AddChatItemAction
     public string? ClientId { get; init; }
 }
 
+public record LiveChatTickerShowItemRenderer
+{
+    [JsonPropertyName("liveChatPaidMessageRenderer")]
+    public LiveChatPaidMessageRenderer? LiveChatPaidMessageRenderer { get; init; }
+
+    [JsonPropertyName("liveChatMembershipItemRenderer")]
+    public LiveChatMembershipItemRenderer? LiveChatMembershipItemRenderer { get; init; }
+}
+
+public record ShowLiveChatItemEndpoint
+{
+    [JsonPropertyName("renderer")]
+    public LiveChatTickerShowItemRenderer? Renderer { get; init; }
+}
+
+public record TickerShowItemEndpoint
+{
+    [JsonPropertyName("showLiveChatItemEndpoint")]
+    public ShowLiveChatItemEndpoint? ShowLiveChatItemEndpoint { get; init; }
+}
+
+public record LiveChatTickerPaidMessageItemRenderer
+{
+    [JsonPropertyName("id")]
+    public string? Id { get; init; }
+
+    [JsonPropertyName("showItemEndpoint")]
+    public TickerShowItemEndpoint? ShowItemEndpoint { get; init; }
+}
+
+public record LiveChatTickerSponsorItemRenderer
+{
+    [JsonPropertyName("id")]
+    public string? Id { get; init; }
+
+    [JsonPropertyName("showItemEndpoint")]
+    public TickerShowItemEndpoint? ShowItemEndpoint { get; init; }
+}
+
+public record AddLiveChatTickerItemActionItem
+{
+    [JsonPropertyName("liveChatTickerPaidMessageItemRenderer")]
+    public LiveChatTickerPaidMessageItemRenderer? LiveChatTickerPaidMessageItemRenderer { get; init; }
+
+    [JsonPropertyName("liveChatTickerSponsorItemRenderer")]
+    public LiveChatTickerSponsorItemRenderer? LiveChatTickerSponsorItemRenderer { get; init; }
+}
+
+public record AddLiveChatTickerItemAction
+{
+    [JsonPropertyName("item")]
+    public AddLiveChatTickerItemActionItem? Item { get; init; }
+
+    [JsonPropertyName("durationSec")]
+    public string? DurationSec { get; init; }
+}
+
 public record RemoveChatItemAction
 {
     [JsonPropertyName("targetItemId")]
@@ -612,6 +669,15 @@ public record Action
 
     [JsonPropertyName("removeChatItemByAuthorAction")]
     public RemoveChatItemByAuthorAction? RemoveChatItemByAuthorAction { get; init; }
+
+    [JsonPropertyName("addLiveChatTickerItemAction")]
+    public AddLiveChatTickerItemAction? AddLiveChatTickerItemAction { get; init; }
+
+    [JsonPropertyName("changeEngagementPanelVisibilityAction")]
+    public JsonElement? ChangeEngagementPanelVisibilityAction { get; init; }
+
+    [JsonPropertyName("signalAction")]
+    public SignalAction? SignalAction { get; init; }
 
     // Add other potential actions (addBanner, markChatItemsByAuthorAsDeletedAction etc.)
     [JsonPropertyName("markChatItemsByAuthorAsDeletedAction")]
