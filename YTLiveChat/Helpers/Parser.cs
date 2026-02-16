@@ -108,31 +108,33 @@ internal static partial class Parser
         if (string.IsNullOrWhiteSpace(amountString))
             return (0M, "USD");
 
-        amountString = amountString!.Replace(",", "").Replace("\u00A0", " ").Trim(); // Normalize spaces/commas
-        Match match = AmountCurrencyRegex().Match(amountString);
-        if (match.Success)
+        string normalizedInput = amountString!.Replace("\u00A0", " ").Trim();
+        Match numberMatch = AmountNumberRegex().Match(normalizedInput);
+        if (numberMatch.Success)
         {
-            string currencySymbolOrCode = match.Groups[1].Success
-                ? match.Groups[1].Value
-                : match.Groups[3].Value;
-            string amountPart = match.Groups[2].Value;
+            string amountPart = numberMatch.Value;
+            string normalizedAmountPart = NormalizeAmountToken(amountPart);
             if (
                 decimal.TryParse(
-                    amountPart,
+                    normalizedAmountPart,
                     NumberStyles.Any,
                     CultureInfo.InvariantCulture,
                     out decimal amountValue
                 )
             )
             {
-                string currencyCode = CurrencyHelper.GetCodeFromSymbolOrCode(currencySymbolOrCode);
+                string before = normalizedInput.Substring(0, numberMatch.Index);
+                string after = normalizedInput.Substring(numberMatch.Index + numberMatch.Length);
+                string currencyToken = string.Concat(before, after).Replace(" ", string.Empty);
+                string currencyCode = CurrencyHelper.GetCodeFromSymbolOrCode(currencyToken);
                 return (amountValue, currencyCode);
             }
         }
+
         // Fallback parsing attempt if regex fails
         if (
             decimal.TryParse(
-                amountString,
+                NormalizeAmountToken(normalizedInput),
                 NumberStyles.Any,
                 CultureInfo.InvariantCulture,
                 out decimal fallbackAmount
@@ -143,6 +145,114 @@ internal static partial class Parser
         }
 
         return (0M, "USD"); // Final fallback
+    }
+
+    private static string NormalizeAmountToken(string token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return token;
+        }
+
+        string normalized = token.Trim().Replace(" ", string.Empty);
+        bool hasComma = normalized.Contains(',');
+        bool hasDot = normalized.Contains('.');
+
+        if (hasComma && hasDot)
+        {
+            if (normalized.LastIndexOf(',') > normalized.LastIndexOf('.'))
+            {
+                // e.g. 1.234,56 => decimal separator is comma
+                normalized = normalized.Replace(".", string.Empty).Replace(",", ".");
+            }
+            else
+            {
+                // e.g. 1,234.56 => decimal separator is dot
+                normalized = normalized.Replace(",", string.Empty);
+            }
+
+            return normalized;
+        }
+
+        if (hasComma)
+        {
+            int commaCount = normalized.Count(c => c == ',');
+            if (commaCount > 1)
+            {
+                // e.g. 1,234,567
+                return normalized.Replace(",", string.Empty);
+            }
+
+            int commaIndex = normalized.LastIndexOf(',');
+            int digitsAfter = normalized.Length - commaIndex - 1;
+            if (digitsAfter == 3)
+            {
+                // e.g. 20,000
+                return normalized.Replace(",", string.Empty);
+            }
+
+            // e.g. 10,50
+            return normalized.Replace(",", ".");
+        }
+
+        if (hasDot)
+        {
+            int dotCount = normalized.Count(c => c == '.');
+            if (dotCount > 1)
+            {
+                int lastDotIndex = normalized.LastIndexOf('.');
+                string integerPart = normalized.Substring(0, lastDotIndex).Replace(".", string.Empty);
+                string decimalPart = normalized.Substring(lastDotIndex + 1);
+                if (decimalPart.Length == 3)
+                {
+                    // e.g. 20.000
+                    return integerPart + decimalPart;
+                }
+
+                return integerPart + "." + decimalPart;
+            }
+        }
+
+        return normalized;
+    }
+
+    private static string? TryExtractTierNameFromHeaderSubtextRuns(
+        IEnumerable<Models.Response.MessageRun>? runs
+    )
+    {
+        if (runs == null)
+        {
+            return null;
+        }
+
+        List<string> textRuns =
+        [
+            .. runs.OfType<Models.Response.MessageText>()
+                .Select(r => r.Text)
+                .Where(t => !string.IsNullOrWhiteSpace(t))
+                .Select(t => t!),
+        ];
+
+        if (textRuns.Count != 3)
+        {
+            return null;
+        }
+
+        string first = textRuns[0];
+        string middle = textRuns[1].Trim();
+        string last = textRuns[2].Trim();
+
+        if (string.IsNullOrWhiteSpace(middle))
+        {
+            return null;
+        }
+
+        if ((last == "!" || last == "！") && first.EndsWith(" ", StringComparison.Ordinal))
+        {
+            return middle;
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -194,7 +304,14 @@ internal static partial class Parser
                             badgeContainer.LiveChatAuthorBadgeRenderer?.CustomThumbnail.Thumbnails?.ToImage(
                                 badgeContainer.LiveChatAuthorBadgeRenderer?.Tooltip
                             ),
-                        Label = badgeContainer.LiveChatAuthorBadgeRenderer?.Tooltip ?? "Member",
+                        Label =
+                            badgeContainer.LiveChatAuthorBadgeRenderer?.Tooltip
+                            ?? badgeContainer
+                                .LiveChatAuthorBadgeRenderer
+                                ?.Accessibility
+                                ?.AccessibilityData
+                                ?.Label
+                            ?? "Member",
                     };
                 }
                 else // Standard badges
@@ -219,9 +336,29 @@ internal static partial class Parser
 
         // --- Message Content ---
         Contracts.Models.MessagePart[] messageParts = []; // Use contract type
+        int? viewerLeaderboardRank = null;
         if (item.LiveChatTextMessageRenderer?.Message?.Runs != null)
         {
             messageParts = item.LiveChatTextMessageRenderer.Message.Runs.ToMessageParts();
+
+            string? rankTitle = item
+                .LiveChatTextMessageRenderer
+                .BeforeContentButtons
+                ?.FirstOrDefault()
+                ?.ButtonViewModel
+                ?.Title;
+            if (
+                rankTitle is string rankTitleValue
+                && !string.IsNullOrWhiteSpace(rankTitleValue)
+                && rankTitleValue.StartsWith("#", StringComparison.Ordinal)
+            )
+            {
+                string rankValue = rankTitleValue.Substring(1);
+                if (int.TryParse(rankValue, out int rank))
+                {
+                    viewerLeaderboardRank = rank;
+                }
+            }
         }
         else if (item.LiveChatPaidMessageRenderer?.Message?.Runs != null) // Paid message content
         {
@@ -278,6 +415,17 @@ internal static partial class Parser
                         b.LiveChatAuthorBadgeRenderer?.CustomThumbnail != null
                     )
                     ?.LiveChatAuthorBadgeRenderer?.Tooltip;
+                if (string.IsNullOrWhiteSpace(levelNameFromBadge))
+                {
+                    levelNameFromBadge = baseRenderer
+                        .AuthorBadges?.FirstOrDefault(b =>
+                            b.LiveChatAuthorBadgeRenderer?.CustomThumbnail != null
+                        )
+                        ?.LiveChatAuthorBadgeRenderer
+                        ?.Accessibility
+                        ?.AccessibilityData
+                        ?.Label;
+                }
 
                 // Correctly parse HeaderSubtext when it has runs
                 string? parsedHeaderSubtext = membershipItem.HeaderSubtext?.SimpleText; // Try simple text first
@@ -294,12 +442,29 @@ internal static partial class Parser
 
                 membershipInfo = new()
                 {
-                    LevelName = levelNameFromBadge ?? "Member",
+                    LevelName = string.IsNullOrWhiteSpace(levelNameFromBadge)
+                        ? "Member"
+                        : levelNameFromBadge!,
                     HeaderSubtext = parsedHeaderSubtext, // Use the correctly parsed subtext
                     HeaderPrimaryText = membershipItem
                         .HeaderPrimaryText?.Runs?.ToMessageParts()
                         ?.ToSimpleString(),
                 };
+
+                bool isGenericOrNonTierBadge =
+                    string.Equals(
+                        membershipInfo.LevelName,
+                        "Member",
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                    || string.Equals(
+                        membershipInfo.LevelName,
+                        "New member",
+                        StringComparison.OrdinalIgnoreCase
+                    );
+                bool badgeIndicatesNew =
+                    levelNameFromBadge?.IndexOf("new member", StringComparison.OrdinalIgnoreCase)
+                    >= 0;
 
                 // Adjust New Member Detection to also check the parsedHeaderSubtext for "Welcome"
                 if (
@@ -315,15 +480,25 @@ internal static partial class Parser
                         "Welcome to",
                         StringComparison.OrdinalIgnoreCase
                     ) == true // Check for "Welcome to" in HeaderSubtext
+                    || badgeIndicatesNew
                 )
                 {
                     membershipInfo.EventType = Contracts.Models.MembershipEventType.New;
 
                     // Attempt to parse level name if not clearly defined by a specific badge
                     // Prioritize HeaderSubtext for "Welcome to {LevelName}!" pattern
-                    if (string.IsNullOrEmpty(levelNameFromBadge) || levelNameFromBadge == "Member")
+                    if (isGenericOrNonTierBadge)
                     {
                         bool levelSet = false;
+                        string? tierFromRuns = TryExtractTierNameFromHeaderSubtextRuns(
+                            membershipItem.HeaderSubtext?.Runs
+                        );
+                        if (!string.IsNullOrWhiteSpace(tierFromRuns))
+                        {
+                            membershipInfo.LevelName = tierFromRuns!;
+                            levelSet = true;
+                        }
+
                         if (!string.IsNullOrEmpty(membershipInfo.HeaderSubtext))
                         {
                             // Regex for "Welcome to {LevelName}!" in HeaderSubtext
@@ -331,7 +506,9 @@ internal static partial class Parser
                                 .Match(membershipInfo.HeaderSubtext);
                             if (subtextLevelMatch.Success)
                             {
-                                membershipInfo.LevelName = subtextLevelMatch.Groups[1].Value.Trim();
+                                membershipInfo.LevelName = subtextLevelMatch
+                                    .Groups[1]
+                                    .Value.Trim();
                                 levelSet = true;
                             }
                         }
@@ -415,6 +592,11 @@ internal static partial class Parser
                                         ),
                                     Label =
                                         badgeContainer.LiveChatAuthorBadgeRenderer?.Tooltip
+                                        ?? badgeContainer
+                                            .LiveChatAuthorBadgeRenderer
+                                            ?.Accessibility
+                                            ?.AccessibilityData
+                                            ?.Label
                                         ?? "Member",
                                 };
                             }
@@ -556,6 +738,7 @@ internal static partial class Parser
             IsModerator = isModerator,
             // Determine IsMembership based on if it's a membership event OR the author has a member badge
             IsMembership = membershipInfo != null || isMembershipBadge,
+            ViewerLeaderboardRank = viewerLeaderboardRank,
         };
         return chatItem;
     }
@@ -633,11 +816,11 @@ internal static partial class Parser
     [GeneratedRegex("\"continuation\":\\s*\"([^\"]*)\"", RegexOptions.Compiled)]
     private static partial Regex ContinuationRegex();
 
-    [GeneratedRegex(
-        @"([€$£¥])?\s*([\d.,]+)\s*(?:([A-Z]{3}))?",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant
-    )]
-    private static partial Regex AmountCurrencyRegex();
+    [GeneratedRegex(@"-?[\d][\d.,]*", RegexOptions.Compiled | RegexOptions.CultureInvariant)]
+    private static partial Regex AmountNumberRegex();
+
+    [GeneratedRegex(@"[A-Z]{3}", RegexOptions.Compiled | RegexOptions.CultureInvariant)]
+    private static partial Regex CurrencyCodeRegex();
 
     [GeneratedRegex(@"member for (\d+) months?", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex MilestoneMonthsRegex();
@@ -703,12 +886,19 @@ internal static partial class Parser
 
     private static Regex ContinuationRegex() => _continuationRegex;
 
-    private static readonly Regex _amountCurrencyRegex = new(
-        @"([€$£¥])?\s*([\d.,]+)\s*(?:([A-Z]{3}))?",
+    private static readonly Regex _amountNumberRegex = new(
+        @"-?[\d][\d.,]*",
         RegexOptions.Compiled | RegexOptions.CultureInvariant
     );
 
-    private static Regex AmountCurrencyRegex() => _amountCurrencyRegex;
+    private static Regex AmountNumberRegex() => _amountNumberRegex;
+
+    private static readonly Regex _currencyCodeRegex = new(
+        @"[A-Z]{3}",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant
+    );
+
+    private static Regex CurrencyCodeRegex() => _currencyCodeRegex;
 
     private static readonly Regex _milestoneMonthsRegex = new(
         @"member for (\d+) months?",
@@ -789,7 +979,26 @@ internal static partial class Parser
             ["₱"] = "PHP",
             ["฿"] = "THB",
             ["₫"] = "VND",
-            // Add more as needed
+            ["zł"] = "PLN",
+            ["R$"] = "BRL",
+        };
+
+        private static readonly Dictionary<string, string> s_prefixedDollarCodes = new(
+            StringComparer.OrdinalIgnoreCase
+        )
+        {
+            ["A$"] = "AUD",
+            ["AU$"] = "AUD",
+            ["HK$"] = "HKD",
+            ["C$"] = "CAD",
+            ["CA$"] = "CAD",
+            ["NZ$"] = "NZD",
+            ["S$"] = "SGD",
+            ["MX$"] = "MXN",
+            ["NT$"] = "TWD",
+            ["CLP$"] = "CLP",
+            ["ARS$"] = "ARS",
+            ["US$"] = "USD",
         };
 
         public static string GetCodeFromSymbolOrCode(string symbolOrCode)
@@ -797,26 +1006,39 @@ internal static partial class Parser
             if (string.IsNullOrWhiteSpace(symbolOrCode))
                 return "USD"; // Default
 
+            string normalized = symbolOrCode.Trim().Replace(" ", string.Empty);
+
             // Check if it's already a 3-letter code
-            if (symbolOrCode.Length == 3 && symbolOrCode.All(char.IsLetter))
+            if (normalized.Length == 3 && normalized.All(char.IsLetter))
             {
-                return symbolOrCode.ToUpperInvariant();
+                return normalized.ToUpperInvariant();
+            }
+
+            if (s_prefixedDollarCodes.TryGetValue(normalized, out string? prefixedCode))
+            {
+                return prefixedCode;
             }
 
             // Check symbol map
-            if (s_symbolToCode.TryGetValue(symbolOrCode, out string? code))
+            if (s_symbolToCode.TryGetValue(normalized, out string? code))
             {
                 return code;
             }
 
+            Match embeddedCode = CurrencyCodeRegex().Match(normalized.ToUpperInvariant());
+            if (embeddedCode.Success)
+            {
+                return embeddedCode.Value;
+            }
+
             // Specific common fallbacks if needed (already covered above, but explicit doesn't hurt)
-            if (symbolOrCode == "$")
+            if (normalized.Contains('$'))
                 return "USD";
-            if (symbolOrCode == "¥")
+            if (normalized == "¥")
                 return "JPY"; // Could be CNY too, JPY is often default in YT context
 
             // Final fallback: return the input uppercase (maybe it's a less common code)
-            return symbolOrCode.ToUpperInvariant();
+            return normalized.ToUpperInvariant();
         }
     }
 }

@@ -9,6 +9,39 @@ internal static class SuperChatTestData
     private static long GetTimestampUsec(int offsetSeconds = 0) =>
         (DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + (offsetSeconds * 1000L)) * 1000L;
 
+    private static string BuildPaidMessageRendererJson(
+        string id,
+        string authorName,
+        string channelId,
+        string amountString,
+        int offsetSeconds
+    )
+    {
+        long ts = GetTimestampUsec(offsetSeconds);
+        return $$"""
+            {
+              "message": { "runs": [{ "text": "currency parsing sample" }] },
+              "purchaseAmountText": { "simpleText": "{{amountString}}" },
+              "headerBackgroundColor": 4294947584,
+              "headerTextColor": 3741319168,
+              "bodyBackgroundColor": 4294953512,
+              "bodyTextColor": 3741319168,
+              "authorNameTextColor": 2315255808,
+              "timestampColor": 2147483648,
+              "isV2Style": true,
+              "textInputBackgroundColor": 822083583,
+              "id": "{{id}}",
+              "timestampUsec": "{{ts}}",
+              "authorName": { "simpleText": "{{authorName}}" },
+              "authorPhoto": { "thumbnails": [{ "url": "https://yt4.ggpht.com/placeholder/currency_sample_s32.png" }] },
+              "authorBadges": null,
+              "authorExternalChannelId": "{{channelId}}",
+              "contextMenuEndpoint": { "liveChatItemContextMenuEndpoint": { "params": "CONTEXT_PARAMS_CURRENCY_SAMPLE" } },
+              "trackingParams": "TRACKING_PARAMS_CURRENCY_SAMPLE"
+            }
+            """;
+    }
+
     public static string SuperChatMessagePaidMessage1()
     {
         long ts = GetTimestampUsec(300);
@@ -90,4 +123,49 @@ internal static class SuperChatTestData
             }
             """;
     }
+
+    public static string SuperChatMessageAudPrefixSymbol() =>
+        BuildPaidMessageRendererJson(
+            "SC_ID_CURRENCY_AUD_01",
+            "AudSupporter",
+            "UC_CHANNEL_ID_AUD_01",
+            "A$10.00",
+            360
+        );
+
+    public static string SuperChatMessageHkdPrefixSymbol() =>
+        BuildPaidMessageRendererJson(
+            "SC_ID_CURRENCY_HKD_01",
+            "HkdSupporter",
+            "UC_CHANNEL_ID_HKD_01",
+            "HK$25.00",
+            361
+        );
+
+    public static string SuperChatMessagePlnCode() =>
+        BuildPaidMessageRendererJson(
+            "SC_ID_CURRENCY_PLN_01",
+            "PlnSupporter",
+            "UC_CHANNEL_ID_PLN_01",
+            "10.00 PLN",
+            362
+        );
+
+    public static string SuperChatMessageArsCodePrefix() =>
+        BuildPaidMessageRendererJson(
+            "SC_ID_CURRENCY_ARS_01",
+            "ArsSupporter",
+            "UC_CHANNEL_ID_ARS_01",
+            "ARS 2500",
+            363
+        );
+
+    public static string SuperChatMessageVndSymbol() =>
+        BuildPaidMessageRendererJson(
+            "SC_ID_CURRENCY_VND_01",
+            "VndSupporter",
+            "UC_CHANNEL_ID_VND_01",
+            "₫20,000",
+            364
+        );
 }
