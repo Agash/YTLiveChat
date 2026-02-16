@@ -1,17 +1,26 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using System.Text;
+
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+
+using YTLiveChat.Contracts;
 using YTLiveChat.DependencyInjection;
 using YTLiveChat.Example;
 
 Console.WriteLine("YTLiveChat Example Monitor");
 Console.WriteLine("-------------------------");
 
+// Force UTF-8 console IO so Japanese and other multilingual text is not rendered as '?'.
+Console.InputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+Console.OutputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+
+ExampleRunOptions runOptions = new();
 string? identifier = null;
 while (string.IsNullOrWhiteSpace(identifier))
 {
-    Console.Write("Enter the YouTube Live ID OR Handle (e.g., dQw4w9WgXcQ or @Google): ");
-    identifier = Console.ReadLine();
+    Console.Write("Enter YouTube target (Live ID, @Handle, or Channel ID UC...): ");
+    identifier = Console.ReadLine()?.Trim();
     if (string.IsNullOrWhiteSpace(identifier))
     {
         Console.ForegroundColor = ConsoleColor.Red;
@@ -20,16 +29,65 @@ while (string.IsNullOrWhiteSpace(identifier))
     }
 }
 
-var runOptions = new ExampleRunOptions();
-if (identifier.StartsWith('@'))
+if (identifier.StartsWith("@", StringComparison.Ordinal))
 {
     runOptions.Handle = identifier;
     Console.WriteLine($"Target Handle: {identifier}");
+}
+else if (identifier.StartsWith("UC", StringComparison.OrdinalIgnoreCase))
+{
+    runOptions.ChannelId = identifier;
+    Console.WriteLine($"Target Channel ID: {identifier}");
 }
 else
 {
     runOptions.LiveId = identifier;
     Console.WriteLine($"Target Live ID: {identifier}");
+}
+
+if (!string.IsNullOrWhiteSpace(runOptions.Handle) || !string.IsNullOrWhiteSpace(runOptions.ChannelId))
+{
+    Console.Write("Enable continuous livestream monitor mode (BETA/UNSUPPORTED)? (y/N): ");
+    string? monitorResponse = Console.ReadLine();
+    if (
+        !string.IsNullOrWhiteSpace(monitorResponse)
+        && monitorResponse.Trim().Equals("y", StringComparison.OrdinalIgnoreCase)
+    )
+    {
+        runOptions.EnableContinuousMonitor = true;
+        Console.Write("Live-check frequency in ms (default 10000): ");
+        string? frequencyInput = Console.ReadLine();
+        if (
+            !string.IsNullOrWhiteSpace(frequencyInput)
+            && int.TryParse(frequencyInput, out int liveCheckFrequency)
+            && liveCheckFrequency > 0
+        )
+        {
+            runOptions.LiveCheckFrequency = liveCheckFrequency;
+        }
+
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine(
+            "Continuous monitor mode is BETA/UNSUPPORTED and may change or break at any time."
+        );
+        Console.ResetColor();
+    }
+}
+
+Console.Write("Record raw InnerTube JSON for analysis? (y/N): ");
+string? logResponse = Console.ReadLine();
+if (
+    !string.IsNullOrWhiteSpace(logResponse)
+    && logResponse.Trim().Equals("y", StringComparison.OrdinalIgnoreCase)
+)
+{
+    runOptions.EnableJsonLogging = true;
+    Console.Write("Log file path (leave empty for default): ");
+    string? pathInput = Console.ReadLine();
+    if (!string.IsNullOrWhiteSpace(pathInput))
+    {
+        runOptions.DebugLogPath = Path.GetFullPath(pathInput.Trim());
+    }
 }
 
 Console.WriteLine("Attempting to connect...");
@@ -38,15 +96,31 @@ HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
-
-// Optional: Set log level as needed, e.g., Information for more details from the library
-builder.Logging.SetMinimumLevel(LogLevel.Information); // Changed to Information
+builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
 builder.Services.AddYTLiveChat(builder.Configuration);
 
-// Add the populated options object as a singleton
-builder.Services.AddSingleton(runOptions);
+builder.Services.Configure<YTLiveChatOptions>(options =>
+{
+#pragma warning disable CS0618
+    if (runOptions.EnableContinuousMonitor)
+    {
+        options.EnableContinuousLivestreamMonitor = true;
+        options.LiveCheckFrequency = runOptions.LiveCheckFrequency;
+    }
+#pragma warning restore CS0618
 
+    if (runOptions.EnableJsonLogging)
+    {
+        options.DebugLogReceivedJsonItems = true;
+        if (!string.IsNullOrWhiteSpace(runOptions.DebugLogPath))
+        {
+            options.DebugLogFilePath = runOptions.DebugLogPath!;
+        }
+    }
+});
+
+builder.Services.AddSingleton(runOptions);
 builder.Services.AddHostedService<ChatMonitorService>();
 
 try
@@ -67,10 +141,10 @@ catch (Exception ex)
     Console.ForegroundColor = ConsoleColor.Red;
     Console.WriteLine($"An unexpected error occurred during host execution: {ex}");
     Console.ResetColor();
-    // Attempt to get logger if host build failed early (might be null)
+
     ILogger<Program>? logger = builder
         .Services?.BuildServiceProvider()
         ?.GetService<ILogger<Program>>();
     logger?.LogCritical(ex, "Host terminated unexpectedly");
-    return 1; // Indicate error
+    return 1;
 }

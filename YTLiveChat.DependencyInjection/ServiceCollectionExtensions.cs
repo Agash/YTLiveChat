@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+
 using YTLiveChat.Contracts;
 using YTLiveChat.Contracts.Services;
 using YTLiveChat.Services;
@@ -31,7 +32,7 @@ public static class ServiceCollectionExtensions
         }
 
         // Configure YTLiveChatOptions from the host configuration section "YTLiveChatOptions"
-        builder.Services.Configure<YTLiveChatOptions>(
+        _ = builder.Services.Configure<YTLiveChatOptions>(
             builder.Configuration.GetSection(nameof(YTLiveChatOptions))
         );
 
@@ -57,14 +58,14 @@ public static class ServiceCollectionExtensions
         // Configure YTLiveChatOptions if configuration is provided
         if (configuration != null)
         {
-            services.Configure<YTLiveChatOptions>(
+            _ = services.Configure<YTLiveChatOptions>(
                 configuration.GetSection(nameof(YTLiveChatOptions))
             );
         }
         else
         {
             // Ensure options can be configured programmatically if no IConfiguration is available
-            services.AddOptions<YTLiveChatOptions>();
+            _ = services.AddOptions<YTLiveChatOptions>();
         }
 
         AddYTLiveChatServices(services);

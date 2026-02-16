@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+
 using YTLiveChat.Contracts.Models;
 using YTLiveChat.Helpers;
 using YTLiveChat.Models.Response;
@@ -52,7 +53,7 @@ public class ParserTests
         Assert.AreEqual("TestUser1", chatItem.Author.Name);
         Assert.AreEqual("UC_CHANNEL_ID_01", chatItem.Author.ChannelId);
         Assert.AreEqual(1, chatItem.Message.Length);
-        Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
+        _ = Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
         Assert.AreEqual("Hello World", ((TextPart)chatItem.Message[0]).Text);
         Assert.IsNull(chatItem.Author.Badge);
         Assert.IsNull(chatItem.Superchat);
@@ -79,9 +80,9 @@ public class ParserTests
         Assert.AreEqual("MSG_ID_STD_EMOJI_01", chatItem.Id);
         Assert.AreEqual("EmojiFan", chatItem.Author.Name);
         Assert.AreEqual(2, chatItem.Message.Length);
-        Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
+        _ = Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
         Assert.AreEqual("Congratulations ", ((TextPart)chatItem.Message[0]).Text);
-        Assert.IsInstanceOfType<EmojiPart>(chatItem.Message[1]);
+        _ = Assert.IsInstanceOfType<EmojiPart>(chatItem.Message[1]);
         EmojiPart emojiPart = (EmojiPart)chatItem.Message[1];
         Assert.AreEqual("🥳", emojiPart.EmojiText);
         Assert.AreEqual(":partying_face:", emojiPart.Alt);
@@ -102,9 +103,9 @@ public class ParserTests
         Assert.AreEqual("MSG_ID_CUSTOM_EMOJI_01", chatItem.Id);
         Assert.AreEqual("ChannelSupporter", chatItem.Author.Name);
         Assert.AreEqual(2, chatItem.Message.Length);
-        Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
+        _ = Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
         Assert.AreEqual("Check this out: ", ((TextPart)chatItem.Message[0]).Text);
-        Assert.IsInstanceOfType<EmojiPart>(chatItem.Message[1]);
+        _ = Assert.IsInstanceOfType<EmojiPart>(chatItem.Message[1]);
         EmojiPart emojiPart = (EmojiPart)chatItem.Message[1];
         Assert.IsTrue(emojiPart.IsCustomEmoji);
         Assert.AreEqual(":customcat:", emojiPart.EmojiText);
@@ -125,14 +126,14 @@ public class ParserTests
         Assert.AreEqual("MSG_ID_MIXED_01", chatItem.Id);
         Assert.AreEqual("MixedUser", chatItem.Author.Name);
         Assert.AreEqual(3, chatItem.Message.Length);
-        Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
+        _ = Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
         Assert.AreEqual("Text part 1, ", ((TextPart)chatItem.Message[0]).Text);
-        Assert.IsInstanceOfType<EmojiPart>(chatItem.Message[1]);
+        _ = Assert.IsInstanceOfType<EmojiPart>(chatItem.Message[1]);
         EmojiPart emojiPart = (EmojiPart)chatItem.Message[1];
         Assert.AreEqual("👍", emojiPart.EmojiText);
         Assert.AreEqual(":thumbs_up:", emojiPart.Alt);
         Assert.IsFalse(emojiPart.IsCustomEmoji);
-        Assert.IsInstanceOfType<TextPart>(chatItem.Message[2]);
+        _ = Assert.IsInstanceOfType<TextPart>(chatItem.Message[2]);
         Assert.AreEqual(" then more text.", ((TextPart)chatItem.Message[2]).Text);
     }
 
@@ -149,8 +150,26 @@ public class ParserTests
         Assert.AreEqual("MSG_ID_NON_LATIN_01", chatItem.Id);
         Assert.AreEqual("Пользователь1", chatItem.Author.Name);
         Assert.AreEqual(1, chatItem.Message.Length);
-        Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
+        _ = Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
         Assert.AreEqual("Привет мир", ((TextPart)chatItem.Message[0]).Text);
+    }
+
+    [TestMethod]
+    public void ToChatItem_TextMessageWithViewerLeaderboardRank_ParsesCorrectly()
+    {
+        string rendererContentJson = TextMessageTestData.TextMessageWithViewerLeaderboardRank();
+        ChatItem? chatItem = ParseRendererContentToChatItem(
+            rendererContentJson,
+            "liveChatTextMessageRenderer"
+        );
+
+        Assert.IsNotNull(chatItem, "ChatItem should not be null.");
+        Assert.AreEqual("MSG_ID_RANK_01", chatItem.Id);
+        Assert.AreEqual("RankedUser", chatItem.Author.Name);
+        Assert.AreEqual(1, chatItem.Message.Length);
+        _ = Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
+        Assert.AreEqual("ranked message sample", ((TextPart)chatItem.Message[0]).Text);
+        Assert.AreEqual(2, chatItem.ViewerLeaderboardRank);
     }
 
     [TestMethod]
@@ -243,6 +262,66 @@ public class ParserTests
     }
 
     [TestMethod]
+    public void ToChatItem_SuperChatMessage_MultipleCurrencyFormats_ParsesCorrectly()
+    {
+        (string rendererJson, string expectedId, decimal expectedAmount, string expectedCurrency)[] cases =
+        [
+            (
+                SuperChatTestData.SuperChatMessageAudPrefixSymbol(),
+                "SC_ID_CURRENCY_AUD_01",
+                10.00m,
+                "AUD"
+            ),
+            (
+                SuperChatTestData.SuperChatMessageHkdPrefixSymbol(),
+                "SC_ID_CURRENCY_HKD_01",
+                25.00m,
+                "HKD"
+            ),
+            (
+                SuperChatTestData.SuperChatMessagePlnCode(),
+                "SC_ID_CURRENCY_PLN_01",
+                10.00m,
+                "PLN"
+            ),
+            (
+                SuperChatTestData.SuperChatMessageArsCodePrefix(),
+                "SC_ID_CURRENCY_ARS_01",
+                2500m,
+                "ARS"
+            ),
+            (
+                SuperChatTestData.SuperChatMessageVndSymbol(),
+                "SC_ID_CURRENCY_VND_01",
+                20000m,
+                "VND"
+            ),
+        ];
+
+        foreach ((string rendererJson, string expectedId, decimal expectedAmount, string expectedCurrency) in cases)
+        {
+            ChatItem? chatItem = ParseRendererContentToChatItem(
+                rendererJson,
+                "liveChatPaidMessageRenderer"
+            );
+
+            Assert.IsNotNull(chatItem, $"ChatItem should not be null for {expectedId}.");
+            Assert.AreEqual(expectedId, chatItem.Id, $"Unexpected id for {expectedId}.");
+            Assert.IsNotNull(chatItem.Superchat, $"Superchat should not be null for {expectedId}.");
+            Assert.AreEqual(
+                expectedAmount,
+                chatItem.Superchat.AmountValue,
+                $"Unexpected amount for {expectedId}."
+            );
+            Assert.AreEqual(
+                expectedCurrency,
+                chatItem.Superchat.Currency,
+                $"Unexpected currency for {expectedId}."
+            );
+        }
+    }
+
+    [TestMethod]
     public void ToChatItem_NewMemberChickenMcNugget_ParsesCorrectly()
     {
         string rendererContentJson = MembershipTestData.NewMemberChickenMcNugget();
@@ -263,10 +342,11 @@ public class ParserTests
         );
 
         Assert.AreEqual(
-            "Member (6 months)",
+            "The Plusers",
             chatItem.MembershipDetails.LevelName,
-            "Level name from headerSubtext incorrect."
+            "Level name from headerSubtext should represent tier."
         );
+        Assert.AreEqual("Member (6 months)", chatItem.MembershipDetails.MembershipBadgeLabel);
         Assert.IsNotNull(
             chatItem.MembershipDetails.HeaderSubtext,
             "HeaderSubtext should not be null."
@@ -279,10 +359,84 @@ public class ParserTests
         Assert.AreEqual("Member (6 months)", chatItem.Author.Badge.Label, "Badge label mismatch.");
         Assert.IsTrue(chatItem.IsMembership, "IsMembership flag should be true.");
         Assert.AreEqual(
-            0,
+            3,
             chatItem.Message.Length,
-            "New member announcements typically have no user message body."
+            "New member announcements should preserve welcome message runs."
         );
+        Assert.AreEqual("Welcome to ", ((TextPart)chatItem.Message[0]).Text);
+        Assert.AreEqual("The Plusers", ((TextPart)chatItem.Message[1]).Text);
+        Assert.AreEqual("!", ((TextPart)chatItem.Message[2]).Text);
+    }
+
+    [TestMethod]
+    public void ToChatItem_NewMemberFromLatestLog_WithNewMemberBadge_ParsesCorrectly()
+    {
+        string rendererContentJson = MembershipTestData.NewMemberFromLatestLogWithNewMemberBadge();
+        ChatItem? chatItem = ParseRendererContentToChatItem(
+            rendererContentJson,
+            "liveChatMembershipItemRenderer"
+        );
+
+        Assert.IsNotNull(chatItem, "ChatItem should not be null for latest new member schema.");
+        Assert.AreEqual("ChwKGkNMUEltT1BRM1pJREZTX0J3Z1FkNUljbU1n", chatItem.Id);
+        Assert.AreEqual("@米喬-h9l", chatItem.Author.Name);
+        Assert.AreEqual("UCZff3zMXqYWgH-tL1OHBU1g", chatItem.Author.ChannelId);
+        Assert.IsNotNull(chatItem.MembershipDetails, "MembershipDetails should not be null.");
+        Assert.AreEqual(MembershipEventType.New, chatItem.MembershipDetails.EventType);
+        Assert.AreEqual(
+            "the Ukiverse",
+            chatItem.MembershipDetails.LevelName,
+            "Level should be parsed from welcome subtext when badge is generic."
+        );
+        Assert.AreEqual("New member", chatItem.MembershipDetails.MembershipBadgeLabel);
+        Assert.AreEqual(
+            "Welcome to the Ukiverse!",
+            chatItem.MembershipDetails.HeaderSubtext,
+            "HeaderSubtext should be composed from runs."
+        );
+        Assert.IsNotNull(chatItem.Author.Badge, "Author badge should be parsed.");
+        Assert.AreEqual("New member", chatItem.Author.Badge.Label);
+        Assert.IsTrue(chatItem.IsMembership);
+        Assert.AreEqual(3, chatItem.Message.Length);
+        Assert.AreEqual("Welcome to ", ((TextPart)chatItem.Message[0]).Text);
+        Assert.AreEqual("the Ukiverse", ((TextPart)chatItem.Message[1]).Text);
+        Assert.AreEqual("!", ((TextPart)chatItem.Message[2]).Text);
+    }
+
+    [TestMethod]
+    public void ToChatItem_NewMemberLocalizedThreeRuns_ParsesTierFromSecondRun()
+    {
+        string rendererContentJson = MembershipTestData.NewMemberLocalizedThreeRuns();
+        ChatItem? chatItem = ParseRendererContentToChatItem(
+            rendererContentJson,
+            "liveChatMembershipItemRenderer"
+        );
+
+        Assert.IsNotNull(chatItem, "ChatItem should not be null for localized membership schema.");
+        Assert.IsNotNull(chatItem.MembershipDetails, "MembershipDetails should not be null.");
+        Assert.AreEqual(MembershipEventType.New, chatItem.MembershipDetails.EventType);
+        Assert.AreEqual("ミトメイトぷち", chatItem.MembershipDetails.LevelName);
+        Assert.AreEqual("New member", chatItem.MembershipDetails.MembershipBadgeLabel);
+        Assert.AreEqual("ようこそ ミトメイトぷち！", chatItem.MembershipDetails.HeaderSubtext);
+    }
+
+    [TestMethod]
+    public void ToChatItem_NewMemberFromLog6_WithTenureBadge_ParsesTierFromWelcomeRuns()
+    {
+        string rendererContentJson = MembershipTestData.NewMemberFromLog6WithMemberTenureBadge();
+        ChatItem? chatItem = ParseRendererContentToChatItem(
+            rendererContentJson,
+            "liveChatMembershipItemRenderer"
+        );
+
+        Assert.IsNotNull(chatItem);
+        Assert.IsNotNull(chatItem.MembershipDetails);
+        Assert.AreEqual(MembershipEventType.New, chatItem.MembershipDetails.EventType);
+        Assert.AreEqual("ヘルエスタ王国民シップ", chatItem.MembershipDetails.LevelName);
+        Assert.AreEqual("Member (1 year)", chatItem.MembershipDetails.MembershipBadgeLabel);
+        Assert.AreEqual("Welcome to ヘルエスタ王国民シップ!", chatItem.MembershipDetails.HeaderSubtext);
+        Assert.IsNotNull(chatItem.Author.Badge);
+        Assert.AreEqual("Member (1 year)", chatItem.Author.Badge.Label);
     }
 
     [TestMethod]
@@ -301,10 +455,11 @@ public class ParserTests
         Assert.IsNotNull(chatItem.MembershipDetails, "MembershipDetails should not be null.");
         Assert.AreEqual(MembershipEventType.Milestone, chatItem.MembershipDetails.EventType);
         Assert.AreEqual(
-            "Member (2 years)",
+            "Member",
             chatItem.MembershipDetails.LevelName,
-            "LevelName from badge tooltip incorrect."
+            "Milestones do not expose tier name in this renderer."
         );
+        Assert.AreEqual("Member (2 years)", chatItem.MembershipDetails.MembershipBadgeLabel);
         Assert.AreEqual(
             "The Fam",
             chatItem.MembershipDetails.HeaderSubtext,
@@ -341,7 +496,7 @@ public class ParserTests
             chatItem.Message.Length,
             "Should have one message run for the user's comment."
         );
-        Assert.IsInstanceOfType<TextPart>(chatItem.Message[0], "Message part should be TextPart.");
+        _ = Assert.IsInstanceOfType<TextPart>(chatItem.Message[0], "Message part should be TextPart.");
         Assert.AreEqual(
             "YOOOOOO hope all is a well my man",
             ((TextPart)chatItem.Message[0]).Text,
@@ -364,7 +519,8 @@ public class ParserTests
         Assert.AreEqual("UC_CHANNEL_ID_MILESTONE_9M", chatItem.Author.ChannelId);
         Assert.IsNotNull(chatItem.MembershipDetails);
         Assert.AreEqual(MembershipEventType.Milestone, chatItem.MembershipDetails.EventType);
-        Assert.AreEqual("Member (6 months)", chatItem.MembershipDetails.LevelName);
+        Assert.AreEqual("Member", chatItem.MembershipDetails.LevelName);
+        Assert.AreEqual("Member (6 months)", chatItem.MembershipDetails.MembershipBadgeLabel);
         Assert.AreEqual("The Fam", chatItem.MembershipDetails.HeaderSubtext);
         Assert.AreEqual("Member for 9 months", chatItem.MembershipDetails.HeaderPrimaryText);
         Assert.AreEqual(9, chatItem.MembershipDetails.MilestoneMonths);
@@ -372,7 +528,7 @@ public class ParserTests
         Assert.AreEqual("Member (6 months)", chatItem.Author.Badge.Label);
         Assert.IsTrue(chatItem.IsMembership);
         Assert.AreEqual(1, chatItem.Message.Length);
-        Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
+        _ = Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
         Assert.AreEqual("missed a bit, what's going on?", ((TextPart)chatItem.Message[0]).Text);
     }
 
@@ -536,6 +692,84 @@ public class ParserTests
         Assert.IsTrue(chatItem.IsMembership);
     }
 
+    [TestMethod]
+    public void ToChatItem_TickerPaidMessageFromLog8_ParsesAsTickerSuperchat()
+    {
+        Models.Response.Action? action = JsonSerializer.Deserialize<Models.Response.Action>(
+            RawActionTestData.TickerPaidMessageFromLog8(),
+            s_jsonOptions
+        );
+        Assert.IsNotNull(action);
+
+        ChatItem? chatItem = action.ToChatItem();
+        Assert.IsNotNull(chatItem);
+        Assert.IsTrue(chatItem.IsTicker);
+        Assert.AreEqual("ChwKGkNMLWt4ZFRuM1pJREZiN0t3Z1Fkc3N3VFlR", chatItem.Id);
+        Assert.AreEqual("@すずむら337", chatItem.Author.Name);
+        Assert.IsNotNull(chatItem.Superchat);
+        Assert.AreEqual("¥500", chatItem.Superchat.AmountString);
+        Assert.AreEqual(500M, chatItem.Superchat.AmountValue);
+        Assert.AreEqual("JPY", chatItem.Superchat.Currency);
+        Assert.AreEqual(3, chatItem.Message.Length);
+    }
+
+    [TestMethod]
+    public void ToChatItem_TickerSponsorFromLog8_ParsesAsTickerMembership()
+    {
+        Models.Response.Action? action = JsonSerializer.Deserialize<Models.Response.Action>(
+            RawActionTestData.TickerSponsorItemFromLog8(),
+            s_jsonOptions
+        );
+        Assert.IsNotNull(action);
+
+        ChatItem? chatItem = action.ToChatItem();
+        Assert.IsNotNull(chatItem);
+        Assert.IsTrue(chatItem.IsTicker);
+        Assert.IsNotNull(chatItem.MembershipDetails);
+        Assert.AreEqual(MembershipEventType.Milestone, chatItem.MembershipDetails.EventType);
+        Assert.AreEqual(7, chatItem.MembershipDetails.MilestoneMonths);
+        Assert.AreEqual("Member (6 months)", chatItem.MembershipDetails.MembershipBadgeLabel);
+        Assert.AreEqual("@mutukisegawa3526", chatItem.Author.Name);
+        Assert.AreEqual("可愛すぎて止まった心臓動き出した", ((TextPart)chatItem.Message[0]).Text);
+    }
+
+    [TestMethod]
+    public void ToChatItem_TickerGiftPurchaseFromLog9To15_ParsesAsTickerMembershipGiftPurchase()
+    {
+        Models.Response.Action? action = JsonSerializer.Deserialize<Models.Response.Action>(
+            RawActionLog9To15TestData.TickerGiftPurchaseFromLog(),
+            s_jsonOptions
+        );
+        Assert.IsNotNull(action);
+
+        ChatItem? chatItem = action.ToChatItem();
+        Assert.IsNotNull(chatItem);
+        Assert.IsTrue(chatItem.IsTicker);
+        Assert.IsNotNull(chatItem.MembershipDetails);
+        Assert.AreEqual(MembershipEventType.GiftPurchase, chatItem.MembershipDetails.EventType);
+        Assert.AreEqual(10, chatItem.MembershipDetails.GiftCount);
+        Assert.AreEqual("@林宏儒-r3b", chatItem.Author.Name);
+        Assert.AreEqual("@林宏儒-r3b", chatItem.MembershipDetails.GifterUsername);
+    }
+
+    [TestMethod]
+    public void ToChatItem_NewMembershipWelcomeFromLog11_ParsesNewEventAndTierFromHeaderRuns()
+    {
+        Models.Response.Action? action = JsonSerializer.Deserialize<Models.Response.Action>(
+            RawActionLog9To15TestData.NewMembershipWelcomeFromLog11(),
+            s_jsonOptions
+        );
+        Assert.IsNotNull(action);
+
+        ChatItem? chatItem = action.ToChatItem();
+        Assert.IsNotNull(chatItem);
+        Assert.IsNotNull(chatItem.MembershipDetails);
+        Assert.AreEqual(MembershipEventType.New, chatItem.MembershipDetails.EventType);
+        Assert.AreEqual("開拓者組合", chatItem.MembershipDetails.LevelName);
+        Assert.AreEqual("Member (2 months)", chatItem.MembershipDetails.MembershipBadgeLabel);
+        Assert.AreEqual(3, chatItem.Message.Length);
+    }
+
     // --- ParseLiveChatResponse Tests ---
     [TestMethod]
     public void ParseLiveChatResponse_SingleItem_ParsesCorrectly()
@@ -640,6 +874,99 @@ public class ParserTests
     }
 
     [TestMethod]
+    public void ParseLiveChatResponse_ViewerEngagementAction_IgnoredAndContinuationPreserved()
+    {
+        string fullResponseJson = UtilityTestData.WrapActionsInLiveChatResponse(
+            [ActionTestData.ViewerEngagementSubscribersOnly()],
+            "CONT_VIEWER_ENGAGEMENT"
+        );
+        LiveChatResponse? liveChatResponse = JsonSerializer.Deserialize<LiveChatResponse>(
+            fullResponseJson,
+            s_jsonOptions
+        );
+        Assert.IsNotNull(liveChatResponse);
+
+        (List<ChatItem> items, string? continuation) = Parser.ParseLiveChatResponse(
+            liveChatResponse
+        );
+
+        Assert.AreEqual(0, items.Count, "Viewer engagement message should not map to ChatItem.");
+        Assert.AreEqual("CONT_VIEWER_ENGAGEMENT", continuation);
+    }
+
+    [TestMethod]
+    public void ParseLiveChatResponse_PollActionsAndBanner_IgnoredAndContinuationPreserved()
+    {
+        string fullResponseJson = UtilityTestData.WrapActionsInLiveChatResponse(
+            [
+                RawActionLog9To15TestData.ShowLiveChatActionPanelActionFromLog(),
+                RawActionLog9To15TestData.UpdateLiveChatPollActionFromLog(),
+                RawActionLog9To15TestData.AddBannerToLiveChatCommandFromLog(),
+            ],
+            "CONT_POLL_AND_BANNER"
+        );
+        LiveChatResponse? liveChatResponse = JsonSerializer.Deserialize<LiveChatResponse>(
+            fullResponseJson,
+            s_jsonOptions
+        );
+        Assert.IsNotNull(liveChatResponse);
+
+        (List<ChatItem> items, string? continuation) = Parser.ParseLiveChatResponse(
+            liveChatResponse
+        );
+
+        Assert.AreEqual(
+            0,
+            items.Count,
+            "Poll update/action-panel and banner command should not map to ChatItem."
+        );
+        Assert.AreEqual("CONT_POLL_AND_BANNER", continuation);
+    }
+
+    [TestMethod]
+    public void ParseLiveChatResponse_MixedKnownAndUnknownActions_ParsesOnlyKnownChatItems()
+    {
+        string textItemJson =
+            $$"""{ "liveChatTextMessageRenderer": {{TextMessageTestData.SimpleTextMessage1()}} }""";
+
+        string addTextActionJson = $$"""
+            {
+              "addChatItemAction": {
+                "item": {{textItemJson}},
+                "clientId": "CLIENT_ID_MIXED_ACTIONS_01"
+              }
+            }
+            """;
+
+        string fullResponseJson = UtilityTestData.WrapActionsInLiveChatResponse(
+            [
+                ActionTestData.AddBannerPinnedMessage(),
+                addTextActionJson,
+                ActionTestData.RemoveChatItem(),
+                ActionTestData.ViewerEngagementSubscribersOnly(),
+                ActionTestData.ModeChangeMessageRenderer(),
+                ActionTestData.PlaceholderItemRenderer(),
+                ActionTestData.ReportModerationStateEmpty(),
+            ],
+            "CONT_MIXED_ACTIONS"
+        );
+
+        LiveChatResponse? liveChatResponse = JsonSerializer.Deserialize<LiveChatResponse>(
+            fullResponseJson,
+            s_jsonOptions
+        );
+        Assert.IsNotNull(liveChatResponse);
+
+        (List<ChatItem> items, string? continuation) = Parser.ParseLiveChatResponse(
+            liveChatResponse
+        );
+
+        Assert.AreEqual(1, items.Count, "Only the text message action should map to ChatItem.");
+        Assert.AreEqual("MSG_ID_SIMPLE_01", items[0].Id);
+        Assert.AreEqual("CONT_MIXED_ACTIONS", continuation);
+    }
+
+    [TestMethod]
     public void ParseLiveChatResponse_NullResponse_ReturnsEmptyListAndNullContinuation()
     {
         (List<ChatItem> items, string? continuation) = Parser.ParseLiveChatResponse(null);
@@ -669,7 +996,7 @@ public class ParserTests
     public void GetOptionsFromLivePage_FinishedStreamHtml_ThrowsException()
     {
         string html = UtilityTestData.GetFinishedStreamPageHtml("FINISHED_ID_PAGE_TEST");
-        Exception ex = Assert.ThrowsException<Exception>(() => Parser.GetOptionsFromLivePage(html));
+        Exception ex = Assert.Throws<Exception>(() => Parser.GetOptionsFromLivePage(html));
         Assert.IsTrue(ex.Message.Contains("is finished live"));
         Assert.IsTrue(ex.Message.Contains("FINISHED_ID_PAGE_TEST"));
     }
@@ -680,7 +1007,7 @@ public class ParserTests
         string html = UtilityTestData
             .GetSampleLivePageHtml("LIVE_ID_NO_KEY", " ", "CLIENT_V", "CONT")
             .Replace("\"INNERTUBE_API_KEY\": \" \",", "");
-        Exception ex = Assert.ThrowsException<Exception>(() => Parser.GetOptionsFromLivePage(html));
+        Exception ex = Assert.Throws<Exception>(() => Parser.GetOptionsFromLivePage(html));
         Assert.IsTrue(ex.Message.Contains("API Key (INNERTUBE_API_KEY) not found"));
     }
 
@@ -690,7 +1017,7 @@ public class ParserTests
         string html = UtilityTestData
             .GetSampleLivePageHtml("LIVE_ID_NO_CV", "API_K", " ", "CONT")
             .Replace("\"INNERTUBE_CONTEXT_CLIENT_VERSION\": \" \",", "");
-        Exception ex = Assert.ThrowsException<Exception>(() => Parser.GetOptionsFromLivePage(html));
+        Exception ex = Assert.Throws<Exception>(() => Parser.GetOptionsFromLivePage(html));
         Assert.IsTrue(
             ex.Message.Contains("Client Version (INNERTUBE_CONTEXT_CLIENT_VERSION) not found")
         );
@@ -705,7 +1032,7 @@ public class ParserTests
                 "\"reloadContinuationData\": { \"continuation\": \" \" }",
                 "\"reloadContinuationData\": { }"
             );
-        Exception ex = Assert.ThrowsException<Exception>(() => Parser.GetOptionsFromLivePage(html));
+        Exception ex = Assert.Throws<Exception>(() => Parser.GetOptionsFromLivePage(html));
         Assert.IsTrue(ex.Message.Contains("Initial Continuation token not found"));
     }
 
@@ -715,7 +1042,7 @@ public class ParserTests
         string html = UtilityTestData
             .GetSampleLivePageHtml(" ", "API_K", "CLIENT_V", "CONT")
             .Replace("<link rel=\"canonical\" href=\"https://www.youtube.com/watch?v= \">", "");
-        Exception ex = Assert.ThrowsException<Exception>(() => Parser.GetOptionsFromLivePage(html));
+        Exception ex = Assert.Throws<Exception>(() => Parser.GetOptionsFromLivePage(html));
         Assert.IsTrue(ex.Message.Contains("Live Stream canonical link not found"));
     }
 }

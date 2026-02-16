@@ -74,6 +74,138 @@ internal static class MembershipTestData
             """; // Corresponds to liveChatMembershipItemRenderer
     }
 
+    public static string NewMemberFromLatestLogWithNewMemberBadge() => """
+            {
+              "id": "ChwKGkNMUEltT1BRM1pJREZTX0J3Z1FkNUljbU1n",
+              "timestampUsec": "1771231835991083",
+              "authorExternalChannelId": "UCZff3zMXqYWgH-tL1OHBU1g",
+              "headerSubtext": {
+                "runs": [
+                  { "text": "Welcome to " },
+                  { "text": "the Ukiverse" },
+                  { "text": "!" }
+                ]
+              },
+              "authorName": { "simpleText": "@米喬-h9l" },
+              "authorPhoto": {
+                "thumbnails": [
+                  {
+                    "url": "https://yt4.ggpht.com/u5HHJMNL1S5In8-GDajC7s5ANJU_oz5-rK1bYxwDvjZqPwE9wE7AsQ0sbegHZTDWgTMTWwiBXLI=s32-c-k-c0x00ffffff-no-rj",
+                    "width": 32,
+                    "height": 32
+                  },
+                  {
+                    "url": "https://yt4.ggpht.com/u5HHJMNL1S5In8-GDajC7s5ANJU_oz5-rK1bYxwDvjZqPwE9wE7AsQ0sbegHZTDWgTMTWwiBXLI=s64-c-k-c0x00ffffff-no-rj",
+                    "width": 64,
+                    "height": 64
+                  }
+                ]
+              },
+              "authorBadges": [{
+                "liveChatAuthorBadgeRenderer": {
+                  "customThumbnail": {
+                    "thumbnails": [
+                      {
+                        "url": "https://yt3.ggpht.com/lnnHYSBx0JQt-my3jZPKLGHiuuVg0XV48VdMb98CDiibHUkMQpO0X-kovuPHQxeZU_X7iZnN1cQ=s16-c-k",
+                        "width": 16,
+                        "height": 16
+                      },
+                      {
+                        "url": "https://yt3.ggpht.com/lnnHYSBx0JQt-my3jZPKLGHiuuVg0XV48VdMb98CDiibHUkMQpO0X-kovuPHQxeZU_X7iZnN1cQ=s32-c-k",
+                        "width": 32,
+                        "height": 32
+                      }
+                    ]
+                  },
+                  "tooltip": "New member",
+                  "accessibility": { "accessibilityData": { "label": "New member" } }
+                }
+              }]
+            }
+            """;
+
+    public static string NewMemberLocalizedThreeRuns()
+    {
+        long ts = GetTimestampUsec(122);
+        return $$"""
+            {
+              "id": "NEW_MEMBER_LOCALIZED_3RUNS",
+              "timestampUsec": "{{ts}}",
+              "authorExternalChannelId": "UC_NEW_MEMBER_LOCALIZED_01",
+              "headerSubtext": {
+                "runs": [
+                  { "text": "ようこそ " },
+                  { "text": "ミトメイトぷち" },
+                  { "text": "！" }
+                ]
+              },
+              "authorName": { "simpleText": "@LocalizedMember" },
+              "authorPhoto": { "thumbnails": [{ "url": "https://yt4.ggpht.com/localized_member_s32.png" }] },
+              "authorBadges": [{
+                "liveChatAuthorBadgeRenderer": {
+                  "customThumbnail": { "thumbnails": [{ "url": "https://yt3.ggpht.com/localized_member_badge_s16.png" }] },
+                  "tooltip": "New member",
+                  "accessibility": { "accessibilityData": { "label": "New member" } }
+                }
+              }]
+            }
+            """;
+    }
+
+    public static string NewMemberFromLog6WithMemberTenureBadge() => """
+            {
+              "id": "ChwKGkNOSExsNVhoM1pJREZiN0t3Z1Fkc3N3VFlR",
+              "timestampUsec": "1771236235800174",
+              "authorExternalChannelId": "UCNVGqyxXNE4iwVjeUGh_uEw",
+              "headerSubtext": {
+                "runs": [
+                  { "text": "Welcome to " },
+                  { "text": "ヘルエスタ王国民シップ" },
+                  { "text": "!" }
+                ]
+              },
+              "authorName": { "simpleText": "@しのゆ-j7x" },
+              "authorPhoto": {
+                "thumbnails": [
+                  {
+                    "url": "https://yt4.ggpht.com/JUzWYwXznMQcydxN_4Clu_lsAbCpVMg1XpxV6I5Da_Go8a-GDzfWXRMYRM_brqOQFuyrMFQZWQ=s32-c-k-c0x00ffffff-no-rj",
+                    "width": 32,
+                    "height": 32
+                  },
+                  {
+                    "url": "https://yt4.ggpht.com/JUzWYwXznMQcydxN_4Clu_lsAbCpVMg1XpxV6I5Da_Go8a-GDzfWXRMYRM_brqOQFuyrMFQZWQ=s64-c-k-c0x00ffffff-no-rj",
+                    "width": 64,
+                    "height": 64
+                  }
+                ]
+              },
+              "authorBadges": [
+                {
+                  "liveChatAuthorBadgeRenderer": {
+                    "customThumbnail": {
+                      "thumbnails": [
+                        {
+                          "url": "https://yt3.ggpht.com/A5kmYO7qcuyKYWp4-sdC5ZWk5UYTO3c8Nn0KVXC_hqjTx5bEdguX5faK-zvQvo6RTEsR3PHi3A=s16-c-k",
+                          "width": 16,
+                          "height": 16
+                        },
+                        {
+                          "url": "https://yt3.ggpht.com/A5kmYO7qcuyKYWp4-sdC5ZWk5UYTO3c8Nn0KVXC_hqjTx5bEdguX5faK-zvQvo6RTEsR3PHi3A=s32-c-k",
+                          "width": 32,
+                          "height": 32
+                        }
+                      ]
+                    },
+                    "tooltip": "Member (1 year)",
+                    "accessibility": {
+                      "accessibilityData": { "label": "Member (1 year)" }
+                    }
+                  }
+                }
+              ]
+            }
+            """;
+
     public static string GiftPurchase_1_Gift_Kelly()
     {
         long ts = GetTimestampUsec(500);

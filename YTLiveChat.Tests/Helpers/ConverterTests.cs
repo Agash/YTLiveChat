@@ -5,7 +5,7 @@ namespace YTLiveChat.Tests.Helpers;
 [TestClass]
 public class ConverterTests
 {
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(0L, "000000")] // Black (ARGB: 00000000)
     [DataRow(-1L, "FFFFFF")] // White (ARGB: FFFFFFFF)
     [DataRow(-16777216L, "000000")] // Black (ARGB: FF000000)
@@ -17,8 +17,6 @@ public class ConverterTests
     [DataRow(4294967295L, "FFFFFF")] // White (UInt32.MaxValue)
     [DataRow(2147483648L, "000000")] // Corresponds to -2147483648 Int32 (ARGB: 80000000), RGB is 000000
     [DataRow(1378974L, "150A9E")] // Example dark blue
-    [DataRow(-1L, "FFFFFF")] // Header Text Color often White
-    [DataRow(-16777216L, "000000")] // Body Text Color often Black
     public void ToHex6Color_ReturnsCorrectHex(long input, string expectedHex)
     {
         // Act

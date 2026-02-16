@@ -1,7 +1,13 @@
-﻿using System.Text.Json;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Channels;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+
 using YTLiveChat.Contracts;
+using YTLiveChat.Contracts.Models;
 using YTLiveChat.Contracts.Services;
 using YTLiveChat.Helpers;
 using YTLiveChat.Models;
@@ -26,6 +32,15 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     public event EventHandler<ChatReceivedEventArgs>? ChatReceived;
 
     /// <inheritdoc />
+    public event EventHandler<LivestreamStartedEventArgs>? LivestreamStarted;
+
+    /// <inheritdoc />
+    public event EventHandler<LivestreamEndedEventArgs>? LivestreamEnded;
+
+    /// <inheritdoc />
+    public event EventHandler<RawActionReceivedEventArgs>? RawActionReceived;
+
+    /// <inheritdoc />
     public event EventHandler<ErrorOccurredEventArgs>? ErrorOccurred;
 
     private static readonly Random s_random = new();
@@ -36,6 +51,14 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     private FetchOptions? _fetchOptionsInternal;
     private CancellationTokenSource? _cancellationTokenSource;
     private Task? _pollingTask; // Keep track of the polling task
+    private bool _continuousMonitorEnabledForSession;
+    private string? _activeLiveId;
+    private bool _terminateCurrentSession;
+
+#pragma warning disable CS0618
+    private bool ContinuousMonitorSetting => _options.EnableContinuousLivestreamMonitor;
+    private int LiveCheckFrequencySetting => _options.LiveCheckFrequency;
+#pragma warning restore CS0618
 
     private const int MaxRetryAttempts = 5;
     private const double BaseRetryDelaySeconds = 1.0;
@@ -48,6 +71,14 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     {
         WriteIndented = false,
     };
+    private static readonly byte[] s_debugLogArrayStart = Encoding.UTF8.GetBytes("[\r\n");
+    private static readonly byte[] s_debugLogEntrySeparator = Encoding.UTF8.GetBytes(",\r\n");
+    private static readonly byte[] s_debugLogArrayEnd = Encoding.UTF8.GetBytes("\r\n]\r\n");
+    private static readonly byte[] s_debugLogNewline = Encoding.UTF8.GetBytes(Environment.NewLine);
+
+    private bool _debugLogArrayStarted;
+    private bool _debugLogHasEntries;
+    private bool _debugLogArrayClosed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="YTLiveChat"/> class.
@@ -81,7 +112,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         _isDebugLoggingEnabled = _options.DebugLogReceivedJsonItems;
         _debugLogFilePath =
             _options.DebugLogFilePath
-            ?? Path.Combine(AppContext.BaseDirectory, "ytlivechat_debug_items.jsonl");
+            ?? Path.Combine(AppContext.BaseDirectory, "ytlivechat_debug_items.json");
 
 #if DEBUG
         // Optionally force debug logging in DEBUG builds, regardless of options
@@ -99,6 +130,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 _debugLogFilePath
             );
             EnsureDebugLogDirectoryExists();
+            EnsureDebugLogFileIsArray();
         }
     }
 
@@ -109,7 +141,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             string? directory = Path.GetDirectoryName(_debugLogFilePath);
             if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
             {
-                Directory.CreateDirectory(directory);
+                _ = Directory.CreateDirectory(directory);
                 _logger.LogInformation(
                     "Created directory for debug log: {DirectoryPath}",
                     directory
@@ -165,7 +197,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         );
 
         // Optionally, handle unobserved exceptions from the task if not awaited elsewhere
-        _pollingTask.ContinueWith(
+        _ = _pollingTask.ContinueWith(
             task =>
             {
                 if (task.IsFaulted && task.Exception != null)
@@ -182,11 +214,13 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                         )
                     );
                     // Optionally stop if the background task faults unexpectedly
+                    EndActiveLivestream("Background task faulted unexpectedly.");
                     OnChatStopped(new() { Reason = "Background task faulted unexpectedly." });
                 }
                 else if (task.IsCanceled)
                 {
                     _logger.LogInformation("Polling task was cancelled.");
+                    EndActiveLivestream("Operation Cancelled");
                     OnChatStopped(new() { Reason = "Operation Cancelled" });
                 }
                 else
@@ -214,41 +248,54 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         _logger.LogInformation("Listener task starting initialization...");
         try
         {
-            // --- Initialization ---
-            _fetchOptionsInternal = await GetFetchOptionsAsync(
-                handle,
-                channelId,
-                liveId,
-                true,
-                cancellationToken
-            ); // Always overwrite internal options on new start
-            if (_fetchOptionsInternal?.LiveId is null)
+            bool isHandleOrChannelTarget =
+                !string.IsNullOrWhiteSpace(handle) || !string.IsNullOrWhiteSpace(channelId);
+            bool isDirectLiveId = !string.IsNullOrWhiteSpace(liveId);
+            _continuousMonitorEnabledForSession =
+                ContinuousMonitorSetting && isHandleOrChannelTarget && !isDirectLiveId;
+            _terminateCurrentSession = false;
+
+            while (!cancellationToken.IsCancellationRequested)
             {
-                // Error logged within GetFetchOptionsAsync
-                // Fire events and exit task
-                OnErrorOccurred(
-                    new ErrorOccurredEventArgs(
-                        new InvalidOperationException(
-                            "Failed to retrieve valid initial FetchOptions (LiveId is missing)."
-                        )
-                    )
+                _fetchOptionsInternal = await TryGetFetchOptionsForSessionAsync(
+                    handle,
+                    channelId,
+                    liveId,
+                    cancellationToken
                 );
-                OnChatStopped(new() { Reason = "Failed to get initial options" });
-                return;
-            }
+                if (_fetchOptionsInternal == null)
+                {
+                    // Continuous mode: no active live yet, keep checking.
+                    await Task
+                        .Delay(TimeSpan.FromMilliseconds(LiveCheckFrequencySetting), cancellationToken)
+                        .ConfigureAwait(false);
+                    continue;
+                }
 
-            OnInitialPageLoaded(new() { LiveId = _fetchOptionsInternal.LiveId });
-            _logger.LogInformation(
-                "Initial page loaded for Live ID: {LiveId}. Starting polling loop...",
-                _fetchOptionsInternal.LiveId
-            );
+                BeginActiveLivestream(_fetchOptionsInternal.LiveId);
+                OnInitialPageLoaded(new() { LiveId = _fetchOptionsInternal.LiveId });
+                _logger.LogInformation(
+                    "Initial page loaded for Live ID: {LiveId}. Starting polling loop...",
+                    _fetchOptionsInternal.LiveId
+                );
 
-            // --- Polling Loop (Conditional Timer/Delay) ---
+                // --- Polling Loop (Conditional Timer/Delay) ---
 #if NETSTANDARD2_1 || NETSTANDARD2_0
-            await PollingLoopWithTaskDelayAsync(cancellationToken);
+                await PollingLoopWithTaskDelayAsync(cancellationToken);
 #else
-            await PollingLoopWithPeriodicTimerAsync(cancellationToken);
+                await PollingLoopWithPeriodicTimerAsync(cancellationToken);
 #endif
+
+                if (!_continuousMonitorEnabledForSession)
+                {
+                    break;
+                }
+
+                if (_terminateCurrentSession)
+                {
+                    break;
+                }
+            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -266,6 +313,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 "Critical error during listener task execution (outside polling loop)."
             );
             OnErrorOccurred(new ErrorOccurredEventArgs(ex));
+            EndActiveLivestream($"Critical error: {ex.Message}");
             OnChatStopped(new() { Reason = $"Critical error: {ex.Message}" });
         }
         finally
@@ -274,6 +322,82 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             _logger.LogInformation("Listener task finished execution.");
             // ChatStopped should be fired by loop logic, cancellation, or Stop()
         }
+    }
+
+    private async Task<FetchOptions?> TryGetFetchOptionsForSessionAsync(
+        string? handle,
+        string? channelId,
+        string? liveId,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            FetchOptions? options = await GetFetchOptionsAsync(
+                handle,
+                channelId,
+                liveId,
+                true,
+                cancellationToken
+            );
+            return options?.LiveId is null
+                ? _continuousMonitorEnabledForSession
+                    ? null
+                    : throw new InvalidOperationException(
+                    "Failed to retrieve valid initial FetchOptions (LiveId is missing)."
+                )
+                : options;
+        }
+        catch (InvalidOperationException ex) when (
+            _continuousMonitorEnabledForSession && IsLikelyNoActiveLiveError(ex)
+        )
+        {
+            _logger.LogDebug(
+                "No active livestream found for monitored target yet. Rechecking in {DelayMs} ms.",
+                LiveCheckFrequencySetting
+            );
+            return null;
+        }
+    }
+
+    private static bool IsLikelyNoActiveLiveError(InvalidOperationException ex)
+    {
+        string message = ex.ToString();
+        return message.Contains("Live Stream canonical link not found", StringComparison.Ordinal)
+            || message.Contains("Initial Continuation token not found", StringComparison.Ordinal)
+            || message.Contains("is finished live", StringComparison.Ordinal);
+    }
+
+    private void BeginActiveLivestream(string liveId)
+    {
+        _activeLiveId = liveId;
+        OnLivestreamStarted(new() { LiveId = liveId });
+    }
+
+    private void EndActiveLivestream(string? reason)
+    {
+        if (string.IsNullOrWhiteSpace(_activeLiveId))
+        {
+            return;
+        }
+
+        string endedLiveId = _activeLiveId!;
+        _activeLiveId = null;
+        _fetchOptionsInternal = null;
+        OnLivestreamEnded(
+            new()
+            {
+                LiveId = endedLiveId,
+                Reason = reason,
+            }
+        );
+    }
+
+    private void EndActiveLivestreamAndStopChat(string reason)
+    {
+        _terminateCurrentSession = true;
+        EndActiveLivestream(reason);
+        OnChatStopped(new() { Reason = reason });
     }
 
 #if !NETSTANDARD2_1 && !NETSTANDARD2_0
@@ -299,7 +423,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                             new InvalidOperationException("Continuation token lost.")
                         )
                     );
-                    OnChatStopped(new() { Reason = "Continuation token missing" });
+                    EndActiveLivestreamAndStopChat("Continuation token missing");
                     break;
                 }
 
@@ -324,12 +448,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                     // Process response
                     if (response != null)
                     {
-                        (List<Contracts.Models.ChatItem> items, string? continuation) =
-                            Parser.ParseLiveChatResponse(response);
-                        foreach (Contracts.Models.ChatItem item in items)
-                        {
-                            OnChatReceived(new() { ChatItem = item });
-                        }
+                        string? continuation = ProcessResponseAndEmitEvents(response, rawJson);
 
                         if (!string.IsNullOrEmpty(continuation))
                         {
@@ -344,7 +463,12 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                             _logger.LogInformation(
                                 "No continuation token received. Assuming stream ended or chat disabled."
                             );
-                            OnChatStopped(new() { Reason = "Stream ended or continuation lost" });
+                            EndActiveLivestream("Stream ended or continuation lost");
+                            if (!_continuousMonitorEnabledForSession)
+                            {
+                                OnChatStopped(new() { Reason = "Stream ended or continuation lost" });
+                            }
+
                             break; // Exit loop normally
                         }
                     }
@@ -366,7 +490,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                         "Received Forbidden (403). Stream might be region locked, require login, or API access changed. Stopping."
                     );
                     OnErrorOccurred(new ErrorOccurredEventArgs(httpEx));
-                    OnChatStopped(new() { Reason = "Received Forbidden (403)" });
+                    EndActiveLivestreamAndStopChat("Received Forbidden (403)");
                     break; // Stop polling loop
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
@@ -381,11 +505,8 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                             "Maximum retry attempts ({MaxAttempts}) exceeded. Stopping poll.",
                             MaxRetryAttempts
                         );
-                        OnChatStopped(
-                            new()
-                            {
-                                Reason = $"Failed after {MaxRetryAttempts} retries: {ex.Message}",
-                            }
+                        EndActiveLivestreamAndStopChat(
+                            $"Failed after {MaxRetryAttempts} retries: {ex.Message}"
                         );
                         break; // Stop polling loop
                     }
@@ -444,7 +565,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                             new InvalidOperationException("Continuation token lost.")
                         )
                     );
-                    OnChatStopped(new() { Reason = "Continuation token missing" });
+                    EndActiveLivestreamAndStopChat("Continuation token missing");
                     break;
                 }
 
@@ -469,12 +590,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                     // Process response
                     if (response != null)
                     {
-                        (List<Contracts.Models.ChatItem> items, string? continuation) =
-                            Parser.ParseLiveChatResponse(response);
-                        foreach (Contracts.Models.ChatItem item in items)
-                        {
-                            OnChatReceived(new() { ChatItem = item });
-                        }
+                        string? continuation = ProcessResponseAndEmitEvents(response, rawJson);
 
                         if (!string.IsNullOrEmpty(continuation))
                         {
@@ -489,7 +605,12 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                             _logger.LogInformation(
                                 "No continuation token received. Assuming stream ended or chat disabled."
                             );
-                            OnChatStopped(new() { Reason = "Stream ended or continuation lost" });
+                            EndActiveLivestream("Stream ended or continuation lost");
+                            if (!_continuousMonitorEnabledForSession)
+                            {
+                                OnChatStopped(new() { Reason = "Stream ended or continuation lost" });
+                            }
+
                             break; // Exit loop normally
                         }
                     }
@@ -515,7 +636,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                         "Received Forbidden (403). Stream might be region locked, require login, or API access changed. Stopping."
                     );
                     OnErrorOccurred(new ErrorOccurredEventArgs(httpEx));
-                    OnChatStopped(new() { Reason = "Received Forbidden (403)" });
+                    EndActiveLivestreamAndStopChat("Received Forbidden (403)");
                     break; // Stop polling loop
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
@@ -530,11 +651,8 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                             "Maximum retry attempts ({MaxAttempts}) exceeded. Stopping poll.",
                             MaxRetryAttempts
                         );
-                        OnChatStopped(
-                            new()
-                            {
-                                Reason = $"Failed after {MaxRetryAttempts} retries: {ex.Message}",
-                            }
+                        EndActiveLivestreamAndStopChat(
+                            $"Failed after {MaxRetryAttempts} retries: {ex.Message}"
                         );
                         break; // Stop polling loop
                     }
@@ -570,46 +688,126 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
 #endif
 
     /// <summary>
+    /// Processes a live chat response and emits parsed and raw action events.
+    /// </summary>
+    /// <param name="response">Parsed live chat response model.</param>
+    /// <param name="rawJson">Raw response JSON payload.</param>
+    /// <returns>The next continuation token, if available.</returns>
+    private string? ProcessResponseAndEmitEvents(LiveChatResponse response, string? rawJson)
+    {
+        bool shouldEmitRawActions = RawActionReceived != null;
+
+        if (!shouldEmitRawActions)
+        {
+            (
+                List<ChatItem> items,
+                string? continuationToken
+            ) = Parser.ParseLiveChatResponse(response);
+            foreach (ChatItem chatItem in items)
+            {
+                OnChatReceived(new() { ChatItem = chatItem });
+            }
+
+            return continuationToken;
+        }
+
+        (
+            List<(ChatItem Item, int ActionIndex)> indexedItems,
+            string? continuation
+        ) = Parser.ParseLiveChatResponseWithActionIndex(response);
+
+        Dictionary<int, ChatItem> parsedByActionIndex = new(indexedItems.Count);
+        foreach ((ChatItem item, int actionIndex) in indexedItems)
+        {
+            OnChatReceived(new() { ChatItem = item });
+            parsedByActionIndex[actionIndex] = item;
+        }
+
+        List<JsonElement>? rawActions = ExtractRawActions(rawJson);
+        if (rawActions is null)
+        {
+            _logger.LogDebug(
+                "RawActionReceived is subscribed but raw actions could not be extracted from payload."
+            );
+            return continuation;
+        }
+
+        for (int i = 0; i < rawActions.Count; i++)
+        {
+            _ = parsedByActionIndex.TryGetValue(i, out ChatItem? parsedChatItem);
+            OnRawActionReceived(
+                new()
+                {
+                    RawAction = rawActions[i],
+                    ParsedChatItem = parsedChatItem,
+                }
+            );
+        }
+
+        return continuation;
+    }
+
+    /// <summary>
+    /// Extracts raw action objects from the live chat response JSON payload.
+    /// </summary>
+    /// <param name="rawJson">Raw response JSON payload.</param>
+    /// <returns>List of raw action elements, or null when unavailable.</returns>
+    private List<JsonElement>? ExtractRawActions(string? rawJson)
+    {
+        if (string.IsNullOrWhiteSpace(rawJson))
+        {
+            return null;
+        }
+
+        try
+        {
+            using JsonDocument document = JsonDocument.Parse(rawJson!);
+            JsonElement root = document.RootElement;
+            if (
+                !root.TryGetProperty("continuationContents", out JsonElement continuationContents)
+                || !continuationContents.TryGetProperty(
+                    "liveChatContinuation",
+                    out JsonElement liveChatContinuation
+                )
+                || !liveChatContinuation.TryGetProperty("actions", out JsonElement actions)
+                || actions.ValueKind != JsonValueKind.Array
+            )
+            {
+                return null;
+            }
+
+            List<JsonElement> extractedActions = new(actions.GetArrayLength());
+            foreach (JsonElement action in actions.EnumerateArray())
+            {
+                extractedActions.Add(action.Clone());
+            }
+
+            return extractedActions;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Failed to parse raw live chat response JSON for raw actions.");
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Logs raw JSON action items if debug logging is enabled.
     /// </summary>
     private async Task LogRawJsonActionsAsync(string? rawJson, CancellationToken cancellationToken)
     {
-        if (!_isDebugLoggingEnabled || string.IsNullOrEmpty(rawJson))
+        if (!_isDebugLoggingEnabled || rawJson == null)
             return;
 
-        // Use SemaphoreSlim for thread-safe file access
+        string entry = rawJson.Trim();
+        if (string.IsNullOrEmpty(entry))
+            return;
+
         await s_debugLogLock.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         try
         {
-#if NETSTANDARD2_0 || NETSTANDARD2_1
-            // CS8417 fix: Use synchronous 'using' for NS2.0/NS2.1
-            using FileStream fs = new(
-                _debugLogFilePath,
-                FileMode.Append,
-                FileAccess.Write,
-                FileShare.Read,
-                4096,
-                useAsync: true
-            ); // useAsync is a hint
-            using StreamWriter writer = new(fs, System.Text.Encoding.UTF8);
-
-            await writer.WriteLineAsync(rawJson).ConfigureAwait(false);
-#else
-            // Use await using for newer frameworks
-            await using FileStream fs = new(
-                _debugLogFilePath,
-                FileMode.Append,
-                FileAccess.Write,
-                FileShare.Read,
-                4096,
-                useAsync: true
-            );
-            await using StreamWriter writer = new(fs, System.Text.Encoding.UTF8);
-            await writer
-                .WriteLineAsync(rawJson.AsMemory(), cancellationToken)
-                .ConfigureAwait(false);
-#endif
+            await AppendJsonArrayEntryAsync(entry, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -622,11 +820,223 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 "Error writing raw JSON actions to log file '{FilePath}'",
                 _debugLogFilePath
             );
-            // Consider disabling debug logging temporarily if errors persist
         }
         finally
         {
-            s_debugLogLock.Release();
+            _ = s_debugLogLock.Release();
+        }
+    }
+
+    private void EnsureDebugLogFileIsArray()
+    {
+        try
+        {
+            if (!File.Exists(_debugLogFilePath))
+            {
+                File.WriteAllBytes(_debugLogFilePath, s_debugLogArrayStart);
+                return;
+            }
+
+            using FileStream fs = new(
+                _debugLogFilePath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite
+            );
+
+            if (fs.Length == 0)
+            {
+                fs.Dispose();
+                File.WriteAllBytes(_debugLogFilePath, s_debugLogArrayStart);
+                return;
+            }
+
+            char? firstNonWhitespace = GetFirstNonWhitespaceChar(fs);
+            if (firstNonWhitespace == '[')
+            {
+                return;
+            }
+
+            fs.Dispose();
+            string legacyPath = $"{_debugLogFilePath}.{DateTime.UtcNow:yyyyMMddHHmmss}.legacy";
+            File.Move(_debugLogFilePath, legacyPath);
+            File.WriteAllBytes(_debugLogFilePath, s_debugLogArrayStart);
+
+            _logger.LogWarning(
+                "Debug log at '{FilePath}' was not a JSON array. Moved old content to '{LegacyPath}' and started a new array.",
+                _debugLogFilePath,
+                legacyPath
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error preparing debug log file '{FilePath}'.",
+                _debugLogFilePath
+            );
+        }
+    }
+
+    private async Task AppendJsonArrayEntryAsync(string entryJson, CancellationToken cancellationToken)
+    {
+        using FileStream fs = new(
+            _debugLogFilePath,
+            FileMode.OpenOrCreate,
+            FileAccess.ReadWrite,
+            FileShare.Read,
+            4096,
+            useAsync: true
+        );
+
+        await PrepareJsonArrayStreamAsync(fs, cancellationToken).ConfigureAwait(false);
+
+        if (_debugLogHasEntries)
+        {
+            await WriteBytesAsync(fs, s_debugLogEntrySeparator, cancellationToken).ConfigureAwait(false);
+        }
+
+        byte[] entryBytes = Encoding.UTF8.GetBytes(entryJson);
+        await WriteBytesAsync(fs, entryBytes, cancellationToken).ConfigureAwait(false);
+        await WriteBytesAsync(fs, s_debugLogNewline, cancellationToken).ConfigureAwait(false);
+
+        _debugLogHasEntries = true;
+    }
+
+    private async Task PrepareJsonArrayStreamAsync(FileStream fs, CancellationToken cancellationToken)
+    {
+        if (_debugLogArrayClosed)
+        {
+            // Logging after closing is unexpected; reopen by truncating
+            fs.SetLength(0);
+            _debugLogArrayClosed = false;
+            _debugLogArrayStarted = false;
+            _debugLogHasEntries = false;
+        }
+
+        if (_debugLogArrayStarted)
+        {
+            _ = fs.Seek(0, SeekOrigin.End);
+            return;
+        }
+
+        if (fs.Length == 0)
+        {
+            await WriteBytesAsync(fs, s_debugLogArrayStart, cancellationToken).ConfigureAwait(false);
+            _debugLogArrayStarted = true;
+            _debugLogHasEntries = false;
+            return;
+        }
+
+        await TrimTrailingClosingBracketAsync(fs, cancellationToken).ConfigureAwait(false);
+        _debugLogArrayStarted = true;
+        _debugLogHasEntries = fs.Length > s_debugLogArrayStart.Length;
+    }
+
+    private static async Task TrimTrailingClosingBracketAsync(FileStream fs, CancellationToken cancellationToken)
+    {
+        byte[] buffer = new byte[1];
+        long position = fs.Length;
+        while (position > 0)
+        {
+            position--;
+            _ = fs.Seek(position, SeekOrigin.Begin);
+            int bytesRead = await ReadByteAsync(fs, buffer, cancellationToken).ConfigureAwait(false);
+            if (bytesRead == 0)
+                break;
+
+            char current = (char)buffer[0];
+            if (char.IsWhiteSpace(current))
+                continue;
+
+            if (current == ']')
+            {
+                fs.SetLength(position);
+            }
+
+            break;
+        }
+
+        _ = fs.Seek(0, SeekOrigin.End);
+    }
+
+    private static async Task WriteBytesAsync(
+        FileStream fs,
+        byte[] buffer,
+        CancellationToken cancellationToken
+    ) =>
+#if NETSTANDARD2_0
+        await fs.WriteAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
+#else
+        await fs.WriteAsync(buffer.AsMemory(), cancellationToken).ConfigureAwait(false);
+#endif
+
+
+    private static async Task<int> ReadByteAsync(
+        FileStream fs,
+        byte[] buffer,
+        CancellationToken cancellationToken
+    ) =>
+#if NETSTANDARD2_0
+        await fs.ReadAsync(buffer, 0, 1, cancellationToken).ConfigureAwait(false);
+#else
+        await fs.ReadAsync(buffer.AsMemory(0, 1), cancellationToken).ConfigureAwait(false);
+#endif
+
+
+    private static char? GetFirstNonWhitespaceChar(FileStream fs)
+    {
+        byte[] buffer = new byte[1];
+        _ = fs.Seek(0, SeekOrigin.Begin);
+        while (fs.Position < fs.Length)
+        {
+            int read = fs.Read(buffer, 0, 1);
+            if (read == 0)
+            {
+                break;
+            }
+
+            char current = (char)buffer[0];
+            if (!char.IsWhiteSpace(current))
+            {
+                return current;
+            }
+        }
+
+        return null;
+    }
+
+    private void FinalizeDebugJsonLog()
+    {
+        if (!_isDebugLoggingEnabled || !_debugLogArrayStarted || _debugLogArrayClosed)
+        {
+            return;
+        }
+
+        s_debugLogLock.Wait();
+        try
+        {
+            using FileStream fs = new(
+                _debugLogFilePath,
+                FileMode.OpenOrCreate,
+                FileAccess.Write,
+                FileShare.Read
+            );
+            _ = fs.Seek(0, SeekOrigin.End);
+            fs.Write(s_debugLogArrayEnd, 0, s_debugLogArrayEnd.Length);
+            _debugLogArrayClosed = true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error finalizing debug JSON log array at '{FilePath}'",
+                _debugLogFilePath
+            );
+        }
+        finally
+        {
+            _ = s_debugLogLock.Release();
         }
     }
 
@@ -652,6 +1062,118 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         else
         {
             _logger.LogDebug("Stop called but listener was not running or already stopping.");
+        }
+    }
+
+    /// <inheritdoc />
+    public async IAsyncEnumerable<ChatItem> StreamChatItemsAsync(
+        string? handle = null,
+        string? channelId = null,
+        string? liveId = null,
+        bool overwrite = false,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default
+    )
+    {
+        Channel<ChatItem> channel = Channel.CreateUnbounded<ChatItem>(
+            new UnboundedChannelOptions
+            {
+                SingleReader = true,
+                SingleWriter = false,
+                AllowSynchronousContinuations = false,
+            }
+        );
+
+        void HandleChatReceived(object? _, ChatReceivedEventArgs e) => _ = channel
+            .Writer.TryWrite(e.ChatItem);
+        void HandleChatStopped(object? _, ChatStoppedEventArgs e) => channel.Writer.TryComplete();
+        void HandleErrorOccurred(object? _, ErrorOccurredEventArgs e) => channel.Writer.TryComplete(
+            e.GetException()
+        );
+
+        ChatReceived += HandleChatReceived;
+        ChatStopped += HandleChatStopped;
+        ErrorOccurred += HandleErrorOccurred;
+
+        using CancellationTokenRegistration cancellationRegistration = cancellationToken.Register(() =>
+            channel.Writer.TryComplete()
+        );
+
+        try
+        {
+            Start(handle, channelId, liveId, overwrite);
+
+            await foreach (
+                ChatItem item in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false)
+            )
+            {
+                yield return item;
+            }
+        }
+        finally
+        {
+            ChatReceived -= HandleChatReceived;
+            ChatStopped -= HandleChatStopped;
+            ErrorOccurred -= HandleErrorOccurred;
+            Stop();
+            _ = channel.Writer.TryComplete();
+        }
+    }
+
+    /// <inheritdoc />
+    public async IAsyncEnumerable<RawActionReceivedEventArgs> StreamRawActionsAsync(
+        string? handle = null,
+        string? channelId = null,
+        string? liveId = null,
+        bool overwrite = false,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default
+    )
+    {
+        Channel<RawActionReceivedEventArgs> channel = Channel.CreateUnbounded<
+            RawActionReceivedEventArgs
+        >(
+            new UnboundedChannelOptions
+            {
+                SingleReader = true,
+                SingleWriter = false,
+                AllowSynchronousContinuations = false,
+            }
+        );
+
+        void HandleRawActionReceived(object? _, RawActionReceivedEventArgs e) => _ = channel
+            .Writer.TryWrite(e);
+        void HandleChatStopped(object? _, ChatStoppedEventArgs e) => channel.Writer.TryComplete();
+        void HandleErrorOccurred(object? _, ErrorOccurredEventArgs e) => channel.Writer.TryComplete(
+            e.GetException()
+        );
+
+        RawActionReceived += HandleRawActionReceived;
+        ChatStopped += HandleChatStopped;
+        ErrorOccurred += HandleErrorOccurred;
+
+        using CancellationTokenRegistration cancellationRegistration = cancellationToken.Register(() =>
+            channel.Writer.TryComplete()
+        );
+
+        try
+        {
+            Start(handle, channelId, liveId, overwrite);
+
+            await foreach (
+                RawActionReceivedEventArgs rawAction in channel
+                    .Reader.ReadAllAsync(cancellationToken)
+                    .ConfigureAwait(false)
+            )
+            {
+                yield return rawAction;
+            }
+        }
+        finally
+        {
+            RawActionReceived -= HandleRawActionReceived;
+            ChatStopped -= HandleChatStopped;
+            ErrorOccurred -= HandleErrorOccurred;
+            Stop();
+            _ = channel.Writer.TryComplete();
         }
     }
 
@@ -691,6 +1213,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             // Clear the task reference. The task itself will complete due to cancellation.
             // We don't `await` it here as Dispose is synchronous.
             _pollingTask = null;
+
+            // Finalize the optional debug JSON array log (adds closing bracket).
+            FinalizeDebugJsonLog();
 
             _logger.LogDebug("YTLiveChat service Dispose complete.");
         }
@@ -739,6 +1264,45 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 "Error invoking ChatReceived event handler for item ID {ItemId}.",
                 e.ChatItem?.Id
             );
+        }
+    }
+
+    /// <summary>Invokes the LivestreamStarted event.</summary>
+    protected virtual void OnLivestreamStarted(LivestreamStartedEventArgs e)
+    {
+        try
+        {
+            LivestreamStarted?.Invoke(this, e);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error invoking LivestreamStarted event handler.");
+        }
+    }
+
+    /// <summary>Invokes the LivestreamEnded event.</summary>
+    protected virtual void OnLivestreamEnded(LivestreamEndedEventArgs e)
+    {
+        try
+        {
+            LivestreamEnded?.Invoke(this, e);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error invoking LivestreamEnded event handler.");
+        }
+    }
+
+    /// <summary>Invokes the RawActionReceived event.</summary>
+    protected virtual void OnRawActionReceived(RawActionReceivedEventArgs e)
+    {
+        try
+        {
+            RawActionReceived?.Invoke(this, e);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error invoking RawActionReceived event handler.");
         }
     }
 
@@ -821,3 +1385,4 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         }
     }
 }
+

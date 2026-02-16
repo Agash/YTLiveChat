@@ -45,9 +45,15 @@ public class MembershipDetails
 
     /// <summary>
     /// The user-visible name of the membership level or tier.
-    /// Extracted from badge tooltips or message text. Defaults to "Member".
+    /// This is typically only available for new join events from welcome text (for example, "Welcome to {Tier}!").
     /// </summary>
     public string LevelName { get; set; } = "Member";
+
+    /// <summary>
+    /// The raw membership badge label (for example "New member", "Member (2 years)").
+    /// This often represents tenure, not membership tier.
+    /// </summary>
+    public string? MembershipBadgeLabel { get; set; }
 
     /// <summary>
     /// The primary text displayed in the membership item's header (e.g., "Member for 6 months", "Gifted 5 memberships", "Welcome!").

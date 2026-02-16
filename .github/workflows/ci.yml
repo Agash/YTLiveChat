@@ -1,0 +1,33 @@
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore YTLiveChat.sln
+
+      - name: Build
+        run: dotnet build YTLiveChat.sln -c Release --no-restore
+
+      - name: Test (net8.0)
+        run: dotnet test --project YTLiveChat.Tests/YTLiveChat.Tests.csproj -c Release --framework net8.0 --no-build
+
+      - name: Test (net10.0)
+        run: dotnet test --project YTLiveChat.Tests/YTLiveChat.Tests.csproj -c Release --framework net10.0 --no-build
