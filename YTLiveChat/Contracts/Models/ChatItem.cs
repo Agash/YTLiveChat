@@ -1,4 +1,4 @@
-﻿namespace YTLiveChat.Contracts.Models;
+namespace YTLiveChat.Contracts.Models;
 
 /// <summary>
 /// Represents a single item received from the YouTube Live Chat feed.
@@ -33,7 +33,7 @@ public class ChatItem
     /// <summary>
     /// Contains Membership event details if applicable (New, Milestone, GiftPurchase, GiftRedemption). Null otherwise.
     /// </summary>
-    public MembershipDetails? MembershipDetails { get; set; } // Added
+    public MembershipDetails? MembershipDetails { get; set; }
 
     /// <summary>
     /// Whether or not Author has *any* membership level on the current Live Channel.
@@ -59,7 +59,7 @@ public class ChatItem
     /// <summary>
     /// Timestamp when the ChatItem was created/received from the API (approximated).
     /// </summary>
-    public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow; // Consider parsing TimestampUsec later for more accuracy
+    public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
     /// Optional leaderboard rank shown by YouTube's points system for this message (e.g. 1, 2, 3).

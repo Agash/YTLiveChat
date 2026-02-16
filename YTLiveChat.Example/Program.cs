@@ -1,8 +1,9 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 using System.IO;
+using System.Text;
 
 using YTLiveChat.Contracts;
 using YTLiveChat.DependencyInjection;
@@ -10,6 +11,10 @@ using YTLiveChat.Example;
 
 Console.WriteLine("YTLiveChat Example Monitor");
 Console.WriteLine("-------------------------");
+
+// Force UTF-8 console IO so Japanese and other multilingual text is not rendered as '?'.
+Console.InputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+Console.OutputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
 string? identifier = null;
 while (string.IsNullOrWhiteSpace(identifier))
@@ -58,9 +63,7 @@ HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
-
-// Optional: Set log level as needed, e.g., Information for more details from the library
-builder.Logging.SetMinimumLevel(LogLevel.Information); // Changed to Information
+builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
 builder.Services.AddYTLiveChat(builder.Configuration);
 
@@ -76,9 +79,7 @@ builder.Services.Configure<YTLiveChatOptions>(options =>
     }
 });
 
-// Add the populated options object as a singleton
 builder.Services.AddSingleton(runOptions);
-
 builder.Services.AddHostedService<ChatMonitorService>();
 
 try
@@ -99,10 +100,10 @@ catch (Exception ex)
     Console.ForegroundColor = ConsoleColor.Red;
     Console.WriteLine($"An unexpected error occurred during host execution: {ex}");
     Console.ResetColor();
-    // Attempt to get logger if host build failed early (might be null)
+
     ILogger<Program>? logger = builder
         .Services?.BuildServiceProvider()
         ?.GetService<ILogger<Program>>();
     logger?.LogCritical(ex, "Host terminated unexpectedly");
-    return 1; // Indicate error
+    return 1;
 }

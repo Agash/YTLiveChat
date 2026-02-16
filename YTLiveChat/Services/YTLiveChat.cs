@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using System.Text;
 
 using YTLiveChat.Contracts;
+using YTLiveChat.Contracts.Models;
 using YTLiveChat.Contracts.Services;
 using YTLiveChat.Helpers;
 using YTLiveChat.Models;
@@ -28,6 +29,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
 
     /// <inheritdoc />
     public event EventHandler<ChatReceivedEventArgs>? ChatReceived;
+
+    /// <inheritdoc />
+    public event EventHandler<RawActionReceivedEventArgs>? RawActionReceived;
 
     /// <inheritdoc />
     public event EventHandler<ErrorOccurredEventArgs>? ErrorOccurred;
@@ -337,12 +341,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                     // Process response
                     if (response != null)
                     {
-                        (List<Contracts.Models.ChatItem> items, string? continuation) =
-                            Parser.ParseLiveChatResponse(response);
-                        foreach (Contracts.Models.ChatItem item in items)
-                        {
-                            OnChatReceived(new() { ChatItem = item });
-                        }
+                        string? continuation = ProcessResponseAndEmitEvents(response, rawJson);
 
                         if (!string.IsNullOrEmpty(continuation))
                         {
@@ -482,12 +481,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                     // Process response
                     if (response != null)
                     {
-                        (List<Contracts.Models.ChatItem> items, string? continuation) =
-                            Parser.ParseLiveChatResponse(response);
-                        foreach (Contracts.Models.ChatItem item in items)
-                        {
-                            OnChatReceived(new() { ChatItem = item });
-                        }
+                        string? continuation = ProcessResponseAndEmitEvents(response, rawJson);
 
                         if (!string.IsNullOrEmpty(continuation))
                         {
@@ -581,6 +575,110 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         }
     }
 #endif
+
+    /// <summary>
+    /// Processes a live chat response and emits parsed and raw action events.
+    /// </summary>
+    /// <param name="response">Parsed live chat response model.</param>
+    /// <param name="rawJson">Raw response JSON payload.</param>
+    /// <returns>The next continuation token, if available.</returns>
+    private string? ProcessResponseAndEmitEvents(LiveChatResponse response, string? rawJson)
+    {
+        bool shouldEmitRawActions = RawActionReceived != null;
+
+        if (!shouldEmitRawActions)
+        {
+            (
+                List<ChatItem> items,
+                string? continuationToken
+            ) = Parser.ParseLiveChatResponse(response);
+            foreach (ChatItem chatItem in items)
+            {
+                OnChatReceived(new() { ChatItem = chatItem });
+            }
+
+            return continuationToken;
+        }
+
+        (
+            List<(ChatItem Item, int ActionIndex)> indexedItems,
+            string? continuation
+        ) = Parser.ParseLiveChatResponseWithActionIndex(response);
+
+        Dictionary<int, ChatItem> parsedByActionIndex = [];
+        foreach ((ChatItem item, int actionIndex) in indexedItems)
+        {
+            OnChatReceived(new() { ChatItem = item });
+            parsedByActionIndex[actionIndex] = item;
+        }
+
+        List<JsonElement>? rawActions = ExtractRawActions(rawJson);
+        if (rawActions is null)
+        {
+            _logger.LogDebug(
+                "RawActionReceived is subscribed but raw actions could not be extracted from payload."
+            );
+            return continuation;
+        }
+
+        for (int i = 0; i < rawActions.Count; i++)
+        {
+            _ = parsedByActionIndex.TryGetValue(i, out ChatItem? parsedChatItem);
+            OnRawActionReceived(
+                new()
+                {
+                    RawAction = rawActions[i],
+                    ParsedChatItem = parsedChatItem,
+                }
+            );
+        }
+
+        return continuation;
+    }
+
+    /// <summary>
+    /// Extracts raw action objects from the live chat response JSON payload.
+    /// </summary>
+    /// <param name="rawJson">Raw response JSON payload.</param>
+    /// <returns>List of raw action elements, or null when unavailable.</returns>
+    private List<JsonElement>? ExtractRawActions(string? rawJson)
+    {
+        if (string.IsNullOrWhiteSpace(rawJson))
+        {
+            return null;
+        }
+
+        try
+        {
+            using JsonDocument document = JsonDocument.Parse(rawJson!);
+            JsonElement root = document.RootElement;
+            if (
+                !root.TryGetProperty("continuationContents", out JsonElement continuationContents)
+                || !continuationContents.TryGetProperty(
+                    "liveChatContinuation",
+                    out JsonElement liveChatContinuation
+                )
+                || !liveChatContinuation.TryGetProperty("actions", out JsonElement actions)
+                || actions.ValueKind != JsonValueKind.Array
+            )
+            {
+                return null;
+            }
+
+            List<JsonElement> extractedActions = [];
+            foreach (JsonElement action in actions.EnumerateArray())
+            {
+                extractedActions.Add(action.Clone());
+            }
+
+            return extractedActions;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Failed to parse raw live chat response JSON for raw actions.");
+            return null;
+        }
+    }
 
     /// <summary>
     /// Logs raw JSON action items if debug logging is enabled.
@@ -945,6 +1043,19 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 "Error invoking ChatReceived event handler for item ID {ItemId}.",
                 e.ChatItem?.Id
             );
+        }
+    }
+
+    /// <summary>Invokes the RawActionReceived event.</summary>
+    protected virtual void OnRawActionReceived(RawActionReceivedEventArgs e)
+    {
+        try
+        {
+            RawActionReceived?.Invoke(this, e);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error invoking RawActionReceived event handler.");
         }
     }
 

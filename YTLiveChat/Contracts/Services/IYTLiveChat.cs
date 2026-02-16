@@ -1,4 +1,6 @@
-﻿using YTLiveChat.Contracts.Models;
+using System.Text.Json;
+
+using YTLiveChat.Contracts.Models;
 
 namespace YTLiveChat.Contracts.Services;
 
@@ -21,6 +23,11 @@ public interface IYTLiveChat : IDisposable
     /// Fires when a ChatItem was received
     /// </summary>
     event EventHandler<ChatReceivedEventArgs>? ChatReceived;
+
+    /// <summary>
+    /// Fires when a raw action payload was received (including unsupported action types).
+    /// </summary>
+    event EventHandler<RawActionReceivedEventArgs>? RawActionReceived;
 
     /// <summary>
     /// Fires on any error from backend or within service
@@ -81,6 +88,23 @@ public class ChatReceivedEventArgs : EventArgs
     /// ChatItem that was received
     /// </summary>
     public required ChatItem ChatItem { get; set; }
+}
+
+/// <summary>
+/// EventArgs for RawActionReceived event.
+/// </summary>
+public class RawActionReceivedEventArgs : EventArgs
+{
+    /// <summary>
+    /// Raw action JSON payload.
+    /// </summary>
+    public required JsonElement RawAction { get; set; }
+
+    /// <summary>
+    /// Parsed ChatItem mapped from this action, if recognized.
+    /// Null for unsupported action/renderer types.
+    /// </summary>
+    public ChatItem? ParsedChatItem { get; set; }
 }
 
 /// <summary>

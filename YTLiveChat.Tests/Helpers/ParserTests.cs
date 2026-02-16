@@ -359,10 +359,13 @@ public class ParserTests
         Assert.AreEqual("Member (6 months)", chatItem.Author.Badge.Label, "Badge label mismatch.");
         Assert.IsTrue(chatItem.IsMembership, "IsMembership flag should be true.");
         Assert.AreEqual(
-            0,
+            3,
             chatItem.Message.Length,
-            "New member announcements typically have no user message body."
+            "New member announcements should preserve welcome message runs."
         );
+        Assert.AreEqual("Welcome to ", ((TextPart)chatItem.Message[0]).Text);
+        Assert.AreEqual("The Plusers", ((TextPart)chatItem.Message[1]).Text);
+        Assert.AreEqual("!", ((TextPart)chatItem.Message[2]).Text);
     }
 
     [TestMethod]
@@ -394,7 +397,10 @@ public class ParserTests
         Assert.IsNotNull(chatItem.Author.Badge, "Author badge should be parsed.");
         Assert.AreEqual("New member", chatItem.Author.Badge.Label);
         Assert.IsTrue(chatItem.IsMembership);
-        Assert.AreEqual(0, chatItem.Message.Length);
+        Assert.AreEqual(3, chatItem.Message.Length);
+        Assert.AreEqual("Welcome to ", ((TextPart)chatItem.Message[0]).Text);
+        Assert.AreEqual("the Ukiverse", ((TextPart)chatItem.Message[1]).Text);
+        Assert.AreEqual("!", ((TextPart)chatItem.Message[2]).Text);
     }
 
     [TestMethod]

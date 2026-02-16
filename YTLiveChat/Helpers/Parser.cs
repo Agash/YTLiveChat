@@ -410,6 +410,16 @@ internal static partial class Parser
         switch (baseRenderer)
         {
             case LiveChatMembershipItemRenderer membershipItem:
+                if (membershipItem.Message?.Runs != null)
+                {
+                    messageParts = membershipItem.Message.Runs.ToMessageParts();
+                }
+                else if (membershipItem.HeaderSubtext?.Runs != null)
+                {
+                    // Preserve structured welcome/system text parts as fallback.
+                    messageParts = membershipItem.HeaderSubtext.Runs.ToMessageParts();
+                }
+
                 string? levelNameFromBadge = baseRenderer
                     .AuthorBadges?.FirstOrDefault(b =>
                         b.LiveChatAuthorBadgeRenderer?.CustomThumbnail != null
@@ -529,11 +539,6 @@ internal static partial class Parser
                     ) >= 0
                 )
                 {
-                    if (membershipItem?.Message?.Runs != null)
-                    {
-                        messageParts = membershipItem.Message.Runs.ToMessageParts();
-                    }
-
                     membershipInfo.EventType = Contracts.Models.MembershipEventType.Milestone;
                     Match monthsMatch = MilestoneMonthsRegex()
                         .Match(membershipInfo.HeaderPrimaryText);
@@ -688,6 +693,11 @@ internal static partial class Parser
                     RecipientUsername = author.Name, // Author of this event is the recipient
                 };
 
+                if (giftRedemption.Message?.Runs != null)
+                {
+                    messageParts = giftRedemption.Message.Runs.ToMessageParts();
+                }
+
                 // Attempt to extract gifter name from the message runs (often the last part)
                 MessageText? relevantText = (MessageText?)(
                     giftRedemption.Message?.Runs?.LastOrDefault(r => r is MessageText)
@@ -765,17 +775,35 @@ internal static partial class Parser
         string? Continuation
     ) ParseLiveChatResponse(LiveChatResponse? response) // Return contract type
     {
-        List<Contracts.Models.ChatItem> items = []; // Use contract type
+        (List<(Contracts.Models.ChatItem Item, int ActionIndex)> indexedItems, string? continuation) =
+            ParseLiveChatResponseWithActionIndex(response);
+        List<Contracts.Models.ChatItem> items = [.. indexedItems.Select(i => i.Item)];
+        return (items, continuation);
+    }
+
+    /// <summary>
+    /// Parses the full API response to extract chat items with their source action index
+    /// and the next continuation token.
+    /// </summary>
+    public static (
+        List<(Contracts.Models.ChatItem Item, int ActionIndex)> Items,
+        string? Continuation
+    ) ParseLiveChatResponseWithActionIndex(LiveChatResponse? response)
+    {
+        List<(Contracts.Models.ChatItem Item, int ActionIndex)> items = [];
         string? continuationToken = null;
 
-        if (response?.ContinuationContents?.LiveChatContinuation?.Actions != null)
+        List<Action>? actions = response?.ContinuationContents?.LiveChatContinuation?.Actions;
+        if (actions != null)
         {
-            items =
-            [
-                .. response
-                    .ContinuationContents.LiveChatContinuation.Actions.Select(a => a.ToChatItem()) // Uses the corrected ToChatItem
-                    .WhereNotNull(),
-            ];
+            for (int i = 0; i < actions.Count; i++)
+            {
+                Contracts.Models.ChatItem? parsedItem = actions[i].ToChatItem();
+                if (parsedItem != null)
+                {
+                    items.Add((parsedItem, i));
+                }
+            }
         }
 
         Continuation? nextContinuation =
