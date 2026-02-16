@@ -207,6 +207,88 @@ public class YTLiveChatServiceTests
     }
 
     [TestMethod]
+    public async Task Start_ContinuousMonitorMode_WaitsForLiveAndEmitsLifecycleEvents()
+    {
+        _ytLiveChatOptions.EnableContinuousLivestreamMonitor = true;
+        _ytLiveChatOptions.LiveCheckFrequency = 50;
+
+        string liveId = "continuousMonitorLive01";
+        string apiKey = "apiKey_continuous_01";
+        string clientVersion = "cv_continuous_01";
+        string initialContinuation = "initial_continuous_01";
+
+        string noLiveHtml = "<html><head><title>No live</title></head><body></body></html>";
+        string liveHtml = UtilityTestData.GetSampleLivePageHtml(
+            liveId,
+            apiKey,
+            clientVersion,
+            initialContinuation
+        );
+
+        _ = _mockYtHttpClient
+            .SetupSequence(c =>
+                c.GetOptionsAsync("monitorTarget", null, null, It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(noLiveHtml)
+            .ReturnsAsync(liveHtml)
+            .ReturnsAsync(noLiveHtml)
+            .ReturnsAsync(noLiveHtml);
+
+        string itemRendererContentJson = TextMessageTestData.SimpleTextMessage1();
+        string itemObjectJson =
+            $$"""{ "liveChatTextMessageRenderer": {{itemRendererContentJson}} }""";
+        string endedResponseJson = UtilityTestData.StreamEndedResponse(itemObjectJson);
+        LiveChatResponse? endedResponse = JsonSerializer.Deserialize<LiveChatResponse>(
+            endedResponseJson
+        );
+        Assert.IsNotNull(endedResponse);
+
+        _ = _mockYtHttpClient
+            .Setup(c =>
+                c.GetLiveChatAsync(
+                    It.Is<FetchOptions>(fo =>
+                        fo.LiveId == liveId
+                        && fo.ApiKey == apiKey
+                        && fo.ClientVersion == clientVersion
+                        && fo.Continuation == initialContinuation
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((endedResponse, endedResponseJson));
+
+        TaskCompletionSource<LivestreamStartedEventArgs> startedTcs = new(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        TaskCompletionSource<LivestreamEndedEventArgs> endedTcs = new(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        int chatStoppedCount = 0;
+
+        _service.LivestreamStarted += (s, e) => _ = startedTcs.TrySetResult(e);
+        _service.LivestreamEnded += (s, e) => _ = endedTcs.TrySetResult(e);
+        _service.ChatStopped += (s, e) => Interlocked.Increment(ref chatStoppedCount);
+
+        _service.Start(handle: "monitorTarget");
+
+        LivestreamStartedEventArgs startedArgs = await WaitForTcsResult(
+            startedTcs,
+            "LivestreamStarted"
+        );
+        LivestreamEndedEventArgs endedArgs = await WaitForTcsResult(endedTcs, "LivestreamEnded");
+
+        Assert.AreEqual(liveId, startedArgs.LiveId);
+        Assert.AreEqual(liveId, endedArgs.LiveId);
+        Assert.AreEqual(
+            0,
+            chatStoppedCount,
+            "Continuous monitor mode should not stop the service when a livestream ends."
+        );
+
+        _service.Stop();
+    }
+
+    [TestMethod]
     public async Task Start_GetOptionsAsyncThrows_ErrorEventFiredAndChatStopped()
     {
         string liveId = "failLiveId002";

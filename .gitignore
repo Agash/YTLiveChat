@@ -380,3 +380,6 @@ ytlivechat.xml
 filter_array.py
 ytlivechat_contains_poll.json
 ytlivechat_poll_objects.json
+
+# Local InnerTube capture logs
+logs/

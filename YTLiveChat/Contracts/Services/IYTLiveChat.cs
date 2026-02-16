@@ -25,6 +25,16 @@ public interface IYTLiveChat : IDisposable
     event EventHandler<ChatReceivedEventArgs>? ChatReceived;
 
     /// <summary>
+    /// Fires when a livestream becomes active for the monitored target.
+    /// </summary>
+    event EventHandler<LivestreamStartedEventArgs>? LivestreamStarted;
+
+    /// <summary>
+    /// Fires when the current livestream ends for the monitored target.
+    /// </summary>
+    event EventHandler<LivestreamEndedEventArgs>? LivestreamEnded;
+
+    /// <summary>
     /// Fires when a raw action payload was received (including unsupported action types).
     /// </summary>
     event EventHandler<RawActionReceivedEventArgs>? RawActionReceived;
@@ -113,6 +123,33 @@ public class ChatReceivedEventArgs : EventArgs
     /// ChatItem that was received
     /// </summary>
     public required ChatItem ChatItem { get; set; }
+}
+
+/// <summary>
+/// EventArgs for LivestreamStarted event.
+/// </summary>
+public class LivestreamStartedEventArgs : EventArgs
+{
+    /// <summary>
+    /// Video ID selected or found for the active livestream.
+    /// </summary>
+    public required string LiveId { get; set; }
+}
+
+/// <summary>
+/// EventArgs for LivestreamEnded event.
+/// </summary>
+public class LivestreamEndedEventArgs : EventArgs
+{
+    /// <summary>
+    /// Video ID of the livestream that ended.
+    /// </summary>
+    public required string LiveId { get; set; }
+
+    /// <summary>
+    /// Reason why the livestream was considered ended.
+    /// </summary>
+    public string? Reason { get; set; }
 }
 
 /// <summary>

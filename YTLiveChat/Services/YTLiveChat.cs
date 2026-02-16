@@ -32,6 +32,12 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     public event EventHandler<ChatReceivedEventArgs>? ChatReceived;
 
     /// <inheritdoc />
+    public event EventHandler<LivestreamStartedEventArgs>? LivestreamStarted;
+
+    /// <inheritdoc />
+    public event EventHandler<LivestreamEndedEventArgs>? LivestreamEnded;
+
+    /// <inheritdoc />
     public event EventHandler<RawActionReceivedEventArgs>? RawActionReceived;
 
     /// <inheritdoc />
@@ -45,6 +51,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     private FetchOptions? _fetchOptionsInternal;
     private CancellationTokenSource? _cancellationTokenSource;
     private Task? _pollingTask; // Keep track of the polling task
+    private bool _continuousMonitorEnabledForSession;
+    private string? _activeLiveId;
+    private bool _terminateCurrentSession;
 
     private const int MaxRetryAttempts = 5;
     private const double BaseRetryDelaySeconds = 1.0;
@@ -200,11 +209,13 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                         )
                     );
                     // Optionally stop if the background task faults unexpectedly
+                    EndActiveLivestream("Background task faulted unexpectedly.");
                     OnChatStopped(new() { Reason = "Background task faulted unexpectedly." });
                 }
                 else if (task.IsCanceled)
                 {
                     _logger.LogInformation("Polling task was cancelled.");
+                    EndActiveLivestream("Operation Cancelled");
                     OnChatStopped(new() { Reason = "Operation Cancelled" });
                 }
                 else
@@ -232,41 +243,54 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         _logger.LogInformation("Listener task starting initialization...");
         try
         {
-            // --- Initialization ---
-            _fetchOptionsInternal = await GetFetchOptionsAsync(
-                handle,
-                channelId,
-                liveId,
-                true,
-                cancellationToken
-            ); // Always overwrite internal options on new start
-            if (_fetchOptionsInternal?.LiveId is null)
+            bool isHandleOrChannelTarget =
+                !string.IsNullOrWhiteSpace(handle) || !string.IsNullOrWhiteSpace(channelId);
+            bool isDirectLiveId = !string.IsNullOrWhiteSpace(liveId);
+            _continuousMonitorEnabledForSession =
+                _options.EnableContinuousLivestreamMonitor && isHandleOrChannelTarget && !isDirectLiveId;
+            _terminateCurrentSession = false;
+
+            while (!cancellationToken.IsCancellationRequested)
             {
-                // Error logged within GetFetchOptionsAsync
-                // Fire events and exit task
-                OnErrorOccurred(
-                    new ErrorOccurredEventArgs(
-                        new InvalidOperationException(
-                            "Failed to retrieve valid initial FetchOptions (LiveId is missing)."
-                        )
-                    )
+                _fetchOptionsInternal = await TryGetFetchOptionsForSessionAsync(
+                    handle,
+                    channelId,
+                    liveId,
+                    cancellationToken
                 );
-                OnChatStopped(new() { Reason = "Failed to get initial options" });
-                return;
-            }
+                if (_fetchOptionsInternal == null)
+                {
+                    // Continuous mode: no active live yet, keep checking.
+                    await Task
+                        .Delay(TimeSpan.FromMilliseconds(_options.LiveCheckFrequency), cancellationToken)
+                        .ConfigureAwait(false);
+                    continue;
+                }
 
-            OnInitialPageLoaded(new() { LiveId = _fetchOptionsInternal.LiveId });
-            _logger.LogInformation(
-                "Initial page loaded for Live ID: {LiveId}. Starting polling loop...",
-                _fetchOptionsInternal.LiveId
-            );
+                BeginActiveLivestream(_fetchOptionsInternal.LiveId);
+                OnInitialPageLoaded(new() { LiveId = _fetchOptionsInternal.LiveId });
+                _logger.LogInformation(
+                    "Initial page loaded for Live ID: {LiveId}. Starting polling loop...",
+                    _fetchOptionsInternal.LiveId
+                );
 
-            // --- Polling Loop (Conditional Timer/Delay) ---
+                // --- Polling Loop (Conditional Timer/Delay) ---
 #if NETSTANDARD2_1 || NETSTANDARD2_0
-            await PollingLoopWithTaskDelayAsync(cancellationToken);
+                await PollingLoopWithTaskDelayAsync(cancellationToken);
 #else
-            await PollingLoopWithPeriodicTimerAsync(cancellationToken);
+                await PollingLoopWithPeriodicTimerAsync(cancellationToken);
 #endif
+
+                if (!_continuousMonitorEnabledForSession)
+                {
+                    break;
+                }
+
+                if (_terminateCurrentSession)
+                {
+                    break;
+                }
+            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -284,6 +308,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 "Critical error during listener task execution (outside polling loop)."
             );
             OnErrorOccurred(new ErrorOccurredEventArgs(ex));
+            EndActiveLivestream($"Critical error: {ex.Message}");
             OnChatStopped(new() { Reason = $"Critical error: {ex.Message}" });
         }
         finally
@@ -292,6 +317,88 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             _logger.LogInformation("Listener task finished execution.");
             // ChatStopped should be fired by loop logic, cancellation, or Stop()
         }
+    }
+
+    private async Task<FetchOptions?> TryGetFetchOptionsForSessionAsync(
+        string? handle,
+        string? channelId,
+        string? liveId,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            FetchOptions? options = await GetFetchOptionsAsync(
+                handle,
+                channelId,
+                liveId,
+                true,
+                cancellationToken
+            );
+            if (options?.LiveId is null)
+            {
+                if (_continuousMonitorEnabledForSession)
+                {
+                    return null;
+                }
+
+                throw new InvalidOperationException(
+                    "Failed to retrieve valid initial FetchOptions (LiveId is missing)."
+                );
+            }
+
+            return options;
+        }
+        catch (InvalidOperationException ex) when (
+            _continuousMonitorEnabledForSession && IsLikelyNoActiveLiveError(ex)
+        )
+        {
+            _logger.LogDebug(
+                "No active livestream found for monitored target yet. Rechecking in {DelayMs} ms.",
+                _options.LiveCheckFrequency
+            );
+            return null;
+        }
+    }
+
+    private static bool IsLikelyNoActiveLiveError(InvalidOperationException ex)
+    {
+        string message = ex.ToString();
+        return message.Contains("Live Stream canonical link not found", StringComparison.Ordinal)
+            || message.Contains("Initial Continuation token not found", StringComparison.Ordinal)
+            || message.Contains("is finished live", StringComparison.Ordinal);
+    }
+
+    private void BeginActiveLivestream(string liveId)
+    {
+        _activeLiveId = liveId;
+        OnLivestreamStarted(new() { LiveId = liveId });
+    }
+
+    private void EndActiveLivestream(string? reason)
+    {
+        if (string.IsNullOrWhiteSpace(_activeLiveId))
+        {
+            return;
+        }
+
+        string endedLiveId = _activeLiveId!;
+        _activeLiveId = null;
+        _fetchOptionsInternal = null;
+        OnLivestreamEnded(
+            new()
+            {
+                LiveId = endedLiveId,
+                Reason = reason,
+            }
+        );
+    }
+
+    private void EndActiveLivestreamAndStopChat(string reason)
+    {
+        _terminateCurrentSession = true;
+        EndActiveLivestream(reason);
+        OnChatStopped(new() { Reason = reason });
     }
 
 #if !NETSTANDARD2_1 && !NETSTANDARD2_0
@@ -317,7 +424,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                             new InvalidOperationException("Continuation token lost.")
                         )
                     );
-                    OnChatStopped(new() { Reason = "Continuation token missing" });
+                    EndActiveLivestreamAndStopChat("Continuation token missing");
                     break;
                 }
 
@@ -357,7 +464,11 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                             _logger.LogInformation(
                                 "No continuation token received. Assuming stream ended or chat disabled."
                             );
-                            OnChatStopped(new() { Reason = "Stream ended or continuation lost" });
+                            EndActiveLivestream("Stream ended or continuation lost");
+                            if (!_continuousMonitorEnabledForSession)
+                            {
+                                OnChatStopped(new() { Reason = "Stream ended or continuation lost" });
+                            }
                             break; // Exit loop normally
                         }
                     }
@@ -379,7 +490,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                         "Received Forbidden (403). Stream might be region locked, require login, or API access changed. Stopping."
                     );
                     OnErrorOccurred(new ErrorOccurredEventArgs(httpEx));
-                    OnChatStopped(new() { Reason = "Received Forbidden (403)" });
+                    EndActiveLivestreamAndStopChat("Received Forbidden (403)");
                     break; // Stop polling loop
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
@@ -394,11 +505,8 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                             "Maximum retry attempts ({MaxAttempts}) exceeded. Stopping poll.",
                             MaxRetryAttempts
                         );
-                        OnChatStopped(
-                            new()
-                            {
-                                Reason = $"Failed after {MaxRetryAttempts} retries: {ex.Message}",
-                            }
+                        EndActiveLivestreamAndStopChat(
+                            $"Failed after {MaxRetryAttempts} retries: {ex.Message}"
                         );
                         break; // Stop polling loop
                     }
@@ -457,7 +565,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                             new InvalidOperationException("Continuation token lost.")
                         )
                     );
-                    OnChatStopped(new() { Reason = "Continuation token missing" });
+                    EndActiveLivestreamAndStopChat("Continuation token missing");
                     break;
                 }
 
@@ -497,7 +605,11 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                             _logger.LogInformation(
                                 "No continuation token received. Assuming stream ended or chat disabled."
                             );
-                            OnChatStopped(new() { Reason = "Stream ended or continuation lost" });
+                            EndActiveLivestream("Stream ended or continuation lost");
+                            if (!_continuousMonitorEnabledForSession)
+                            {
+                                OnChatStopped(new() { Reason = "Stream ended or continuation lost" });
+                            }
                             break; // Exit loop normally
                         }
                     }
@@ -523,7 +635,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                         "Received Forbidden (403). Stream might be region locked, require login, or API access changed. Stopping."
                     );
                     OnErrorOccurred(new ErrorOccurredEventArgs(httpEx));
-                    OnChatStopped(new() { Reason = "Received Forbidden (403)" });
+                    EndActiveLivestreamAndStopChat("Received Forbidden (403)");
                     break; // Stop polling loop
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
@@ -538,11 +650,8 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                             "Maximum retry attempts ({MaxAttempts}) exceeded. Stopping poll.",
                             MaxRetryAttempts
                         );
-                        OnChatStopped(
-                            new()
-                            {
-                                Reason = $"Failed after {MaxRetryAttempts} retries: {ex.Message}",
-                            }
+                        EndActiveLivestreamAndStopChat(
+                            $"Failed after {MaxRetryAttempts} retries: {ex.Message}"
                         );
                         break; // Stop polling loop
                     }
@@ -1154,6 +1263,32 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 "Error invoking ChatReceived event handler for item ID {ItemId}.",
                 e.ChatItem?.Id
             );
+        }
+    }
+
+    /// <summary>Invokes the LivestreamStarted event.</summary>
+    protected virtual void OnLivestreamStarted(LivestreamStartedEventArgs e)
+    {
+        try
+        {
+            LivestreamStarted?.Invoke(this, e);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error invoking LivestreamStarted event handler.");
+        }
+    }
+
+    /// <summary>Invokes the LivestreamEnded event.</summary>
+    protected virtual void OnLivestreamEnded(LivestreamEndedEventArgs e)
+    {
+        try
+        {
+            LivestreamEnded?.Invoke(this, e);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error invoking LivestreamEnded event handler.");
         }
     }
 

@@ -17,6 +17,18 @@ public class YTLiveChatOptions
     public int RequestFrequency { get; set; } = 1000;
 
     /// <summary>
+    /// If true and started with a channel handle/channelId (not direct liveId), keeps monitoring for future livestreams.
+    /// When a stream ends, the service continues polling the channel's /live endpoint until the next stream starts.
+    /// </summary>
+    public bool EnableContinuousLivestreamMonitor { get; set; } = false;
+
+    /// <summary>
+    /// Frequency in milliseconds for checking whether a channel handle/channelId is currently live
+    /// while waiting for a stream to start in continuous monitor mode.
+    /// </summary>
+    public int LiveCheckFrequency { get; set; } = 10000;
+
+    /// <summary>
     /// [DEBUG] If true, logs the raw JSON of received 'AddChatItemAction.Item' objects to the specified file.
     /// This is useful for inspecting the structure of different event types.
     /// Default is false.
