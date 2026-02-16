@@ -1,6 +1,8 @@
 ﻿using System.Text.Json;
+
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+
 using YTLiveChat.Contracts.Models;
 using YTLiveChat.Contracts.Services;
 
@@ -26,7 +28,7 @@ internal class ChatMonitorService : IHostedService, IDisposable
         _ytLiveChat = ytLiveChat;
         _options = options;
         _appLifetime = appLifetime;
-        appLifetime.ApplicationStopping.Register(OnApplicationStopping);
+        _ = appLifetime.ApplicationStopping.Register(OnApplicationStopping);
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -165,6 +167,7 @@ internal class ChatMonitorService : IHostedService, IDisposable
                 _ => ConsoleColor.Gray,
             };
         }
+
         return ConsoleColor.DarkGray; // Default for other complex messages
     }
 

@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+
 using YTLiveChat.Contracts.Models;
 using YTLiveChat.Helpers;
 using YTLiveChat.Models.Response;
@@ -52,7 +53,7 @@ public class ParserTests
         Assert.AreEqual("TestUser1", chatItem.Author.Name);
         Assert.AreEqual("UC_CHANNEL_ID_01", chatItem.Author.ChannelId);
         Assert.AreEqual(1, chatItem.Message.Length);
-        Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
+        _ = Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
         Assert.AreEqual("Hello World", ((TextPart)chatItem.Message[0]).Text);
         Assert.IsNull(chatItem.Author.Badge);
         Assert.IsNull(chatItem.Superchat);
@@ -79,9 +80,9 @@ public class ParserTests
         Assert.AreEqual("MSG_ID_STD_EMOJI_01", chatItem.Id);
         Assert.AreEqual("EmojiFan", chatItem.Author.Name);
         Assert.AreEqual(2, chatItem.Message.Length);
-        Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
+        _ = Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
         Assert.AreEqual("Congratulations ", ((TextPart)chatItem.Message[0]).Text);
-        Assert.IsInstanceOfType<EmojiPart>(chatItem.Message[1]);
+        _ = Assert.IsInstanceOfType<EmojiPart>(chatItem.Message[1]);
         EmojiPart emojiPart = (EmojiPart)chatItem.Message[1];
         Assert.AreEqual("🥳", emojiPart.EmojiText);
         Assert.AreEqual(":partying_face:", emojiPart.Alt);
@@ -102,9 +103,9 @@ public class ParserTests
         Assert.AreEqual("MSG_ID_CUSTOM_EMOJI_01", chatItem.Id);
         Assert.AreEqual("ChannelSupporter", chatItem.Author.Name);
         Assert.AreEqual(2, chatItem.Message.Length);
-        Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
+        _ = Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
         Assert.AreEqual("Check this out: ", ((TextPart)chatItem.Message[0]).Text);
-        Assert.IsInstanceOfType<EmojiPart>(chatItem.Message[1]);
+        _ = Assert.IsInstanceOfType<EmojiPart>(chatItem.Message[1]);
         EmojiPart emojiPart = (EmojiPart)chatItem.Message[1];
         Assert.IsTrue(emojiPart.IsCustomEmoji);
         Assert.AreEqual(":customcat:", emojiPart.EmojiText);
@@ -125,14 +126,14 @@ public class ParserTests
         Assert.AreEqual("MSG_ID_MIXED_01", chatItem.Id);
         Assert.AreEqual("MixedUser", chatItem.Author.Name);
         Assert.AreEqual(3, chatItem.Message.Length);
-        Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
+        _ = Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
         Assert.AreEqual("Text part 1, ", ((TextPart)chatItem.Message[0]).Text);
-        Assert.IsInstanceOfType<EmojiPart>(chatItem.Message[1]);
+        _ = Assert.IsInstanceOfType<EmojiPart>(chatItem.Message[1]);
         EmojiPart emojiPart = (EmojiPart)chatItem.Message[1];
         Assert.AreEqual("👍", emojiPart.EmojiText);
         Assert.AreEqual(":thumbs_up:", emojiPart.Alt);
         Assert.IsFalse(emojiPart.IsCustomEmoji);
-        Assert.IsInstanceOfType<TextPart>(chatItem.Message[2]);
+        _ = Assert.IsInstanceOfType<TextPart>(chatItem.Message[2]);
         Assert.AreEqual(" then more text.", ((TextPart)chatItem.Message[2]).Text);
     }
 
@@ -149,7 +150,7 @@ public class ParserTests
         Assert.AreEqual("MSG_ID_NON_LATIN_01", chatItem.Id);
         Assert.AreEqual("Пользователь1", chatItem.Author.Name);
         Assert.AreEqual(1, chatItem.Message.Length);
-        Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
+        _ = Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
         Assert.AreEqual("Привет мир", ((TextPart)chatItem.Message[0]).Text);
     }
 
@@ -341,7 +342,7 @@ public class ParserTests
             chatItem.Message.Length,
             "Should have one message run for the user's comment."
         );
-        Assert.IsInstanceOfType<TextPart>(chatItem.Message[0], "Message part should be TextPart.");
+        _ = Assert.IsInstanceOfType<TextPart>(chatItem.Message[0], "Message part should be TextPart.");
         Assert.AreEqual(
             "YOOOOOO hope all is a well my man",
             ((TextPart)chatItem.Message[0]).Text,
@@ -372,7 +373,7 @@ public class ParserTests
         Assert.AreEqual("Member (6 months)", chatItem.Author.Badge.Label);
         Assert.IsTrue(chatItem.IsMembership);
         Assert.AreEqual(1, chatItem.Message.Length);
-        Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
+        _ = Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
         Assert.AreEqual("missed a bit, what's going on?", ((TextPart)chatItem.Message[0]).Text);
     }
 

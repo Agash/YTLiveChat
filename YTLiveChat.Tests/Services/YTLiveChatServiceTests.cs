@@ -1,6 +1,9 @@
 ﻿using System.Text.Json;
+
 using Microsoft.Extensions.Logging;
+
 using Moq;
+
 using YTLiveChat.Contracts;
 using YTLiveChat.Contracts.Models;
 using YTLiveChat.Contracts.Services;
@@ -136,13 +139,13 @@ public class YTLiveChatServiceTests
             JsonSerializer.Deserialize<LiveChatResponse>(responseJsonForFirstPoll);
         Assert.IsNotNull(liveChatResponseForFirstPoll, "Deserialization of mock response failed.");
 
-        _mockYtHttpClient
+        _ = _mockYtHttpClient
             .Setup(client =>
                 client.GetOptionsAsync(null, null, liveId, It.IsAny<CancellationToken>())
             )
             .ReturnsAsync(pageHtml);
 
-        _mockYtHttpClient
+        _ = _mockYtHttpClient
             .Setup(client =>
                 client.GetLiveChatAsync(
                     It.Is<FetchOptions>(fo =>
@@ -213,7 +216,7 @@ public class YTLiveChatServiceTests
         string expectedInnerExceptionMessage =
             $"Failed to initialize from YouTube page: {httpException.Message}";
 
-        _mockYtHttpClient
+        _ = _mockYtHttpClient
             .Setup(c => c.GetOptionsAsync(null, null, liveId, It.IsAny<CancellationToken>()))
             .ThrowsAsync(httpException);
 
@@ -230,7 +233,7 @@ public class YTLiveChatServiceTests
 
         ErrorOccurredEventArgs errorArgs = await WaitForTcsResult(errorTcs, "ErrorOccurred");
         Assert.IsNotNull(errorArgs);
-        Assert.IsInstanceOfType<InvalidOperationException>(errorArgs.GetException());
+        _ = Assert.IsInstanceOfType<InvalidOperationException>(errorArgs.GetException());
         Assert.AreEqual(expectedInnerExceptionMessage, errorArgs.GetException().Message);
         Assert.AreEqual(httpException, errorArgs.GetException().InnerException);
 
@@ -258,7 +261,7 @@ public class YTLiveChatServiceTests
             clientVersion,
             initialContinuationFromHtml
         );
-        _mockYtHttpClient
+        _ = _mockYtHttpClient
             .Setup(client =>
                 client.GetOptionsAsync(null, null, liveId, It.IsAny<CancellationToken>())
             )
@@ -326,16 +329,16 @@ public class YTLiveChatServiceTests
         {
             receivedItems.Add(e.ChatItem);
             if (e.ChatItem.Id == "MSG_ID_SIMPLE_01")
-                firstItemReceivedTcs.TrySetResult(true);
+                _ = firstItemReceivedTcs.TrySetResult(true);
             if (e.ChatItem.Id == "MSG_ID_STD_EMOJI_01")
-                secondItemReceivedTcs.TrySetResult(true);
+                _ = secondItemReceivedTcs.TrySetResult(true);
         };
 
         _service.Start(liveId: liveId);
 
-        await WaitForTcsResult(initialPageLoadedTcs, "InitialPageLoaded_Multi");
-        await WaitForTcsResult(firstItemReceivedTcs, "FirstItem_Multi");
-        await WaitForTcsResult(secondItemReceivedTcs, "SecondItem_Multi");
+        _ = await WaitForTcsResult(initialPageLoadedTcs, "InitialPageLoaded_Multi");
+        _ = await WaitForTcsResult(firstItemReceivedTcs, "FirstItem_Multi");
+        _ = await WaitForTcsResult(secondItemReceivedTcs, "SecondItem_Multi");
 
         Assert.AreEqual(2, receivedItems.Count);
         Assert.AreEqual("MSG_ID_SIMPLE_01", receivedItems[0].Id);
@@ -354,7 +357,7 @@ public class YTLiveChatServiceTests
         string rendererContent = TextMessageTestData.SimpleTextMessage1();
         string itemObjectJson = $$"""{ "liveChatTextMessageRenderer": {{rendererContent}} }""";
 
-        _mockYtHttpClient
+        _ = _mockYtHttpClient
             .Setup(c => c.GetOptionsAsync(null, null, liveId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(
                 UtilityTestData.GetSampleLivePageHtml(liveId, apiKey, clientVersion, initialCont)
@@ -365,7 +368,7 @@ public class YTLiveChatServiceTests
             responseJson
         );
         Assert.IsNotNull(liveChatResponse);
-        _mockYtHttpClient
+        _ = _mockYtHttpClient
             .Setup(c =>
                 c.GetLiveChatAsync(
                     It.Is<FetchOptions>(fo =>
@@ -392,8 +395,8 @@ public class YTLiveChatServiceTests
 
         _service.Start(liveId: liveId);
 
-        await WaitForTcsResult(initialPageLoadedTcs, "InitialPageLoaded_StreamEnd");
-        await WaitForTcsResult(receivedItemTcs, "ReceivedItem_StreamEnd");
+        _ = await WaitForTcsResult(initialPageLoadedTcs, "InitialPageLoaded_StreamEnd");
+        _ = await WaitForTcsResult(receivedItemTcs, "ReceivedItem_StreamEnd");
 
         ChatStoppedEventArgs stoppedArgs = await WaitForTcsResult(
             stoppedTcs,
@@ -413,7 +416,7 @@ public class YTLiveChatServiceTests
         string initialCont = "initialContSC";
         string nextCont = "nextContSC";
 
-        _mockYtHttpClient
+        _ = _mockYtHttpClient
             .Setup(c => c.GetOptionsAsync(null, null, liveId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(
                 UtilityTestData.GetSampleLivePageHtml(liveId, apiKey, clientVersion, initialCont)
@@ -431,7 +434,7 @@ public class YTLiveChatServiceTests
         );
         Assert.IsNotNull(liveChatResponse);
 
-        _mockYtHttpClient
+        _ = _mockYtHttpClient
             .Setup(c =>
                 c.GetLiveChatAsync(
                     It.Is<FetchOptions>(fo =>
@@ -472,7 +475,7 @@ public class YTLiveChatServiceTests
         string initialCont = "initialContNM";
         string nextCont = "nextContNM";
 
-        _mockYtHttpClient
+        _ = _mockYtHttpClient
             .Setup(c => c.GetOptionsAsync(null, null, liveId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(
                 UtilityTestData.GetSampleLivePageHtml(liveId, apiKey, clientVersion, initialCont)
@@ -490,7 +493,7 @@ public class YTLiveChatServiceTests
         );
         Assert.IsNotNull(liveChatResponse);
 
-        _mockYtHttpClient
+        _ = _mockYtHttpClient
             .Setup(c =>
                 c.GetLiveChatAsync(
                     It.Is<FetchOptions>(fo =>

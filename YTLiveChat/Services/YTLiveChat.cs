@@ -1,6 +1,8 @@
 ﻿using System.Text.Json;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+
 using YTLiveChat.Contracts;
 using YTLiveChat.Contracts.Services;
 using YTLiveChat.Helpers;
@@ -109,7 +111,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             string? directory = Path.GetDirectoryName(_debugLogFilePath);
             if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
             {
-                Directory.CreateDirectory(directory);
+                _ = Directory.CreateDirectory(directory);
                 _logger.LogInformation(
                     "Created directory for debug log: {DirectoryPath}",
                     directory
@@ -165,7 +167,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         );
 
         // Optionally, handle unobserved exceptions from the task if not awaited elsewhere
-        _pollingTask.ContinueWith(
+        _ = _pollingTask.ContinueWith(
             task =>
             {
                 if (task.IsFaulted && task.Exception != null)

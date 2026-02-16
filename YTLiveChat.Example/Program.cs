@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+
 using YTLiveChat.DependencyInjection;
 using YTLiveChat.Example;
 
@@ -20,7 +21,7 @@ while (string.IsNullOrWhiteSpace(identifier))
     }
 }
 
-var runOptions = new ExampleRunOptions();
+ExampleRunOptions runOptions = new();
 if (identifier.StartsWith('@'))
 {
     runOptions.Handle = identifier;

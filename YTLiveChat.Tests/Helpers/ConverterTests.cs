@@ -5,7 +5,7 @@ namespace YTLiveChat.Tests.Helpers;
 [TestClass]
 public class ConverterTests
 {
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(0L, "000000")] // Black (ARGB: 00000000)
     [DataRow(-1L, "FFFFFF")] // White (ARGB: FFFFFFFF)
     [DataRow(-16777216L, "000000")] // Black (ARGB: FF000000)
