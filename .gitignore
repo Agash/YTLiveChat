@@ -383,3 +383,6 @@ ytlivechat_poll_objects.json
 
 # Local InnerTube capture logs
 logs/
+
+# Local release drafting
+CHANGELOG.md
