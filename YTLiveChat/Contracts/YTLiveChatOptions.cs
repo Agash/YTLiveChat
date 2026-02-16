@@ -25,9 +25,9 @@ public class YTLiveChatOptions
 
     /// <summary>
     /// [DEBUG] The file path where raw JSON items will be logged if DebugLogReceivedJsonItems is true.
-    /// Defaults to "ytlivechat_debug_items.jsonl" in the application's base directory.
-    /// Uses JSON Lines format (one JSON object per line).
+    /// Defaults to "ytlivechat_debug_items.json" in the application's base directory.
+    /// Uses a single JSON array for easier downstream analysis.
     /// </summary>
     public string DebugLogFilePath { get; set; } =
-        Path.Combine(AppContext.BaseDirectory, "ytlivechat_debug_items.jsonl");
+        Path.Combine(AppContext.BaseDirectory, "ytlivechat_debug_items.json");
 }

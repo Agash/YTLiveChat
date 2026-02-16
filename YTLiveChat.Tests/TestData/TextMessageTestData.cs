@@ -132,4 +132,32 @@ internal static class TextMessageTestData
             }
             """;
     }
+
+    public static string TextMessageWithViewerLeaderboardRank()
+    {
+        long ts = GetTimestampUsec(25);
+        return $$"""
+            {
+              "message": { "runs": [{ "text": "ranked message sample" }] },
+              "beforeContentButtons": [
+                {
+                  "buttonViewModel": {
+                    "iconName": "CROWN",
+                    "title": "#2",
+                    "accessibilityText": "#2",
+                    "style": "BUTTON_VIEW_MODEL_STYLE_CUSTOM"
+                  }
+                }
+              ],
+              "id": "MSG_ID_RANK_01",
+              "timestampUsec": "{{ts}}",
+              "authorName": { "simpleText": "RankedUser" },
+              "authorPhoto": { "thumbnails": [{ "url": "https://yt4.ggpht.com/placeholder/avatarRank_s32.png" }] },
+              "authorBadges": null,
+              "authorExternalChannelId": "UC_CHANNEL_ID_RANK",
+              "contextMenuEndpoint": { "liveChatItemContextMenuEndpoint": { "params": "CONTEXT_PARAMS_RANK_01" } },
+              "trackingParams": "TRACKING_PARAMS_RANK_01"
+            }
+            """;
+    }
 }

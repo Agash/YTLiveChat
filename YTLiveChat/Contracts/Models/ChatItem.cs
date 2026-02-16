@@ -60,4 +60,10 @@ public class ChatItem
     /// Timestamp when the ChatItem was created/received from the API (approximated).
     /// </summary>
     public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow; // Consider parsing TimestampUsec later for more accuracy
+
+    /// <summary>
+    /// Optional leaderboard rank shown by YouTube's points system for this message (e.g. 1, 2, 3).
+    /// Present when chat message includes the crown rank button.
+    /// </summary>
+    public int? ViewerLeaderboardRank { get; set; }
 }

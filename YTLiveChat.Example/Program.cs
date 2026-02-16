@@ -2,6 +2,9 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+using System.IO;
+
+using YTLiveChat.Contracts;
 using YTLiveChat.DependencyInjection;
 using YTLiveChat.Example;
 
@@ -33,6 +36,22 @@ else
     Console.WriteLine($"Target Live ID: {identifier}");
 }
 
+Console.Write("Record raw InnerTube JSON for analysis? (y/N): ");
+string? logResponse = Console.ReadLine();
+if (
+    !string.IsNullOrWhiteSpace(logResponse)
+    && logResponse.Trim().Equals("y", StringComparison.OrdinalIgnoreCase)
+)
+{
+    runOptions.EnableJsonLogging = true;
+    Console.Write("Log file path (leave empty for default): ");
+    string? pathInput = Console.ReadLine();
+    if (!string.IsNullOrWhiteSpace(pathInput))
+    {
+        runOptions.DebugLogPath = Path.GetFullPath(pathInput.Trim());
+    }
+}
+
 Console.WriteLine("Attempting to connect...");
 
 HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
@@ -44,6 +63,18 @@ builder.Logging.AddConsole();
 builder.Logging.SetMinimumLevel(LogLevel.Information); // Changed to Information
 
 builder.Services.AddYTLiveChat(builder.Configuration);
+
+builder.Services.Configure<YTLiveChatOptions>(options =>
+{
+    if (runOptions.EnableJsonLogging)
+    {
+        options.DebugLogReceivedJsonItems = true;
+        if (!string.IsNullOrWhiteSpace(runOptions.DebugLogPath))
+        {
+            options.DebugLogFilePath = runOptions.DebugLogPath!;
+        }
+    }
+});
 
 // Add the populated options object as a singleton
 builder.Services.AddSingleton(runOptions);

@@ -3,6 +3,8 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
+using System.Text;
+
 using YTLiveChat.Contracts;
 using YTLiveChat.Contracts.Services;
 using YTLiveChat.Helpers;
@@ -50,6 +52,14 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     {
         WriteIndented = false,
     };
+    private static readonly byte[] s_debugLogArrayStart = Encoding.UTF8.GetBytes("[\r\n");
+    private static readonly byte[] s_debugLogEntrySeparator = Encoding.UTF8.GetBytes(",\r\n");
+    private static readonly byte[] s_debugLogArrayEnd = Encoding.UTF8.GetBytes("\r\n]\r\n");
+    private static readonly byte[] s_debugLogNewline = Encoding.UTF8.GetBytes(Environment.NewLine);
+
+    private bool _debugLogArrayStarted;
+    private bool _debugLogHasEntries;
+    private bool _debugLogArrayClosed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="YTLiveChat"/> class.
@@ -83,7 +93,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         _isDebugLoggingEnabled = _options.DebugLogReceivedJsonItems;
         _debugLogFilePath =
             _options.DebugLogFilePath
-            ?? Path.Combine(AppContext.BaseDirectory, "ytlivechat_debug_items.jsonl");
+            ?? Path.Combine(AppContext.BaseDirectory, "ytlivechat_debug_items.json");
 
 #if DEBUG
         // Optionally force debug logging in DEBUG builds, regardless of options
@@ -101,6 +111,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 _debugLogFilePath
             );
             EnsureDebugLogDirectoryExists();
+            EnsureDebugLogFileIsArray();
         }
     }
 
@@ -576,42 +587,18 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     /// </summary>
     private async Task LogRawJsonActionsAsync(string? rawJson, CancellationToken cancellationToken)
     {
-        if (!_isDebugLoggingEnabled || string.IsNullOrEmpty(rawJson))
+        if (!_isDebugLoggingEnabled || rawJson == null)
             return;
 
-        // Use SemaphoreSlim for thread-safe file access
+        string entry = rawJson.Trim();
+        if (string.IsNullOrEmpty(entry))
+            return;
+
         await s_debugLogLock.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         try
         {
-#if NETSTANDARD2_0 || NETSTANDARD2_1
-            // CS8417 fix: Use synchronous 'using' for NS2.0/NS2.1
-            using FileStream fs = new(
-                _debugLogFilePath,
-                FileMode.Append,
-                FileAccess.Write,
-                FileShare.Read,
-                4096,
-                useAsync: true
-            ); // useAsync is a hint
-            using StreamWriter writer = new(fs, System.Text.Encoding.UTF8);
-
-            await writer.WriteLineAsync(rawJson).ConfigureAwait(false);
-#else
-            // Use await using for newer frameworks
-            await using FileStream fs = new(
-                _debugLogFilePath,
-                FileMode.Append,
-                FileAccess.Write,
-                FileShare.Read,
-                4096,
-                useAsync: true
-            );
-            await using StreamWriter writer = new(fs, System.Text.Encoding.UTF8);
-            await writer
-                .WriteLineAsync(rawJson.AsMemory(), cancellationToken)
-                .ConfigureAwait(false);
-#endif
+            await AppendJsonArrayEntryAsync(entry, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -624,7 +611,221 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 "Error writing raw JSON actions to log file '{FilePath}'",
                 _debugLogFilePath
             );
-            // Consider disabling debug logging temporarily if errors persist
+        }
+        finally
+        {
+            s_debugLogLock.Release();
+        }
+    }
+
+    private void EnsureDebugLogFileIsArray()
+    {
+        try
+        {
+            if (!File.Exists(_debugLogFilePath))
+            {
+                File.WriteAllBytes(_debugLogFilePath, s_debugLogArrayStart);
+                return;
+            }
+
+            using FileStream fs = new(
+                _debugLogFilePath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite
+            );
+
+            if (fs.Length == 0)
+            {
+                fs.Dispose();
+                File.WriteAllBytes(_debugLogFilePath, s_debugLogArrayStart);
+                return;
+            }
+
+            char? firstNonWhitespace = GetFirstNonWhitespaceChar(fs);
+            if (firstNonWhitespace == '[')
+            {
+                return;
+            }
+
+            fs.Dispose();
+            string legacyPath = $"{_debugLogFilePath}.{DateTime.UtcNow:yyyyMMddHHmmss}.legacy";
+            File.Move(_debugLogFilePath, legacyPath);
+            File.WriteAllBytes(_debugLogFilePath, s_debugLogArrayStart);
+
+            _logger.LogWarning(
+                "Debug log at '{FilePath}' was not a JSON array. Moved old content to '{LegacyPath}' and started a new array.",
+                _debugLogFilePath,
+                legacyPath
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error preparing debug log file '{FilePath}'.",
+                _debugLogFilePath
+            );
+        }
+    }
+
+    private async Task AppendJsonArrayEntryAsync(string entryJson, CancellationToken cancellationToken)
+    {
+        using FileStream fs = new(
+            _debugLogFilePath,
+            FileMode.OpenOrCreate,
+            FileAccess.ReadWrite,
+            FileShare.Read,
+            4096,
+            useAsync: true
+        );
+
+        await PrepareJsonArrayStreamAsync(fs, cancellationToken).ConfigureAwait(false);
+
+        if (_debugLogHasEntries)
+        {
+            await WriteBytesAsync(fs, s_debugLogEntrySeparator, cancellationToken).ConfigureAwait(false);
+        }
+
+        byte[] entryBytes = Encoding.UTF8.GetBytes(entryJson);
+        await WriteBytesAsync(fs, entryBytes, cancellationToken).ConfigureAwait(false);
+        await WriteBytesAsync(fs, s_debugLogNewline, cancellationToken).ConfigureAwait(false);
+
+        _debugLogHasEntries = true;
+    }
+
+    private async Task PrepareJsonArrayStreamAsync(FileStream fs, CancellationToken cancellationToken)
+    {
+        if (_debugLogArrayClosed)
+        {
+            // Logging after closing is unexpected; reopen by truncating
+            fs.SetLength(0);
+            _debugLogArrayClosed = false;
+            _debugLogArrayStarted = false;
+            _debugLogHasEntries = false;
+        }
+
+        if (_debugLogArrayStarted)
+        {
+            fs.Seek(0, SeekOrigin.End);
+            return;
+        }
+
+        if (fs.Length == 0)
+        {
+            await WriteBytesAsync(fs, s_debugLogArrayStart, cancellationToken).ConfigureAwait(false);
+            _debugLogArrayStarted = true;
+            _debugLogHasEntries = false;
+            return;
+        }
+
+        await TrimTrailingClosingBracketAsync(fs, cancellationToken).ConfigureAwait(false);
+        _debugLogArrayStarted = true;
+        _debugLogHasEntries = fs.Length > s_debugLogArrayStart.Length;
+    }
+
+    private static async Task TrimTrailingClosingBracketAsync(FileStream fs, CancellationToken cancellationToken)
+    {
+        byte[] buffer = new byte[1];
+        long position = fs.Length;
+        while (position > 0)
+        {
+            position--;
+            fs.Seek(position, SeekOrigin.Begin);
+            int bytesRead = await ReadByteAsync(fs, buffer, cancellationToken).ConfigureAwait(false);
+            if (bytesRead == 0)
+                break;
+
+            char current = (char)buffer[0];
+            if (char.IsWhiteSpace(current))
+                continue;
+
+            if (current == ']')
+            {
+                fs.SetLength(position);
+            }
+
+            break;
+        }
+
+        fs.Seek(0, SeekOrigin.End);
+    }
+
+    private static async Task WriteBytesAsync(
+        FileStream fs,
+        byte[] buffer,
+        CancellationToken cancellationToken
+    )
+    {
+#if NETSTANDARD2_0
+        await fs.WriteAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
+#else
+        await fs.WriteAsync(buffer.AsMemory(), cancellationToken).ConfigureAwait(false);
+#endif
+    }
+
+    private static async Task<int> ReadByteAsync(
+        FileStream fs,
+        byte[] buffer,
+        CancellationToken cancellationToken
+    )
+    {
+#if NETSTANDARD2_0
+        return await fs.ReadAsync(buffer, 0, 1, cancellationToken).ConfigureAwait(false);
+#else
+        return await fs.ReadAsync(buffer.AsMemory(0, 1), cancellationToken).ConfigureAwait(false);
+#endif
+    }
+
+    private static char? GetFirstNonWhitespaceChar(FileStream fs)
+    {
+        byte[] buffer = new byte[1];
+        fs.Seek(0, SeekOrigin.Begin);
+        while (fs.Position < fs.Length)
+        {
+            int read = fs.Read(buffer, 0, 1);
+            if (read == 0)
+            {
+                break;
+            }
+
+            char current = (char)buffer[0];
+            if (!char.IsWhiteSpace(current))
+            {
+                return current;
+            }
+        }
+
+        return null;
+    }
+
+    private void FinalizeDebugJsonLog()
+    {
+        if (!_isDebugLoggingEnabled || !_debugLogArrayStarted || _debugLogArrayClosed)
+        {
+            return;
+        }
+
+        s_debugLogLock.Wait();
+        try
+        {
+            using FileStream fs = new(
+                _debugLogFilePath,
+                FileMode.OpenOrCreate,
+                FileAccess.Write,
+                FileShare.Read
+            );
+            fs.Seek(0, SeekOrigin.End);
+            fs.Write(s_debugLogArrayEnd, 0, s_debugLogArrayEnd.Length);
+            _debugLogArrayClosed = true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error finalizing debug JSON log array at '{FilePath}'",
+                _debugLogFilePath
+            );
         }
         finally
         {
@@ -693,6 +894,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             // Clear the task reference. The task itself will complete due to cancellation.
             // We don't `await` it here as Dispose is synchronous.
             _pollingTask = null;
+
+            // Finalize the optional debug JSON array log (adds closing bracket).
+            FinalizeDebugJsonLog();
 
             _logger.LogDebug("YTLiveChat service Dispose complete.");
         }

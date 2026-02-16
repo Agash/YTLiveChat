@@ -349,7 +349,21 @@ public record LiveChatTextMessageRenderer : MessageRendererBase
 {
     [JsonPropertyName("message")]
     public Message? Message { get; init; }
-    // [JsonPropertyName("beforeContentButtons")] public List<ButtonContainer>? BeforeContentButtons { get; init; } // Include if needed
+
+    [JsonPropertyName("beforeContentButtons")]
+    public List<BeforeContentButtonContainer>? BeforeContentButtons { get; init; }
+}
+
+public record BeforeContentButtonContainer
+{
+    [JsonPropertyName("buttonViewModel")]
+    public ButtonViewModel? ButtonViewModel { get; init; }
+}
+
+public record ButtonViewModel
+{
+    [JsonPropertyName("title")]
+    public string? Title { get; init; }
 }
 
 public record PurchaseAmountText // Used by PaidMessage and PaidSticker

@@ -3,33 +3,18 @@
 internal static class UtilityTestData
 {
     /// <summary>
-    /// Wraps one or more item renderer JSON strings into a full LiveChatResponse structure.
-    /// Each string in itemRendererJsons should be the JSON for the *item object* itself,
-    /// e.g., {"liveChatTextMessageRenderer": { ... }}
+    /// Wraps one or more full action JSON objects into a full LiveChatResponse structure.
+    /// Each string in actionJsons should be one action object, for example:
+    /// { "addChatItemAction": { ... } } or { "removeChatItemAction": { ... } }.
     /// </summary>
-    public static string WrapItemsInLiveChatResponse(
-        string[] itemObjectJsons, // Renamed for clarity: these are full item objects
+    public static string WrapActionsInLiveChatResponse(
+        string[] actionJsons,
         string? continuationToken = "0ofPLACEHOLDER_CONTINUATION_TOKEN",
         long timeoutMs = 10000,
-        string liveIdTopicSuffix = "fIpBwfFn3sg" // Example suffix for topic
+        string liveIdTopicSuffix = "fIpBwfFn3sg"
     )
     {
-        // Construct the 'actions' array. Each item in itemRendererJsons is now the full 'item' object.
-        string actionsJson = string.Join(
-            ",",
-            itemObjectJsons.Select(itemJson =>
-                $$"""
-                {
-                  "addChatItemAction": {
-                    "item": {{itemJson}},
-                    "clientId": "CLIENT_ID_PLACEHOLDER_{{Guid.NewGuid().ToString("N")[
-..8
-                ]}}"
-                  }
-                }
-                """
-            )
-        );
+        string actionsJson = string.Join(",", actionJsons);
 
         string continuationJsonBlock;
         if (continuationToken == null)
@@ -38,7 +23,6 @@ internal static class UtilityTestData
         }
         else
         {
-            // Using invalidationContinuationData as seen in the real example
             continuationJsonBlock = $$"""
                 "continuations": [
                   {
@@ -82,6 +66,40 @@ internal static class UtilityTestData
               }
             }
             """;
+    }
+
+    /// <summary>
+    /// Wraps one or more item renderer JSON strings into a full LiveChatResponse structure.
+    /// Each string in itemRendererJsons should be the JSON for the *item object* itself,
+    /// e.g., {"liveChatTextMessageRenderer": { ... }}
+    /// </summary>
+    public static string WrapItemsInLiveChatResponse(
+        string[] itemObjectJsons, // Renamed for clarity: these are full item objects
+        string? continuationToken = "0ofPLACEHOLDER_CONTINUATION_TOKEN",
+        long timeoutMs = 10000,
+        string liveIdTopicSuffix = "fIpBwfFn3sg" // Example suffix for topic
+    )
+    {
+        string[] actionJsons =
+        [
+            .. itemObjectJsons.Select(itemJson =>
+                $$"""
+                {
+                  "addChatItemAction": {
+                    "item": {{itemJson}},
+                    "clientId": "CLIENT_ID_PLACEHOLDER_{{Guid.NewGuid().ToString("N")[..8]}}"
+                  }
+                }
+                """
+            ),
+        ];
+
+        return WrapActionsInLiveChatResponse(
+            actionJsons,
+            continuationToken,
+            timeoutMs,
+            liveIdTopicSuffix
+        );
     }
 
     /// <summary>

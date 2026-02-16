@@ -261,4 +261,6 @@ internal class ExampleRunOptions
 {
     public string? LiveId { get; set; } // Keep nullable for clarity
     public string? Handle { get; set; } // Add nullable Handle property
+    public bool EnableJsonLogging { get; set; }
+    public string? DebugLogPath { get; set; }
 }
