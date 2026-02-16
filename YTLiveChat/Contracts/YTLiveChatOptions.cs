@@ -20,12 +20,18 @@ public class YTLiveChatOptions
     /// If true and started with a channel handle/channelId (not direct liveId), keeps monitoring for future livestreams.
     /// When a stream ends, the service continues polling the channel's /live endpoint until the next stream starts.
     /// </summary>
+    [Obsolete(
+        "BETA/UNSUPPORTED: Continuous livestream monitor mode may change or break at any time and is not covered by semver stability guarantees."
+    )]
     public bool EnableContinuousLivestreamMonitor { get; set; } = false;
 
     /// <summary>
     /// Frequency in milliseconds for checking whether a channel handle/channelId is currently live
     /// while waiting for a stream to start in continuous monitor mode.
     /// </summary>
+    [Obsolete(
+        "BETA/UNSUPPORTED: Continuous livestream monitor mode may change or break at any time and is not covered by semver stability guarantees."
+    )]
     public int LiveCheckFrequency { get; set; } = 10000;
 
     /// <summary>

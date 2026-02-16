@@ -55,6 +55,11 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     private string? _activeLiveId;
     private bool _terminateCurrentSession;
 
+#pragma warning disable CS0618
+    private bool ContinuousMonitorSetting => _options.EnableContinuousLivestreamMonitor;
+    private int LiveCheckFrequencySetting => _options.LiveCheckFrequency;
+#pragma warning restore CS0618
+
     private const int MaxRetryAttempts = 5;
     private const double BaseRetryDelaySeconds = 1.0;
     private const double MaxRetryDelaySeconds = 30.0;
@@ -247,7 +252,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 !string.IsNullOrWhiteSpace(handle) || !string.IsNullOrWhiteSpace(channelId);
             bool isDirectLiveId = !string.IsNullOrWhiteSpace(liveId);
             _continuousMonitorEnabledForSession =
-                _options.EnableContinuousLivestreamMonitor && isHandleOrChannelTarget && !isDirectLiveId;
+                ContinuousMonitorSetting && isHandleOrChannelTarget && !isDirectLiveId;
             _terminateCurrentSession = false;
 
             while (!cancellationToken.IsCancellationRequested)
@@ -262,7 +267,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 {
                     // Continuous mode: no active live yet, keep checking.
                     await Task
-                        .Delay(TimeSpan.FromMilliseconds(_options.LiveCheckFrequency), cancellationToken)
+                        .Delay(TimeSpan.FromMilliseconds(LiveCheckFrequencySetting), cancellationToken)
                         .ConfigureAwait(false);
                     continue;
                 }
@@ -355,7 +360,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         {
             _logger.LogDebug(
                 "No active livestream found for monitored target yet. Rechecking in {DelayMs} ms.",
-                _options.LiveCheckFrequency
+                LiveCheckFrequencySetting
             );
             return null;
         }

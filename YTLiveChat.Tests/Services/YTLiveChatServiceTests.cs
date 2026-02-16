@@ -209,8 +209,10 @@ public class YTLiveChatServiceTests
     [TestMethod]
     public async Task Start_ContinuousMonitorMode_WaitsForLiveAndEmitsLifecycleEvents()
     {
+#pragma warning disable CS0618
         _ytLiveChatOptions.EnableContinuousLivestreamMonitor = true;
         _ytLiveChatOptions.LiveCheckFrequency = 50;
+#pragma warning restore CS0618
 
         string liveId = "continuousMonitorLive01";
         string apiKey = "apiKey_continuous_01";

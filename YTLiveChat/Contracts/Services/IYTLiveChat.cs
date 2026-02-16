@@ -27,11 +27,17 @@ public interface IYTLiveChat : IDisposable
     /// <summary>
     /// Fires when a livestream becomes active for the monitored target.
     /// </summary>
+    [Obsolete(
+        "BETA/UNSUPPORTED: Continuous livestream monitor mode may change or break at any time and is not covered by semver stability guarantees."
+    )]
     event EventHandler<LivestreamStartedEventArgs>? LivestreamStarted;
 
     /// <summary>
     /// Fires when the current livestream ends for the monitored target.
     /// </summary>
+    [Obsolete(
+        "BETA/UNSUPPORTED: Continuous livestream monitor mode may change or break at any time and is not covered by semver stability guarantees."
+    )]
     event EventHandler<LivestreamEndedEventArgs>? LivestreamEnded;
 
     /// <summary>
