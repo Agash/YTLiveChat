@@ -521,7 +521,11 @@ public class YTLiveChatServiceTests
         Assert.AreEqual("NEW_MEMBER_CHICKEN_ID", receivedArgs.ChatItem.Id);
         Assert.IsNotNull(receivedArgs.ChatItem.MembershipDetails);
         Assert.AreEqual(MembershipEventType.New, receivedArgs.ChatItem.MembershipDetails.EventType);
-        Assert.AreEqual("Member (6 months)", receivedArgs.ChatItem.MembershipDetails.LevelName);
+        Assert.AreEqual("The Plusers", receivedArgs.ChatItem.MembershipDetails.LevelName);
+        Assert.AreEqual(
+            "Member (6 months)",
+            receivedArgs.ChatItem.MembershipDetails.MembershipBadgeLabel
+        );
         Assert.IsTrue(receivedArgs.ChatItem.IsMembership);
     }
 }

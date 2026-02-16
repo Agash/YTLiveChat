@@ -342,10 +342,11 @@ public class ParserTests
         );
 
         Assert.AreEqual(
-            "Member (6 months)",
+            "The Plusers",
             chatItem.MembershipDetails.LevelName,
-            "Level name from headerSubtext incorrect."
+            "Level name from headerSubtext should represent tier."
         );
+        Assert.AreEqual("Member (6 months)", chatItem.MembershipDetails.MembershipBadgeLabel);
         Assert.IsNotNull(
             chatItem.MembershipDetails.HeaderSubtext,
             "HeaderSubtext should not be null."
@@ -384,6 +385,7 @@ public class ParserTests
             chatItem.MembershipDetails.LevelName,
             "Level should be parsed from welcome subtext when badge is generic."
         );
+        Assert.AreEqual("New member", chatItem.MembershipDetails.MembershipBadgeLabel);
         Assert.AreEqual(
             "Welcome to the Ukiverse!",
             chatItem.MembershipDetails.HeaderSubtext,
@@ -408,7 +410,27 @@ public class ParserTests
         Assert.IsNotNull(chatItem.MembershipDetails, "MembershipDetails should not be null.");
         Assert.AreEqual(MembershipEventType.New, chatItem.MembershipDetails.EventType);
         Assert.AreEqual("ミトメイトぷち", chatItem.MembershipDetails.LevelName);
+        Assert.AreEqual("New member", chatItem.MembershipDetails.MembershipBadgeLabel);
         Assert.AreEqual("ようこそ ミトメイトぷち！", chatItem.MembershipDetails.HeaderSubtext);
+    }
+
+    [TestMethod]
+    public void ToChatItem_NewMemberFromLog6_WithTenureBadge_ParsesTierFromWelcomeRuns()
+    {
+        string rendererContentJson = MembershipTestData.NewMemberFromLog6WithMemberTenureBadge();
+        ChatItem? chatItem = ParseRendererContentToChatItem(
+            rendererContentJson,
+            "liveChatMembershipItemRenderer"
+        );
+
+        Assert.IsNotNull(chatItem);
+        Assert.IsNotNull(chatItem.MembershipDetails);
+        Assert.AreEqual(MembershipEventType.New, chatItem.MembershipDetails.EventType);
+        Assert.AreEqual("ヘルエスタ王国民シップ", chatItem.MembershipDetails.LevelName);
+        Assert.AreEqual("Member (1 year)", chatItem.MembershipDetails.MembershipBadgeLabel);
+        Assert.AreEqual("Welcome to ヘルエスタ王国民シップ!", chatItem.MembershipDetails.HeaderSubtext);
+        Assert.IsNotNull(chatItem.Author.Badge);
+        Assert.AreEqual("Member (1 year)", chatItem.Author.Badge.Label);
     }
 
     [TestMethod]
@@ -427,10 +449,11 @@ public class ParserTests
         Assert.IsNotNull(chatItem.MembershipDetails, "MembershipDetails should not be null.");
         Assert.AreEqual(MembershipEventType.Milestone, chatItem.MembershipDetails.EventType);
         Assert.AreEqual(
-            "Member (2 years)",
+            "Member",
             chatItem.MembershipDetails.LevelName,
-            "LevelName from badge tooltip incorrect."
+            "Milestones do not expose tier name in this renderer."
         );
+        Assert.AreEqual("Member (2 years)", chatItem.MembershipDetails.MembershipBadgeLabel);
         Assert.AreEqual(
             "The Fam",
             chatItem.MembershipDetails.HeaderSubtext,
@@ -490,7 +513,8 @@ public class ParserTests
         Assert.AreEqual("UC_CHANNEL_ID_MILESTONE_9M", chatItem.Author.ChannelId);
         Assert.IsNotNull(chatItem.MembershipDetails);
         Assert.AreEqual(MembershipEventType.Milestone, chatItem.MembershipDetails.EventType);
-        Assert.AreEqual("Member (6 months)", chatItem.MembershipDetails.LevelName);
+        Assert.AreEqual("Member", chatItem.MembershipDetails.LevelName);
+        Assert.AreEqual("Member (6 months)", chatItem.MembershipDetails.MembershipBadgeLabel);
         Assert.AreEqual("The Fam", chatItem.MembershipDetails.HeaderSubtext);
         Assert.AreEqual("Member for 9 months", chatItem.MembershipDetails.HeaderPrimaryText);
         Assert.AreEqual(9, chatItem.MembershipDetails.MilestoneMonths);
@@ -807,6 +831,8 @@ public class ParserTests
                 addTextActionJson,
                 ActionTestData.RemoveChatItem(),
                 ActionTestData.ViewerEngagementSubscribersOnly(),
+                ActionTestData.ModeChangeMessageRenderer(),
+                ActionTestData.PlaceholderItemRenderer(),
                 ActionTestData.ReportModerationStateEmpty(),
             ],
             "CONT_MIXED_ACTIONS"

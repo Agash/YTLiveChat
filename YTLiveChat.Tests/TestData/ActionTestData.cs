@@ -82,4 +82,52 @@ internal static class ActionTestData
             }
             """;
     }
+
+    public static string ModeChangeMessageRenderer()
+    {
+        long ts = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000L;
+        return $$"""
+            {
+              "addChatItemAction": {
+                "item": {
+                  "liveChatModeChangeMessageRenderer": {
+                    "id": "MODE_CHANGE_TEST_01",
+                    "timestampUsec": "{{ts}}",
+                    "icon": { "iconType": "QUESTION_ANSWER" },
+                    "text": {
+                      "runs": [
+                        { "text": "@Host", "bold": true },
+                        { "text": " turned off subscribers-only mode", "bold": true }
+                      ]
+                    },
+                    "subtext": {
+                      "runs": [
+                        { "text": "Anyone can send a message", "italics": true }
+                      ]
+                    }
+                  }
+                },
+                "clientId": "TEST_CLIENT_ID_MODE_01"
+              }
+            }
+            """;
+    }
+
+    public static string PlaceholderItemRenderer()
+    {
+        long ts = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000L;
+        return $$"""
+            {
+              "addChatItemAction": {
+                "item": {
+                  "liveChatPlaceholderItemRenderer": {
+                    "id": "PLACEHOLDER_TEST_01",
+                    "timestampUsec": "{{ts}}"
+                  }
+                },
+                "clientId": "TEST_CLIENT_ID_PLACEHOLDER_01"
+              }
+            }
+            """;
+    }
 }

@@ -442,9 +442,8 @@ internal static partial class Parser
 
                 membershipInfo = new()
                 {
-                    LevelName = string.IsNullOrWhiteSpace(levelNameFromBadge)
-                        ? "Member"
-                        : levelNameFromBadge!,
+                    LevelName = "Member",
+                    MembershipBadgeLabel = levelNameFromBadge,
                     HeaderSubtext = parsedHeaderSubtext, // Use the correctly parsed subtext
                     HeaderPrimaryText = membershipItem
                         .HeaderPrimaryText?.Runs?.ToMessageParts()
@@ -485,20 +484,17 @@ internal static partial class Parser
                 {
                     membershipInfo.EventType = Contracts.Models.MembershipEventType.New;
 
-                    // Attempt to parse level name if not clearly defined by a specific badge
-                    // Prioritize HeaderSubtext for "Welcome to {LevelName}!" pattern
+                    string? tierFromRuns = TryExtractTierNameFromHeaderSubtextRuns(
+                        membershipItem.HeaderSubtext?.Runs
+                    );
+                    if (!string.IsNullOrWhiteSpace(tierFromRuns))
+                    {
+                        membershipInfo.LevelName = tierFromRuns!;
+                    }
+
+                    // Attempt to parse level name from full text if still generic.
                     if (isGenericOrNonTierBadge)
                     {
-                        bool levelSet = false;
-                        string? tierFromRuns = TryExtractTierNameFromHeaderSubtextRuns(
-                            membershipItem.HeaderSubtext?.Runs
-                        );
-                        if (!string.IsNullOrWhiteSpace(tierFromRuns))
-                        {
-                            membershipInfo.LevelName = tierFromRuns!;
-                            levelSet = true;
-                        }
-
                         if (!string.IsNullOrEmpty(membershipInfo.HeaderSubtext))
                         {
                             // Regex for "Welcome to {LevelName}!" in HeaderSubtext
@@ -509,12 +505,11 @@ internal static partial class Parser
                                 membershipInfo.LevelName = subtextLevelMatch
                                     .Groups[1]
                                     .Value.Trim();
-                                levelSet = true;
                             }
                         }
 
                         // Fallback to HeaderPrimaryText if not found in HeaderSubtext
-                        if (!levelSet && !string.IsNullOrEmpty(membershipInfo.HeaderPrimaryText))
+                        if (!string.IsNullOrEmpty(membershipInfo.HeaderPrimaryText))
                         {
                             Match primaryTextLevelMatch = NewMemberLevelRegex()
                                 .Match(membershipInfo.HeaderPrimaryText);
@@ -623,8 +618,8 @@ internal static partial class Parser
 
                 membershipInfo = new()
                 {
-                    // Use the gifter's level if available from badge, otherwise default
-                    LevelName = levelNameFromBadge ?? "Member",
+                    LevelName = "Member",
+                    MembershipBadgeLabel = levelNameFromBadge,
                     EventType = Contracts.Models.MembershipEventType.GiftPurchase,
                     HeaderPrimaryText = gifterHeader
                         ?.PrimaryText?.Runs?.ToMessageParts()
@@ -684,7 +679,8 @@ internal static partial class Parser
                 // Author of this event *is* the recipient (already parsed)
                 membershipInfo = new()
                 {
-                    LevelName = levelNameFromBadge ?? "Member", // Recipient's level
+                    LevelName = "Member",
+                    MembershipBadgeLabel = levelNameFromBadge,
                     EventType = Contracts.Models.MembershipEventType.GiftRedemption,
                     HeaderPrimaryText = giftRedemption
                         .Message?.Runs?.ToMessageParts()
