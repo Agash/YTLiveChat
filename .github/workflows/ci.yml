@@ -25,7 +25,7 @@ jobs:
         run: dotnet build YTLiveChat.sln -c Release --no-restore
 
       - name: Test (net8.0)
-        run: dotnet test YTLiveChat.Tests/YTLiveChat.Tests.csproj -c Release --framework net8.0 --no-build
+        run: dotnet test --project YTLiveChat.Tests/YTLiveChat.Tests.csproj -c Release --framework net8.0 --no-build
 
       - name: Test (net10.0)
-        run: dotnet test YTLiveChat.Tests/YTLiveChat.Tests.csproj -c Release --framework net10.0 --no-build
+        run: dotnet test --project YTLiveChat.Tests/YTLiveChat.Tests.csproj -c Release --framework net10.0 --no-build
