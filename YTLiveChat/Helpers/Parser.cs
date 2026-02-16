@@ -1,5 +1,8 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text.RegularExpressions;
+#if NET8_0_OR_GREATER
+using System.Collections.Frozen;
+#endif
 
 using YTLiveChat.Contracts.Models; // Use the contract namespace
 using YTLiveChat.Models; // Internal models namespace
@@ -1058,7 +1061,7 @@ internal static partial class Parser
     // Helper class for currency symbol/code mapping (remains the same)
     private static class CurrencyHelper
     {
-        private static readonly Dictionary<string, string> s_symbolToCode = new(
+        private static readonly Dictionary<string, string> s_symbolToCodeLookup = new(
             StringComparer.OrdinalIgnoreCase
         )
         {
@@ -1076,7 +1079,7 @@ internal static partial class Parser
             ["R$"] = "BRL",
         };
 
-        private static readonly Dictionary<string, string> s_prefixedDollarCodes = new(
+        private static readonly Dictionary<string, string> s_prefixedDollarCodesLookup = new(
             StringComparer.OrdinalIgnoreCase
         )
         {
@@ -1093,6 +1096,17 @@ internal static partial class Parser
             ["ARS$"] = "ARS",
             ["US$"] = "USD",
         };
+
+#if NET8_0_OR_GREATER
+        private static readonly FrozenDictionary<string, string> s_symbolToCode =
+            s_symbolToCodeLookup.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+        private static readonly FrozenDictionary<string, string> s_prefixedDollarCodes =
+            s_prefixedDollarCodesLookup.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+#else
+        private static readonly Dictionary<string, string> s_symbolToCode = s_symbolToCodeLookup;
+        private static readonly Dictionary<string, string> s_prefixedDollarCodes =
+            s_prefixedDollarCodesLookup;
+#endif
 
         public static string GetCodeFromSymbolOrCode(string symbolOrCode)
         {
@@ -1135,3 +1149,4 @@ internal static partial class Parser
         }
     }
 }
+

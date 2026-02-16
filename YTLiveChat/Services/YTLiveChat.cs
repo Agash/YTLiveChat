@@ -605,7 +605,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             string? continuation
         ) = Parser.ParseLiveChatResponseWithActionIndex(response);
 
-        Dictionary<int, ChatItem> parsedByActionIndex = [];
+        Dictionary<int, ChatItem> parsedByActionIndex = new(indexedItems.Count);
         foreach ((ChatItem item, int actionIndex) in indexedItems)
         {
             OnChatReceived(new() { ChatItem = item });
@@ -665,7 +665,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 return null;
             }
 
-            List<JsonElement> extractedActions = [];
+            List<JsonElement> extractedActions = new(actions.GetArrayLength());
             foreach (JsonElement action in actions.EnumerateArray())
             {
                 extractedActions.Add(action.Clone());
