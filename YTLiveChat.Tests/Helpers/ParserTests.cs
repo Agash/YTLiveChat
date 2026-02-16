@@ -752,6 +752,24 @@ public class ParserTests
         Assert.AreEqual("@林宏儒-r3b", chatItem.MembershipDetails.GifterUsername);
     }
 
+    [TestMethod]
+    public void ToChatItem_NewMembershipWelcomeFromLog11_ParsesNewEventAndTierFromHeaderRuns()
+    {
+        Models.Response.Action? action = JsonSerializer.Deserialize<Models.Response.Action>(
+            RawActionLog9To15TestData.NewMembershipWelcomeFromLog11(),
+            s_jsonOptions
+        );
+        Assert.IsNotNull(action);
+
+        ChatItem? chatItem = action.ToChatItem();
+        Assert.IsNotNull(chatItem);
+        Assert.IsNotNull(chatItem.MembershipDetails);
+        Assert.AreEqual(MembershipEventType.New, chatItem.MembershipDetails.EventType);
+        Assert.AreEqual("開拓者組合", chatItem.MembershipDetails.LevelName);
+        Assert.AreEqual("Member (2 months)", chatItem.MembershipDetails.MembershipBadgeLabel);
+        Assert.AreEqual(3, chatItem.Message.Length);
+    }
+
     // --- ParseLiveChatResponse Tests ---
     [TestMethod]
     public void ParseLiveChatResponse_SingleItem_ParsesCorrectly()

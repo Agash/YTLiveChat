@@ -1,8 +1,4 @@
-using System.Globalization;
 using System.Text.RegularExpressions;
-#if NET8_0_OR_GREATER
-using System.Collections.Frozen;
-#endif
 
 using YTLiveChat.Contracts.Models; // Use the contract namespace
 using YTLiveChat.Models; // Internal models namespace
@@ -167,118 +163,8 @@ internal static partial class Parser
     /// <summary>
     /// Parses the primary amount/currency string into numeric value and symbol/code.
     /// </summary>
-    private static (decimal AmountValue, string Currency) ParseAmount(string? amountString)
-    {
-        if (string.IsNullOrWhiteSpace(amountString))
-            return (0M, "USD");
-
-        string normalizedInput = amountString!.Replace("\u00A0", " ").Trim();
-        Match numberMatch = AmountNumberRegex().Match(normalizedInput);
-        if (numberMatch.Success)
-        {
-            string amountPart = numberMatch.Value;
-            string normalizedAmountPart = NormalizeAmountToken(amountPart);
-            if (
-                decimal.TryParse(
-                    normalizedAmountPart,
-                    NumberStyles.Any,
-                    CultureInfo.InvariantCulture,
-                    out decimal amountValue
-                )
-            )
-            {
-                string before = normalizedInput[..numberMatch.Index];
-                string after = normalizedInput[(numberMatch.Index + numberMatch.Length)..];
-                string currencyToken = string.Concat(before, after).Replace(" ", string.Empty);
-                string currencyCode = CurrencyHelper.GetCodeFromSymbolOrCode(currencyToken);
-                return (amountValue, currencyCode);
-            }
-        }
-
-        // Fallback parsing attempt if regex fails
-        if (
-            decimal.TryParse(
-                NormalizeAmountToken(normalizedInput),
-                NumberStyles.Any,
-                CultureInfo.InvariantCulture,
-                out decimal fallbackAmount
-            )
-        )
-        {
-            return (fallbackAmount, "USD"); // Default currency
-        }
-
-        return (0M, "USD"); // Final fallback
-    }
-
-    private static string NormalizeAmountToken(string token)
-    {
-        if (string.IsNullOrWhiteSpace(token))
-        {
-            return token;
-        }
-
-        string normalized = token.Trim().Replace(" ", string.Empty);
-        bool hasComma = normalized.Contains(',');
-        bool hasDot = normalized.Contains('.');
-
-        if (hasComma && hasDot)
-        {
-            if (normalized.LastIndexOf(',') > normalized.LastIndexOf('.'))
-            {
-                // e.g. 1.234,56 => decimal separator is comma
-                normalized = normalized.Replace(".", string.Empty).Replace(",", ".");
-            }
-            else
-            {
-                // e.g. 1,234.56 => decimal separator is dot
-                normalized = normalized.Replace(",", string.Empty);
-            }
-
-            return normalized;
-        }
-
-        if (hasComma)
-        {
-            int commaCount = normalized.Count(c => c == ',');
-            if (commaCount > 1)
-            {
-                // e.g. 1,234,567
-                return normalized.Replace(",", string.Empty);
-            }
-
-            int commaIndex = normalized.LastIndexOf(',');
-            int digitsAfter = normalized.Length - commaIndex - 1;
-            if (digitsAfter == 3)
-            {
-                // e.g. 20,000
-                return normalized.Replace(",", string.Empty);
-            }
-
-            // e.g. 10,50
-            return normalized.Replace(",", ".");
-        }
-
-        if (hasDot)
-        {
-            int dotCount = normalized.Count(c => c == '.');
-            if (dotCount > 1)
-            {
-                int lastDotIndex = normalized.LastIndexOf('.');
-                string integerPart = normalized[..lastDotIndex].Replace(".", string.Empty);
-                string decimalPart = normalized[(lastDotIndex + 1)..];
-                if (decimalPart.Length == 3)
-                {
-                    // e.g. 20.000
-                    return integerPart + decimalPart;
-                }
-
-                return integerPart + "." + decimalPart;
-            }
-        }
-
-        return normalized;
-    }
+    private static (decimal AmountValue, string Currency) ParseAmount(string? amountString) =>
+        CurrencyParser.Parse(amountString);
 
     private static string? TryExtractTierNameFromHeaderSubtextRuns(
         IEnumerable<Models.Response.MessageRun>? runs
@@ -922,12 +808,6 @@ internal static partial class Parser
     [GeneratedRegex("\"continuation\":\\s*\"([^\"]*)\"", RegexOptions.Compiled)]
     private static partial Regex ContinuationRegex();
 
-    [GeneratedRegex(@"-?[\d][\d.,]*", RegexOptions.Compiled | RegexOptions.CultureInvariant)]
-    private static partial Regex AmountNumberRegex();
-
-    [GeneratedRegex(@"[A-Z]{3}", RegexOptions.Compiled | RegexOptions.CultureInvariant)]
-    private static partial Regex CurrencyCodeRegex();
-
     [GeneratedRegex(@"member for (\d+) months?", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex MilestoneMonthsRegex();
 
@@ -992,20 +872,6 @@ internal static partial class Parser
 
     private static Regex ContinuationRegex() => _continuationRegex;
 
-    private static readonly Regex _amountNumberRegex = new(
-        @"-?[\d][\d.,]*",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant
-    );
-
-    private static Regex AmountNumberRegex() => _amountNumberRegex;
-
-    private static readonly Regex _currencyCodeRegex = new(
-        @"[A-Z]{3}",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant
-    );
-
-    private static Regex CurrencyCodeRegex() => _currencyCodeRegex;
-
     private static readonly Regex _milestoneMonthsRegex = new(
         @"member for (\d+) months?",
         RegexOptions.IgnoreCase | RegexOptions.Compiled
@@ -1068,95 +934,5 @@ internal static partial class Parser
         );
     }
 
-    // Helper class for currency symbol/code mapping (remains the same)
-    private static class CurrencyHelper
-    {
-        private static readonly Dictionary<string, string> s_symbolToCodeLookup = new(
-            StringComparer.OrdinalIgnoreCase
-        )
-        {
-            ["€"] = "EUR",
-            ["£"] = "GBP",
-            ["¥"] = "JPY",
-            ["$"] = "USD",
-            ["₽"] = "RUB",
-            ["₹"] = "INR",
-            ["₩"] = "KRW",
-            ["₱"] = "PHP",
-            ["฿"] = "THB",
-            ["₫"] = "VND",
-            ["zł"] = "PLN",
-            ["R$"] = "BRL",
-        };
-
-        private static readonly Dictionary<string, string> s_prefixedDollarCodesLookup = new(
-            StringComparer.OrdinalIgnoreCase
-        )
-        {
-            ["A$"] = "AUD",
-            ["AU$"] = "AUD",
-            ["HK$"] = "HKD",
-            ["C$"] = "CAD",
-            ["CA$"] = "CAD",
-            ["NZ$"] = "NZD",
-            ["S$"] = "SGD",
-            ["MX$"] = "MXN",
-            ["NT$"] = "TWD",
-            ["CLP$"] = "CLP",
-            ["ARS$"] = "ARS",
-            ["US$"] = "USD",
-        };
-
-#if NET8_0_OR_GREATER
-        private static readonly FrozenDictionary<string, string> s_symbolToCode =
-            s_symbolToCodeLookup.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
-        private static readonly FrozenDictionary<string, string> s_prefixedDollarCodes =
-            s_prefixedDollarCodesLookup.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
-#else
-        private static readonly Dictionary<string, string> s_symbolToCode = s_symbolToCodeLookup;
-        private static readonly Dictionary<string, string> s_prefixedDollarCodes =
-            s_prefixedDollarCodesLookup;
-#endif
-
-        public static string GetCodeFromSymbolOrCode(string symbolOrCode)
-        {
-            if (string.IsNullOrWhiteSpace(symbolOrCode))
-                return "USD"; // Default
-
-            string normalized = symbolOrCode.Trim().Replace(" ", string.Empty);
-
-            // Check if it's already a 3-letter code
-            if (normalized.Length == 3 && normalized.All(char.IsLetter))
-            {
-                return normalized.ToUpperInvariant();
-            }
-
-            if (s_prefixedDollarCodes.TryGetValue(normalized, out string? prefixedCode))
-            {
-                return prefixedCode;
-            }
-
-            // Check symbol map
-            if (s_symbolToCode.TryGetValue(normalized, out string? code))
-            {
-                return code;
-            }
-
-            Match embeddedCode = CurrencyCodeRegex().Match(normalized.ToUpperInvariant());
-            if (embeddedCode.Success)
-            {
-                return embeddedCode.Value;
-            }
-
-            // Specific common fallbacks if needed (already covered above, but explicit doesn't hurt)
-            if (normalized.Contains('$'))
-                return "USD";
-            if (normalized == "¥")
-                return "JPY"; // Could be CNY too, JPY is often default in YT context
-
-            // Final fallback: return the input uppercase (maybe it's a less common code)
-            return normalized.ToUpperInvariant();
-        }
-    }
 }
 
