@@ -91,10 +91,38 @@ internal static partial class Parser
             ?.ShowLiveChatItemEndpoint
             ?.Renderer
             ?.LiveChatMembershipItemRenderer;
-        return membershipRenderer != null
-            ? new AddChatItemActionItem
+        if (membershipRenderer != null)
+        {
+            return new AddChatItemActionItem
             {
                 LiveChatMembershipItemRenderer = membershipRenderer,
+            };
+        }
+
+        LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer? giftPurchaseRenderer = tickerItem
+            .LiveChatTickerSponsorItemRenderer
+            ?.ShowItemEndpoint
+            ?.ShowLiveChatItemEndpoint
+            ?.Renderer
+            ?.LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer;
+        if (giftPurchaseRenderer != null)
+        {
+            return new AddChatItemActionItem
+            {
+                LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer = giftPurchaseRenderer,
+            };
+        }
+
+        LiveChatPaidStickerRenderer? paidStickerRenderer = tickerItem
+            .LiveChatTickerPaidStickerItemRenderer
+            ?.ShowItemEndpoint
+            ?.ShowLiveChatItemEndpoint
+            ?.Renderer
+            ?.LiveChatPaidStickerRenderer;
+        return paidStickerRenderer != null
+            ? new AddChatItemActionItem
+            {
+                LiveChatPaidStickerRenderer = paidStickerRenderer,
             }
             : null;
     }

@@ -610,4 +610,186 @@ public class YTLiveChatServiceTests
         Assert.AreEqual("MSG_ID_SIMPLE_01", rawActionEvents[0].ParsedChatItem!.Id);
         Assert.IsNull(rawActionEvents[1].ParsedChatItem);
     }
+
+    [TestMethod]
+    public async Task PollingLoop_RawActionReceived_PollUpdateIsRawOnlyAndTickerGiftParses()
+    {
+        string liveId = "rawActionTestPollTicker001";
+        string apiKey = "apiKeyRAPT";
+        string clientVersion = "cvRAPT";
+        string initialCont = "initialContRAPT";
+        string nextCont = "nextContRAPT";
+
+        _ = _mockYtHttpClient
+            .Setup(c => c.GetOptionsAsync(null, null, liveId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                UtilityTestData.GetSampleLivePageHtml(liveId, apiKey, clientVersion, initialCont)
+            );
+
+        string responseJson = UtilityTestData.WrapActionsInLiveChatResponse(
+            [
+                RawActionLog9To15TestData.UpdateLiveChatPollActionFromLog(),
+                RawActionLog9To15TestData.TickerGiftPurchaseFromLog(),
+            ],
+            nextCont
+        );
+        LiveChatResponse? liveChatResponse = JsonSerializer.Deserialize<LiveChatResponse>(
+            responseJson
+        );
+        Assert.IsNotNull(liveChatResponse);
+
+        _ = _mockYtHttpClient
+            .Setup(c =>
+                c.GetLiveChatAsync(
+                    It.Is<FetchOptions>(fo =>
+                        fo.Continuation == initialCont && fo.ApiKey == apiKey
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((liveChatResponse, responseJson));
+
+        List<RawActionReceivedEventArgs> rawActionEvents = [];
+        TaskCompletionSource<bool> rawReceivedTcs = new(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+
+        _service.RawActionReceived += (s, e) =>
+        {
+            rawActionEvents.Add(e);
+            if (rawActionEvents.Count >= 2)
+            {
+                _ = rawReceivedTcs.TrySetResult(true);
+            }
+        };
+
+        _service.Start(liveId: liveId);
+
+        _ = await WaitForTcsResult(rawReceivedTcs, "RawActionReceived_PollAndTickerGift");
+
+        Assert.AreEqual(2, rawActionEvents.Count);
+        Assert.IsNull(rawActionEvents[0].ParsedChatItem);
+        ChatItem? parsedTickerGift = rawActionEvents[1].ParsedChatItem;
+        Assert.IsNotNull(parsedTickerGift);
+        Assert.IsTrue(parsedTickerGift.IsTicker);
+        Assert.IsNotNull(parsedTickerGift.MembershipDetails);
+        Assert.AreEqual(
+            MembershipEventType.GiftPurchase,
+            parsedTickerGift.MembershipDetails!.EventType
+        );
+    }
+
+    [TestMethod]
+    public async Task StreamChatItemsAsync_YieldsParsedItems()
+    {
+        string liveId = "streamItems001";
+        string apiKey = "apiKeyStreamItems";
+        string clientVersion = "cvStreamItems";
+        string initialCont = "initialContStreamItems";
+        string nextCont = "nextContStreamItems";
+
+        _ = _mockYtHttpClient
+            .Setup(c => c.GetOptionsAsync(null, null, liveId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                UtilityTestData.GetSampleLivePageHtml(liveId, apiKey, clientVersion, initialCont)
+            );
+
+        string textItemJson =
+            $$"""{ "liveChatTextMessageRenderer": {{TextMessageTestData.SimpleTextMessage1()}} }""";
+        string responseJson = UtilityTestData.WrapItemsInLiveChatResponse([textItemJson], nextCont);
+        LiveChatResponse? liveChatResponse = JsonSerializer.Deserialize<LiveChatResponse>(responseJson);
+        Assert.IsNotNull(liveChatResponse);
+
+        _ = _mockYtHttpClient
+            .Setup(c =>
+                c.GetLiveChatAsync(
+                    It.Is<FetchOptions>(fo =>
+                        fo.Continuation == initialCont && fo.ApiKey == apiKey
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((liveChatResponse, responseJson));
+
+        using CancellationTokenSource streamCts = new(TimeSpan.FromSeconds(DefaultTestTimeoutSeconds));
+        List<ChatItem> streamedItems = [];
+        await foreach (
+            ChatItem item in _service
+                .StreamChatItemsAsync(liveId: liveId, cancellationToken: streamCts.Token)
+        )
+        {
+            streamedItems.Add(item);
+            if (streamedItems.Count >= 1)
+            {
+                break;
+            }
+        }
+
+        Assert.AreEqual(1, streamedItems.Count);
+        Assert.AreEqual("MSG_ID_SIMPLE_01", streamedItems[0].Id);
+    }
+
+    [TestMethod]
+    public async Task StreamRawActionsAsync_YieldsRawActionsWithParsedMapping()
+    {
+        string liveId = "streamRaw001";
+        string apiKey = "apiKeyStreamRaw";
+        string clientVersion = "cvStreamRaw";
+        string initialCont = "initialContStreamRaw";
+        string nextCont = "nextContStreamRaw";
+
+        _ = _mockYtHttpClient
+            .Setup(c => c.GetOptionsAsync(null, null, liveId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                UtilityTestData.GetSampleLivePageHtml(liveId, apiKey, clientVersion, initialCont)
+            );
+
+        string textItemJson =
+            $$"""{ "liveChatTextMessageRenderer": {{TextMessageTestData.SimpleTextMessage1()}} }""";
+        string addTextActionJson = $$"""
+            {
+              "addChatItemAction": {
+                "item": {{textItemJson}},
+                "clientId": "CLIENT_ID_STREAM_RAW_01"
+              }
+            }
+            """;
+        string removeActionJson = ActionTestData.RemoveChatItem();
+        string responseJson = UtilityTestData.WrapActionsInLiveChatResponse(
+            [addTextActionJson, removeActionJson],
+            nextCont
+        );
+        LiveChatResponse? liveChatResponse = JsonSerializer.Deserialize<LiveChatResponse>(responseJson);
+        Assert.IsNotNull(liveChatResponse);
+
+        _ = _mockYtHttpClient
+            .Setup(c =>
+                c.GetLiveChatAsync(
+                    It.Is<FetchOptions>(fo =>
+                        fo.Continuation == initialCont && fo.ApiKey == apiKey
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((liveChatResponse, responseJson));
+
+        using CancellationTokenSource streamCts = new(TimeSpan.FromSeconds(DefaultTestTimeoutSeconds));
+        List<RawActionReceivedEventArgs> streamedActions = [];
+        await foreach (
+            RawActionReceivedEventArgs action in _service
+                .StreamRawActionsAsync(liveId: liveId, cancellationToken: streamCts.Token)
+        )
+        {
+            streamedActions.Add(action);
+            if (streamedActions.Count >= 2)
+            {
+                break;
+            }
+        }
+
+        Assert.AreEqual(2, streamedActions.Count);
+        Assert.IsNotNull(streamedActions[0].ParsedChatItem);
+        Assert.AreEqual("MSG_ID_SIMPLE_01", streamedActions[0].ParsedChatItem!.Id);
+        Assert.IsNull(streamedActions[1].ParsedChatItem);
+    }
 }

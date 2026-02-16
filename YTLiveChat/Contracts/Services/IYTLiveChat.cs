@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 
 using YTLiveChat.Contracts.Models;
@@ -66,7 +65,7 @@ public interface IYTLiveChat : IDisposable
         string? channelId = null,
         string? liveId = null,
         bool overwrite = false,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default
+        CancellationToken cancellationToken = default
     );
 
     /// <summary>
@@ -79,7 +78,7 @@ public interface IYTLiveChat : IDisposable
         string? channelId = null,
         string? liveId = null,
         bool overwrite = false,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default
+        CancellationToken cancellationToken = default
     );
 }
 

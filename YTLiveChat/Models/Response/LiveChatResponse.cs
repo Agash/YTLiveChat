@@ -573,6 +573,12 @@ public record LiveChatTickerShowItemRenderer
 
     [JsonPropertyName("liveChatMembershipItemRenderer")]
     public LiveChatMembershipItemRenderer? LiveChatMembershipItemRenderer { get; init; }
+
+    [JsonPropertyName("liveChatPaidStickerRenderer")]
+    public LiveChatPaidStickerRenderer? LiveChatPaidStickerRenderer { get; init; }
+
+    [JsonPropertyName("liveChatSponsorshipsGiftPurchaseAnnouncementRenderer")]
+    public LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer? LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer { get; init; }
 }
 
 public record ShowLiveChatItemEndpoint
@@ -605,6 +611,15 @@ public record LiveChatTickerSponsorItemRenderer
     public TickerShowItemEndpoint? ShowItemEndpoint { get; init; }
 }
 
+public record LiveChatTickerPaidStickerItemRenderer
+{
+    [JsonPropertyName("id")]
+    public string? Id { get; init; }
+
+    [JsonPropertyName("showItemEndpoint")]
+    public TickerShowItemEndpoint? ShowItemEndpoint { get; init; }
+}
+
 public record AddLiveChatTickerItemActionItem
 {
     [JsonPropertyName("liveChatTickerPaidMessageItemRenderer")]
@@ -612,6 +627,9 @@ public record AddLiveChatTickerItemActionItem
 
     [JsonPropertyName("liveChatTickerSponsorItemRenderer")]
     public LiveChatTickerSponsorItemRenderer? LiveChatTickerSponsorItemRenderer { get; init; }
+
+    [JsonPropertyName("liveChatTickerPaidStickerItemRenderer")]
+    public LiveChatTickerPaidStickerItemRenderer? LiveChatTickerPaidStickerItemRenderer { get; init; }
 }
 
 public record AddLiveChatTickerItemAction

@@ -1,6 +1,7 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Channels;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -955,6 +956,118 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     }
 
     /// <inheritdoc />
+    public async IAsyncEnumerable<ChatItem> StreamChatItemsAsync(
+        string? handle = null,
+        string? channelId = null,
+        string? liveId = null,
+        bool overwrite = false,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default
+    )
+    {
+        Channel<ChatItem> channel = Channel.CreateUnbounded<ChatItem>(
+            new UnboundedChannelOptions
+            {
+                SingleReader = true,
+                SingleWriter = false,
+                AllowSynchronousContinuations = false,
+            }
+        );
+
+        void HandleChatReceived(object? _, ChatReceivedEventArgs e) => _ = channel
+            .Writer.TryWrite(e.ChatItem);
+        void HandleChatStopped(object? _, ChatStoppedEventArgs e) => channel.Writer.TryComplete();
+        void HandleErrorOccurred(object? _, ErrorOccurredEventArgs e) => channel.Writer.TryComplete(
+            e.GetException()
+        );
+
+        ChatReceived += HandleChatReceived;
+        ChatStopped += HandleChatStopped;
+        ErrorOccurred += HandleErrorOccurred;
+
+        using CancellationTokenRegistration cancellationRegistration = cancellationToken.Register(() =>
+            channel.Writer.TryComplete()
+        );
+
+        try
+        {
+            Start(handle, channelId, liveId, overwrite);
+
+            await foreach (
+                ChatItem item in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false)
+            )
+            {
+                yield return item;
+            }
+        }
+        finally
+        {
+            ChatReceived -= HandleChatReceived;
+            ChatStopped -= HandleChatStopped;
+            ErrorOccurred -= HandleErrorOccurred;
+            Stop();
+            channel.Writer.TryComplete();
+        }
+    }
+
+    /// <inheritdoc />
+    public async IAsyncEnumerable<RawActionReceivedEventArgs> StreamRawActionsAsync(
+        string? handle = null,
+        string? channelId = null,
+        string? liveId = null,
+        bool overwrite = false,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default
+    )
+    {
+        Channel<RawActionReceivedEventArgs> channel = Channel.CreateUnbounded<
+            RawActionReceivedEventArgs
+        >(
+            new UnboundedChannelOptions
+            {
+                SingleReader = true,
+                SingleWriter = false,
+                AllowSynchronousContinuations = false,
+            }
+        );
+
+        void HandleRawActionReceived(object? _, RawActionReceivedEventArgs e) => _ = channel
+            .Writer.TryWrite(e);
+        void HandleChatStopped(object? _, ChatStoppedEventArgs e) => channel.Writer.TryComplete();
+        void HandleErrorOccurred(object? _, ErrorOccurredEventArgs e) => channel.Writer.TryComplete(
+            e.GetException()
+        );
+
+        RawActionReceived += HandleRawActionReceived;
+        ChatStopped += HandleChatStopped;
+        ErrorOccurred += HandleErrorOccurred;
+
+        using CancellationTokenRegistration cancellationRegistration = cancellationToken.Register(() =>
+            channel.Writer.TryComplete()
+        );
+
+        try
+        {
+            Start(handle, channelId, liveId, overwrite);
+
+            await foreach (
+                RawActionReceivedEventArgs rawAction in channel
+                    .Reader.ReadAllAsync(cancellationToken)
+                    .ConfigureAwait(false)
+            )
+            {
+                yield return rawAction;
+            }
+        }
+        finally
+        {
+            RawActionReceived -= HandleRawActionReceived;
+            ChatStopped -= HandleChatStopped;
+            ErrorOccurred -= HandleErrorOccurred;
+            Stop();
+            channel.Writer.TryComplete();
+        }
+    }
+
+    /// <inheritdoc />
     public void Dispose()
     {
         Dispose(true);
@@ -1136,8 +1249,5 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         }
     }
 
-    /// <inheritdoc/>
-    public IAsyncEnumerable<ChatItem> StreamChatItemsAsync(string? handle = null, string? channelId = null, string? liveId = null, bool overwrite = false, [EnumeratorCancellation] CancellationToken cancellationToken = default) => throw new NotImplementedException();
-    /// <inheritdoc/>
-    public IAsyncEnumerable<RawActionReceivedEventArgs> StreamRawActionsAsync(string? handle = null, string? channelId = null, string? liveId = null, bool overwrite = false, [EnumeratorCancellation] CancellationToken cancellationToken = default) => throw new NotImplementedException();
 }
+

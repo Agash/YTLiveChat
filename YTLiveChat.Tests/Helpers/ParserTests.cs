@@ -733,6 +733,25 @@ public class ParserTests
         Assert.AreEqual("可愛すぎて止まった心臓動き出した", ((TextPart)chatItem.Message[0]).Text);
     }
 
+    [TestMethod]
+    public void ToChatItem_TickerGiftPurchaseFromLog9To15_ParsesAsTickerMembershipGiftPurchase()
+    {
+        Models.Response.Action? action = JsonSerializer.Deserialize<Models.Response.Action>(
+            RawActionLog9To15TestData.TickerGiftPurchaseFromLog(),
+            s_jsonOptions
+        );
+        Assert.IsNotNull(action);
+
+        ChatItem? chatItem = action.ToChatItem();
+        Assert.IsNotNull(chatItem);
+        Assert.IsTrue(chatItem.IsTicker);
+        Assert.IsNotNull(chatItem.MembershipDetails);
+        Assert.AreEqual(MembershipEventType.GiftPurchase, chatItem.MembershipDetails.EventType);
+        Assert.AreEqual(10, chatItem.MembershipDetails.GiftCount);
+        Assert.AreEqual("@林宏儒-r3b", chatItem.Author.Name);
+        Assert.AreEqual("@林宏儒-r3b", chatItem.MembershipDetails.GifterUsername);
+    }
+
     // --- ParseLiveChatResponse Tests ---
     [TestMethod]
     public void ParseLiveChatResponse_SingleItem_ParsesCorrectly()
@@ -855,6 +874,35 @@ public class ParserTests
 
         Assert.AreEqual(0, items.Count, "Viewer engagement message should not map to ChatItem.");
         Assert.AreEqual("CONT_VIEWER_ENGAGEMENT", continuation);
+    }
+
+    [TestMethod]
+    public void ParseLiveChatResponse_PollActionsAndBanner_IgnoredAndContinuationPreserved()
+    {
+        string fullResponseJson = UtilityTestData.WrapActionsInLiveChatResponse(
+            [
+                RawActionLog9To15TestData.ShowLiveChatActionPanelActionFromLog(),
+                RawActionLog9To15TestData.UpdateLiveChatPollActionFromLog(),
+                RawActionLog9To15TestData.AddBannerToLiveChatCommandFromLog(),
+            ],
+            "CONT_POLL_AND_BANNER"
+        );
+        LiveChatResponse? liveChatResponse = JsonSerializer.Deserialize<LiveChatResponse>(
+            fullResponseJson,
+            s_jsonOptions
+        );
+        Assert.IsNotNull(liveChatResponse);
+
+        (List<ChatItem> items, string? continuation) = Parser.ParseLiveChatResponse(
+            liveChatResponse
+        );
+
+        Assert.AreEqual(
+            0,
+            items.Count,
+            "Poll update/action-panel and banner command should not map to ChatItem."
+        );
+        Assert.AreEqual("CONT_POLL_AND_BANNER", continuation);
     }
 
     [TestMethod]
