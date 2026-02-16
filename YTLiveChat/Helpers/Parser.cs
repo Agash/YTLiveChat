@@ -321,7 +321,7 @@ internal static partial class Parser
                 && rankTitleValue.StartsWith("#", StringComparison.Ordinal)
             )
             {
-                string rankValue = rankTitleValue[1..];
+                string rankValue = rankTitleValue.Substring(1);
                 if (int.TryParse(rankValue, out int rank))
                 {
                     viewerLeaderboardRank = rank;

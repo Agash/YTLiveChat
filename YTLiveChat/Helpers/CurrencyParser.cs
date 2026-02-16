@@ -166,8 +166,8 @@ internal static partial class CurrencyParser
         }
 
         decimal amountValue = ParseDecimal(numberMatch.Value);
-        string before = normalizedInput[..numberMatch.Index];
-        string after = normalizedInput[(numberMatch.Index + numberMatch.Length)..];
+        string before = normalizedInput.Substring(0, numberMatch.Index);
+        string after = normalizedInput.Substring(numberMatch.Index + numberMatch.Length);
         string symbolPart = string.Concat(before, after).Trim();
         string currencyCode = ResolveCurrencyCode(symbolPart, normalizedInput);
         return (amountValue, currencyCode);
@@ -282,8 +282,10 @@ internal static partial class CurrencyParser
             if (dotCount > 1)
             {
                 int lastDotIndex = normalized.LastIndexOf('.');
-                string integerPart = normalized[..lastDotIndex].Replace(".", string.Empty);
-                string decimalPart = normalized[(lastDotIndex + 1)..];
+                string integerPart = normalized
+                    .Substring(0, lastDotIndex)
+                    .Replace(".", string.Empty);
+                string decimalPart = normalized.Substring(lastDotIndex + 1);
                 return decimalPart.Length == 3 ? integerPart + decimalPart : integerPart + "." + decimalPart;
             }
         }
