@@ -15,11 +15,12 @@ Console.WriteLine("-------------------------");
 Console.InputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 Console.OutputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
+ExampleRunOptions runOptions = new();
 string? identifier = null;
 while (string.IsNullOrWhiteSpace(identifier))
 {
-    Console.Write("Enter the YouTube Live ID OR Handle (e.g., dQw4w9WgXcQ or @Google): ");
-    identifier = Console.ReadLine();
+    Console.Write("Enter YouTube target (Live ID, @Handle, or Channel ID UC...): ");
+    identifier = Console.ReadLine()?.Trim();
     if (string.IsNullOrWhiteSpace(identifier))
     {
         Console.ForegroundColor = ConsoleColor.Red;
@@ -28,16 +29,49 @@ while (string.IsNullOrWhiteSpace(identifier))
     }
 }
 
-ExampleRunOptions runOptions = new();
-if (identifier.StartsWith('@'))
+if (identifier.StartsWith("@", StringComparison.Ordinal))
 {
     runOptions.Handle = identifier;
     Console.WriteLine($"Target Handle: {identifier}");
+}
+else if (identifier.StartsWith("UC", StringComparison.OrdinalIgnoreCase))
+{
+    runOptions.ChannelId = identifier;
+    Console.WriteLine($"Target Channel ID: {identifier}");
 }
 else
 {
     runOptions.LiveId = identifier;
     Console.WriteLine($"Target Live ID: {identifier}");
+}
+
+if (!string.IsNullOrWhiteSpace(runOptions.Handle) || !string.IsNullOrWhiteSpace(runOptions.ChannelId))
+{
+    Console.Write("Enable continuous livestream monitor mode (BETA/UNSUPPORTED)? (y/N): ");
+    string? monitorResponse = Console.ReadLine();
+    if (
+        !string.IsNullOrWhiteSpace(monitorResponse)
+        && monitorResponse.Trim().Equals("y", StringComparison.OrdinalIgnoreCase)
+    )
+    {
+        runOptions.EnableContinuousMonitor = true;
+        Console.Write("Live-check frequency in ms (default 10000): ");
+        string? frequencyInput = Console.ReadLine();
+        if (
+            !string.IsNullOrWhiteSpace(frequencyInput)
+            && int.TryParse(frequencyInput, out int liveCheckFrequency)
+            && liveCheckFrequency > 0
+        )
+        {
+            runOptions.LiveCheckFrequency = liveCheckFrequency;
+        }
+
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine(
+            "Continuous monitor mode is BETA/UNSUPPORTED and may change or break at any time."
+        );
+        Console.ResetColor();
+    }
 }
 
 Console.Write("Record raw InnerTube JSON for analysis? (y/N): ");
@@ -68,6 +102,14 @@ builder.Services.AddYTLiveChat(builder.Configuration);
 
 builder.Services.Configure<YTLiveChatOptions>(options =>
 {
+#pragma warning disable CS0618
+    if (runOptions.EnableContinuousMonitor)
+    {
+        options.EnableContinuousLivestreamMonitor = true;
+        options.LiveCheckFrequency = runOptions.LiveCheckFrequency;
+    }
+#pragma warning restore CS0618
+
     if (runOptions.EnableJsonLogging)
     {
         options.DebugLogReceivedJsonItems = true;

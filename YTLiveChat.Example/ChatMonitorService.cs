@@ -40,6 +40,10 @@ internal class ChatMonitorService : IHostedService, IDisposable
         _logger.LogInformation("Chat Monitor Service starting for {IdentifierInfo}", identifierInfo);
 
         _ytLiveChat.InitialPageLoaded += OnInitialPageLoaded;
+#pragma warning disable CS0618
+        _ytLiveChat.LivestreamStarted += OnLivestreamStarted;
+        _ytLiveChat.LivestreamEnded += OnLivestreamEnded;
+#pragma warning restore CS0618
         _ytLiveChat.ChatReceived += OnChatReceived;
         _ytLiveChat.RawActionReceived += OnRawActionReceived;
         _ytLiveChat.ChatStopped += OnChatStopped;
@@ -51,6 +55,14 @@ internal class ChatMonitorService : IHostedService, IDisposable
             {
                 _logger.LogDebug("Starting YTLiveChat with Handle: {Handle}", _options.Handle);
                 _ytLiveChat.Start(handle: _options.Handle);
+            }
+            else if (!string.IsNullOrEmpty(_options.ChannelId))
+            {
+                _logger.LogDebug(
+                    "Starting YTLiveChat with ChannelId: {ChannelId}",
+                    _options.ChannelId
+                );
+                _ytLiveChat.Start(channelId: _options.ChannelId);
             }
             else if (!string.IsNullOrEmpty(_options.LiveId))
             {
@@ -76,6 +88,10 @@ internal class ChatMonitorService : IHostedService, IDisposable
     {
         _logger.LogInformation("Chat Monitor Service stopping.");
         _ytLiveChat.InitialPageLoaded -= OnInitialPageLoaded;
+#pragma warning disable CS0618
+        _ytLiveChat.LivestreamStarted -= OnLivestreamStarted;
+        _ytLiveChat.LivestreamEnded -= OnLivestreamEnded;
+#pragma warning restore CS0618
         _ytLiveChat.ChatReceived -= OnChatReceived;
         _ytLiveChat.RawActionReceived -= OnRawActionReceived;
         _ytLiveChat.ChatStopped -= OnChatStopped;
@@ -97,6 +113,32 @@ internal class ChatMonitorService : IHostedService, IDisposable
             Console.Write("-> ");
             Console.ResetColor();
             Console.WriteLine(e.LiveId);
+        }
+    }
+
+    private void OnLivestreamStarted(object? sender, LivestreamStartedEventArgs e)
+    {
+        lock (s_consoleLock)
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("STREAM START ");
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write("-> ");
+            Console.ResetColor();
+            Console.WriteLine(e.LiveId);
+        }
+    }
+
+    private void OnLivestreamEnded(object? sender, LivestreamEndedEventArgs e)
+    {
+        lock (s_consoleLock)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkYellow;
+            Console.Write("STREAM END ");
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write("-> ");
+            Console.ResetColor();
+            Console.WriteLine($"{e.LiveId} ({e.Reason ?? "Unknown"})");
         }
     }
 
@@ -207,6 +249,10 @@ internal class ChatMonitorService : IHostedService, IDisposable
         {
             _logger.LogDebug("Disposing ChatMonitorService.");
             _ytLiveChat.InitialPageLoaded -= OnInitialPageLoaded;
+#pragma warning disable CS0618
+            _ytLiveChat.LivestreamStarted -= OnLivestreamStarted;
+            _ytLiveChat.LivestreamEnded -= OnLivestreamEnded;
+#pragma warning restore CS0618
             _ytLiveChat.ChatReceived -= OnChatReceived;
             _ytLiveChat.RawActionReceived -= OnRawActionReceived;
             _ytLiveChat.ChatStopped -= OnChatStopped;
@@ -423,6 +469,9 @@ internal class ExampleRunOptions
 {
     public string? LiveId { get; set; }
     public string? Handle { get; set; }
+    public string? ChannelId { get; set; }
+    public bool EnableContinuousMonitor { get; set; }
+    public int LiveCheckFrequency { get; set; } = 10000;
     public bool EnableJsonLogging { get; set; }
     public string? DebugLogPath { get; set; }
 }
