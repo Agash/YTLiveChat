@@ -201,19 +201,14 @@ internal static partial class CurrencyParser
     private static decimal ParseDecimal(string input)
     {
         string normalized = NormalizeAmountToken(input);
-        if (
-            decimal.TryParse(
+        return decimal.TryParse(
                 normalized,
                 NumberStyles.Any,
                 CultureInfo.InvariantCulture,
                 out decimal amount
             )
-        )
-        {
-            return amount;
-        }
-
-        return 0m;
+            ? amount
+            : 0m;
     }
 
     private static string ResolveCurrencyCode(string symbolPart, string rawInput)
@@ -236,36 +231,15 @@ internal static partial class CurrencyParser
         }
 
         Match embeddedRawCode = IsoCodeRegex().Match(rawInput.ToUpperInvariant());
-        if (embeddedRawCode.Success)
-        {
-            return embeddedRawCode.Value;
-        }
-
-        if (normalizedSymbol.Contains('$'))
-        {
-            return DefaultCurrency;
-        }
-
-        if (normalizedSymbol == "¥")
-        {
-            return "JPY";
-        }
-
-        return DefaultCurrency;
+        return embeddedRawCode.Success
+            ? embeddedRawCode.Value
+            : normalizedSymbol.Contains('$') ? DefaultCurrency : normalizedSymbol == "¥" ? "JPY" : DefaultCurrency;
     }
 
     private static string NormalizeSpaces(string value) =>
         value.Replace('\u00A0', ' ').Replace('\u202F', ' ').Trim();
 
-    private static bool IsIsoCode(string value)
-    {
-        if (value.Length != 3)
-        {
-            return false;
-        }
-
-        return IsAsciiUpper(value[0]) && IsAsciiUpper(value[1]) && IsAsciiUpper(value[2]);
-    }
+    private static bool IsIsoCode(string value) => value.Length == 3 && IsAsciiUpper(value[0]) && IsAsciiUpper(value[1]) && IsAsciiUpper(value[2]);
 
     private static bool IsAsciiUpper(char value) => value is >= 'A' and <= 'Z';
 
@@ -282,14 +256,9 @@ internal static partial class CurrencyParser
 
         if (hasComma && hasDot)
         {
-            if (normalized.LastIndexOf(',') > normalized.LastIndexOf('.'))
-            {
-                normalized = normalized.Replace(".", string.Empty).Replace(",", ".");
-            }
-            else
-            {
-                normalized = normalized.Replace(",", string.Empty);
-            }
+            normalized = normalized.LastIndexOf(',') > normalized.LastIndexOf('.')
+                ? normalized.Replace(".", string.Empty).Replace(",", ".")
+                : normalized.Replace(",", string.Empty);
 
             return normalized;
         }
@@ -304,12 +273,7 @@ internal static partial class CurrencyParser
 
             int commaIndex = normalized.LastIndexOf(',');
             int digitsAfter = normalized.Length - commaIndex - 1;
-            if (digitsAfter == 3)
-            {
-                return normalized.Replace(",", string.Empty);
-            }
-
-            return normalized.Replace(",", ".");
+            return digitsAfter == 3 ? normalized.Replace(",", string.Empty) : normalized.Replace(",", ".");
         }
 
         if (hasDot)
@@ -320,12 +284,7 @@ internal static partial class CurrencyParser
                 int lastDotIndex = normalized.LastIndexOf('.');
                 string integerPart = normalized[..lastDotIndex].Replace(".", string.Empty);
                 string decimalPart = normalized[(lastDotIndex + 1)..];
-                if (decimalPart.Length == 3)
-                {
-                    return integerPart + decimalPart;
-                }
-
-                return integerPart + "." + decimalPart;
+                return decimalPart.Length == 3 ? integerPart + decimalPart : integerPart + "." + decimalPart;
             }
         }
 

@@ -98,7 +98,7 @@ PrintSorted(nestedRendererCounts);
 
 Console.WriteLine();
 Console.WriteLine("== Unknown Actions (vs known parser surface) ==");
-foreach (var kv in actionCounts.OrderByDescending(x => x.Value).ThenBy(x => x.Key))
+foreach (KeyValuePair<string, int> kv in actionCounts.OrderByDescending(x => x.Value).ThenBy(x => x.Key))
 {
     if (!knownActionTypes.Contains(kv.Key))
     {
@@ -175,7 +175,7 @@ static List<JsonElement> ReadActionsFromLog(string path)
     }
 
     string trimmed = json.TrimStart();
-    if (trimmed.StartsWith("[", StringComparison.Ordinal))
+    if (trimmed.StartsWith('['))
     {
         using JsonDocument document = JsonDocument.Parse(json);
         JsonElement root = document.RootElement;
@@ -195,7 +195,7 @@ static List<JsonElement> ReadActionsFromLog(string path)
     }
 
     byte[] utf8 = Encoding.UTF8.GetBytes(json);
-    var reader = new Utf8JsonReader(utf8, new JsonReaderOptions { AllowTrailingCommas = true });
+    Utf8JsonReader reader = new(utf8, new JsonReaderOptions { AllowTrailingCommas = true });
     while (reader.Read())
     {
         if (reader.TokenType != JsonTokenType.StartObject)
@@ -231,20 +231,10 @@ static IEnumerable<JsonElement> ExtractActions(JsonElement response)
 
 static void PrintSorted(Dictionary<string, int> counts)
 {
-    foreach (var kv in counts.OrderByDescending(x => x.Value).ThenBy(x => x.Key, StringComparer.Ordinal))
+    foreach (KeyValuePair<string, int> kv in counts.OrderByDescending(x => x.Value).ThenBy(x => x.Key, StringComparer.Ordinal))
     {
         Console.WriteLine($"{kv.Value,6}  {kv.Key}");
     }
 }
 
-static void Increment(Dictionary<string, int> dict, string key)
-{
-    if (dict.TryGetValue(key, out int value))
-    {
-        dict[key] = value + 1;
-    }
-    else
-    {
-        dict[key] = 1;
-    }
-}
+static void Increment(Dictionary<string, int> dict, string key) => dict[key] = dict.TryGetValue(key, out int value) ? value + 1 : 1;

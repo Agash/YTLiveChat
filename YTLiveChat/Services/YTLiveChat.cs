@@ -340,19 +340,13 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 true,
                 cancellationToken
             );
-            if (options?.LiveId is null)
-            {
-                if (_continuousMonitorEnabledForSession)
-                {
-                    return null;
-                }
-
-                throw new InvalidOperationException(
+            return options?.LiveId is null
+                ? _continuousMonitorEnabledForSession
+                    ? null
+                    : throw new InvalidOperationException(
                     "Failed to retrieve valid initial FetchOptions (LiveId is missing)."
-                );
-            }
-
-            return options;
+                )
+                : options;
         }
         catch (InvalidOperationException ex) when (
             _continuousMonitorEnabledForSession && IsLikelyNoActiveLiveError(ex)
@@ -474,6 +468,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                             {
                                 OnChatStopped(new() { Reason = "Stream ended or continuation lost" });
                             }
+
                             break; // Exit loop normally
                         }
                     }
@@ -615,6 +610,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                             {
                                 OnChatStopped(new() { Reason = "Stream ended or continuation lost" });
                             }
+
                             break; // Exit loop normally
                         }
                     }
@@ -1119,7 +1115,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             ChatStopped -= HandleChatStopped;
             ErrorOccurred -= HandleErrorOccurred;
             Stop();
-            channel.Writer.TryComplete();
+            _ = channel.Writer.TryComplete();
         }
     }
 
@@ -1177,7 +1173,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             ChatStopped -= HandleChatStopped;
             ErrorOccurred -= HandleErrorOccurred;
             Stop();
-            channel.Writer.TryComplete();
+            _ = channel.Writer.TryComplete();
         }
     }
 
@@ -1388,6 +1384,5 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             return _fetchOptionsInternal;
         }
     }
-
 }
 
