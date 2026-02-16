@@ -91,15 +91,12 @@ internal static partial class Parser
             ?.ShowLiveChatItemEndpoint
             ?.Renderer
             ?.LiveChatMembershipItemRenderer;
-        if (membershipRenderer != null)
-        {
-            return new AddChatItemActionItem
+        return membershipRenderer != null
+            ? new AddChatItemActionItem
             {
                 LiveChatMembershipItemRenderer = membershipRenderer,
-            };
-        }
-
-        return null;
+            }
+            : null;
     }
 
     /// <summary>
@@ -162,8 +159,8 @@ internal static partial class Parser
                 )
             )
             {
-                string before = normalizedInput.Substring(0, numberMatch.Index);
-                string after = normalizedInput.Substring(numberMatch.Index + numberMatch.Length);
+                string before = normalizedInput[..numberMatch.Index];
+                string after = normalizedInput[(numberMatch.Index + numberMatch.Length)..];
                 string currencyToken = string.Concat(before, after).Replace(" ", string.Empty);
                 string currencyCode = CurrencyHelper.GetCodeFromSymbolOrCode(currencyToken);
                 return (amountValue, currencyCode);
@@ -240,8 +237,8 @@ internal static partial class Parser
             if (dotCount > 1)
             {
                 int lastDotIndex = normalized.LastIndexOf('.');
-                string integerPart = normalized.Substring(0, lastDotIndex).Replace(".", string.Empty);
-                string decimalPart = normalized.Substring(lastDotIndex + 1);
+                string integerPart = normalized[..lastDotIndex].Replace(".", string.Empty);
+                string decimalPart = normalized[(lastDotIndex + 1)..];
                 if (decimalPart.Length == 3)
                 {
                     // e.g. 20.000
@@ -280,6 +277,7 @@ internal static partial class Parser
             {
                 continue;
             }
+
             string nonNullValue = value!;
 
             count++;
@@ -299,22 +297,9 @@ internal static partial class Parser
             }
         }
 
-        if (count != 3 || first == null || middle == null || last == null)
-        {
-            return null;
-        }
-
-        if (middle.Length == 0)
-        {
-            return null;
-        }
-
-        if ((last == "!" || last == "！") && first.EndsWith(" ", StringComparison.Ordinal))
-        {
-            return middle;
-        }
-
-        return null;
+        return count != 3 || first == null || middle == null || last == null
+            ? null
+            : middle.Length == 0 ? null : (last == "!" || last == "！") && first.EndsWith(" ", StringComparison.Ordinal) ? middle : null;
     }
 
     /// <summary>
@@ -422,7 +407,7 @@ internal static partial class Parser
                 && rankTitleValue.StartsWith("#", StringComparison.Ordinal)
             )
             {
-                string rankValue = rankTitleValue.Substring(1);
+                string rankValue = rankTitleValue[1..];
                 if (int.TryParse(rankValue, out int rank))
                 {
                     viewerLeaderboardRank = rank;
@@ -863,9 +848,7 @@ internal static partial class Parser
         List<Action>? actions = response?.ContinuationContents?.LiveChatContinuation?.Actions;
         List<(Contracts.Models.ChatItem Item, int ActionIndex)> items = actions == null
             ? []
-            : new List<(Contracts.Models.ChatItem Item, int ActionIndex)>(actions.Count);
-        string? continuationToken = null;
-
+            : new(actions.Count);
         if (actions != null)
         {
             for (int i = 0; i < actions.Count; i++)
@@ -880,10 +863,9 @@ internal static partial class Parser
 
         Continuation? nextContinuation =
             response?.ContinuationContents?.LiveChatContinuation?.Continuations?.FirstOrDefault();
-        continuationToken =
-            nextContinuation?.InvalidationContinuationData?.Continuation
-            ?? nextContinuation?.TimedContinuationData?.Continuation;
-
+        string? continuationToken =
+    nextContinuation?.InvalidationContinuationData?.Continuation
+    ?? nextContinuation?.TimedContinuationData?.Continuation;
         if (string.IsNullOrEmpty(continuationToken))
         {
             continuationToken = response?.InvalidationContinuationData?.Continuation;

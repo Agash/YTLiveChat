@@ -28,9 +28,7 @@ internal static class ActionTestData
             """;
     }
 
-    public static string AddBannerPinnedMessage()
-    {
-        return """
+    public static string AddBannerPinnedMessage() => """
             {
               "addBannerToLiveChatCommand": {
                 "bannerRenderer": {
@@ -61,27 +59,20 @@ internal static class ActionTestData
               }
             }
             """;
-    }
 
-    public static string RemoveChatItem()
-    {
-        return """
+    public static string RemoveChatItem() => """
             {
               "removeChatItemAction": {
                 "targetItemId": "REMOVED_MSG_ID_01"
               }
             }
             """;
-    }
 
-    public static string ReportModerationStateEmpty()
-    {
-        return """
+    public static string ReportModerationStateEmpty() => """
             {
               "liveChatReportModerationStateCommand": {}
             }
             """;
-    }
 
     public static string ModeChangeMessageRenderer()
     {

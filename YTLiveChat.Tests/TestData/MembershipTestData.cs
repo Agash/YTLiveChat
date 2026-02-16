@@ -74,9 +74,7 @@ internal static class MembershipTestData
             """; // Corresponds to liveChatMembershipItemRenderer
     }
 
-    public static string NewMemberFromLatestLogWithNewMemberBadge()
-    {
-        return """
+    public static string NewMemberFromLatestLogWithNewMemberBadge() => """
             {
               "id": "ChwKGkNMUEltT1BRM1pJREZTX0J3Z1FkNUljbU1n",
               "timestampUsec": "1771231835991083",
@@ -125,7 +123,6 @@ internal static class MembershipTestData
               }]
             }
             """;
-    }
 
     public static string NewMemberLocalizedThreeRuns()
     {
@@ -155,9 +152,7 @@ internal static class MembershipTestData
             """;
     }
 
-    public static string NewMemberFromLog6WithMemberTenureBadge()
-    {
-        return """
+    public static string NewMemberFromLog6WithMemberTenureBadge() => """
             {
               "id": "ChwKGkNOSExsNVhoM1pJREZiN0t3Z1Fkc3N3VFlR",
               "timestampUsec": "1771236235800174",
@@ -210,7 +205,6 @@ internal static class MembershipTestData
               ]
             }
             """;
-    }
 
     public static string GiftPurchase_1_Gift_Kelly()
     {

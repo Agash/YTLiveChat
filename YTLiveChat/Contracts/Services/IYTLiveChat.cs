@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 
 using YTLiveChat.Contracts.Models;
@@ -55,6 +56,31 @@ public interface IYTLiveChat : IDisposable
     /// Stops the listeners
     /// </summary>
     void Stop();
+
+    /// <summary>
+    /// Starts chat monitoring and asynchronously yields parsed chat items until stopped, stream ends, or cancellation is requested.
+    /// This helper owns the listener lifecycle and calls <see cref="Start"/> and <see cref="Stop"/> internally.
+    /// </summary>
+    IAsyncEnumerable<ChatItem> StreamChatItemsAsync(
+        string? handle = null,
+        string? channelId = null,
+        string? liveId = null,
+        bool overwrite = false,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default
+    );
+
+    /// <summary>
+    /// Starts chat monitoring and asynchronously yields raw action payloads (including unsupported action types)
+    /// until stopped, stream ends, or cancellation is requested.
+    /// This helper owns the listener lifecycle and calls <see cref="Start"/> and <see cref="Stop"/> internally.
+    /// </summary>
+    IAsyncEnumerable<RawActionReceivedEventArgs> StreamRawActionsAsync(
+        string? handle = null,
+        string? channelId = null,
+        string? liveId = null,
+        bool overwrite = false,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default
+    );
 }
 
 /// <summary>

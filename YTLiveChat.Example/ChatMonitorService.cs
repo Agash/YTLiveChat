@@ -100,10 +100,7 @@ internal class ChatMonitorService : IHostedService, IDisposable
         }
     }
 
-    private void OnChatReceived(object? sender, ChatReceivedEventArgs e)
-    {
-        RenderChatItem(e.ChatItem);
-    }
+    private void OnChatReceived(object? sender, ChatReceivedEventArgs e) => RenderChatItem(e.ChatItem);
 
     private void OnRawActionReceived(object? sender, RawActionReceivedEventArgs e)
     {
@@ -384,6 +381,7 @@ internal class ChatMonitorService : IHostedService, IDisposable
                         Console.ForegroundColor = ConsoleColor.Yellow;
                         Console.Write(emojiText);
                     }
+
                     break;
                 case ImagePart imagePart:
                     Console.ForegroundColor = ConsoleColor.DarkCyan;
@@ -403,12 +401,7 @@ internal class ChatMonitorService : IHostedService, IDisposable
     {
         if (item.MembershipDetails == null)
         {
-            if (item.Superchat?.Sticker?.Alt != null)
-            {
-                return $"Sticker: {item.Superchat.Sticker.Alt}";
-            }
-
-            return null;
+            return item.Superchat?.Sticker?.Alt != null ? $"Sticker: {item.Superchat.Sticker.Alt}" : null;
         }
 
         MembershipDetails membership = item.MembershipDetails;

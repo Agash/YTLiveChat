@@ -1,9 +1,9 @@
-﻿using System.Text.Json;
+﻿using System.Runtime.CompilerServices;
+using System.Text;
+using System.Text.Json;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-
-using System.Text;
 
 using YTLiveChat.Contracts;
 using YTLiveChat.Contracts.Models;
@@ -712,7 +712,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         }
         finally
         {
-            s_debugLogLock.Release();
+            _ = s_debugLogLock.Release();
         }
     }
 
@@ -805,7 +805,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
 
         if (_debugLogArrayStarted)
         {
-            fs.Seek(0, SeekOrigin.End);
+            _ = fs.Seek(0, SeekOrigin.End);
             return;
         }
 
@@ -829,7 +829,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         while (position > 0)
         {
             position--;
-            fs.Seek(position, SeekOrigin.Begin);
+            _ = fs.Seek(position, SeekOrigin.Begin);
             int bytesRead = await ReadByteAsync(fs, buffer, cancellationToken).ConfigureAwait(false);
             if (bytesRead == 0)
                 break;
@@ -846,39 +846,37 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             break;
         }
 
-        fs.Seek(0, SeekOrigin.End);
+        _ = fs.Seek(0, SeekOrigin.End);
     }
 
     private static async Task WriteBytesAsync(
         FileStream fs,
         byte[] buffer,
         CancellationToken cancellationToken
-    )
-    {
+    ) =>
 #if NETSTANDARD2_0
         await fs.WriteAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
 #else
         await fs.WriteAsync(buffer.AsMemory(), cancellationToken).ConfigureAwait(false);
 #endif
-    }
+
 
     private static async Task<int> ReadByteAsync(
         FileStream fs,
         byte[] buffer,
         CancellationToken cancellationToken
-    )
-    {
+    ) =>
 #if NETSTANDARD2_0
-        return await fs.ReadAsync(buffer, 0, 1, cancellationToken).ConfigureAwait(false);
+        await fs.ReadAsync(buffer, 0, 1, cancellationToken).ConfigureAwait(false);
 #else
-        return await fs.ReadAsync(buffer.AsMemory(0, 1), cancellationToken).ConfigureAwait(false);
+        await fs.ReadAsync(buffer.AsMemory(0, 1), cancellationToken).ConfigureAwait(false);
 #endif
-    }
+
 
     private static char? GetFirstNonWhitespaceChar(FileStream fs)
     {
         byte[] buffer = new byte[1];
-        fs.Seek(0, SeekOrigin.Begin);
+        _ = fs.Seek(0, SeekOrigin.Begin);
         while (fs.Position < fs.Length)
         {
             int read = fs.Read(buffer, 0, 1);
@@ -913,7 +911,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 FileAccess.Write,
                 FileShare.Read
             );
-            fs.Seek(0, SeekOrigin.End);
+            _ = fs.Seek(0, SeekOrigin.End);
             fs.Write(s_debugLogArrayEnd, 0, s_debugLogArrayEnd.Length);
             _debugLogArrayClosed = true;
         }
@@ -927,7 +925,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         }
         finally
         {
-            s_debugLogLock.Release();
+            _ = s_debugLogLock.Release();
         }
     }
 
@@ -1137,4 +1135,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             return _fetchOptionsInternal;
         }
     }
+
+    /// <inheritdoc/>
+    public IAsyncEnumerable<ChatItem> StreamChatItemsAsync(string? handle = null, string? channelId = null, string? liveId = null, bool overwrite = false, [EnumeratorCancellation] CancellationToken cancellationToken = default) => throw new NotImplementedException();
+    /// <inheritdoc/>
+    public IAsyncEnumerable<RawActionReceivedEventArgs> StreamRawActionsAsync(string? handle = null, string? channelId = null, string? liveId = null, bool overwrite = false, [EnumeratorCancellation] CancellationToken cancellationToken = default) => throw new NotImplementedException();
 }

@@ -16,14 +16,9 @@ internal static class UtilityTestData
     {
         string actionsJson = string.Join(",", actionJsons);
 
-        string continuationJsonBlock;
-        if (continuationToken == null)
-        {
-            continuationJsonBlock = "\"continuations\": null";
-        }
-        else
-        {
-            continuationJsonBlock = $$"""
+        string continuationJsonBlock = continuationToken == null
+            ? "\"continuations\": null"
+            : $$"""
                 "continuations": [
                   {
                     "invalidationContinuationData": {
@@ -40,8 +35,6 @@ internal static class UtilityTestData
                   }
                 ]
                 """;
-        }
-
         return $$"""
             {
               "responseContext": {
