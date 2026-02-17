@@ -485,7 +485,7 @@ static void CollectShapePaths(
 {
     if (depth >= maxDepth)
     {
-        shapePaths.Add($"{path}:<max-depth>");
+        _ = shapePaths.Add($"{path}:<max-depth>");
         return;
     }
 
@@ -495,14 +495,14 @@ static void CollectShapePaths(
             foreach (JsonProperty property in element.EnumerateObject())
             {
                 string childPath = $"{path}.{property.Name}";
-                shapePaths.Add(childPath);
+                _ = shapePaths.Add(childPath);
                 CollectShapePaths(property.Value, childPath, shapePaths, depth + 1, maxDepth);
             }
 
             return;
 
         case JsonValueKind.Array:
-            shapePaths.Add($"{path}[]");
+            _ = shapePaths.Add($"{path}[]");
             foreach (JsonElement item in element.EnumerateArray())
             {
                 CollectShapePaths(item, $"{path}[]", shapePaths, depth + 1, maxDepth);
@@ -511,7 +511,7 @@ static void CollectShapePaths(
             return;
 
         default:
-            shapePaths.Add($"{path}:{element.ValueKind}");
+            _ = shapePaths.Add($"{path}:{element.ValueKind}");
             return;
     }
 }
@@ -578,15 +578,10 @@ static string? TryGetRunsTemplate(JsonElement container, string richTextProperty
 
 static string? TryGetSimpleText(JsonElement container, string propertyName)
 {
-    if (
-        container.TryGetProperty(propertyName, out JsonElement value)
+    return container.TryGetProperty(propertyName, out JsonElement value)
         && value.TryGetProperty("simpleText", out JsonElement simpleText)
-    )
-    {
-        return simpleText.GetString();
-    }
-
-    return null;
+        ? simpleText.GetString()
+        : null;
 }
 
 static string? TryGetPathText(JsonElement root, params string[] path)
