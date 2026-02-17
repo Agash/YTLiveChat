@@ -472,6 +472,8 @@ internal class ExampleRunOptions
     public string? ChannelId { get; set; }
     public bool EnableContinuousMonitor { get; set; }
     public int LiveCheckFrequency { get; set; } = 10000;
+    public bool RequireActiveBroadcastForAutoDetectedStream { get; set; }
+    public List<string> IgnoredAutoDetectedLiveIds { get; set; } = [];
     public bool EnableJsonLogging { get; set; }
     public string? DebugLogPath { get; set; }
 }

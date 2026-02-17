@@ -45,6 +45,38 @@ internal static partial class Parser
     }
 
     /// <summary>
+    /// Best-effort check to determine whether the fetched watch page represents an actively broadcasting livestream.
+    /// Returns false for replay/upcoming pages and when no clear live-state marker can be found.
+    /// </summary>
+    public static bool IsActivelyBroadcastingLivePage(string raw)
+    {
+        if (ReplayRegex().IsMatch(raw))
+        {
+            return false;
+        }
+
+        Match upcomingResult = IsUpcomingRegex().Match(raw);
+        if (upcomingResult.Success && upcomingResult.Groups[1].Value.Equals("true", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        Match isLiveNowResult = IsLiveNowRegex().Match(raw);
+        if (isLiveNowResult.Success)
+        {
+            return isLiveNowResult.Groups[1].Value.Equals("true", StringComparison.OrdinalIgnoreCase);
+        }
+
+        Match isLiveResult = IsLiveRegex().Match(raw);
+        if (isLiveResult.Success)
+        {
+            return isLiveResult.Groups[1].Value.Equals("true", StringComparison.OrdinalIgnoreCase);
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Extracts the relevant message renderer from a polymorphic item container.
     /// </summary>
     private static MessageRendererBase? GetBaseRenderer(AddChatItemActionItem? item) =>
@@ -808,6 +840,15 @@ internal static partial class Parser
     [GeneratedRegex("\"continuation\":\\s*\"([^\"]*)\"", RegexOptions.Compiled)]
     private static partial Regex ContinuationRegex();
 
+    [GeneratedRegex("\"isLiveNow\":\\s*(true|false)", RegexOptions.Compiled)]
+    private static partial Regex IsLiveNowRegex();
+
+    [GeneratedRegex("\"isUpcoming\":\\s*(true|false)", RegexOptions.Compiled)]
+    private static partial Regex IsUpcomingRegex();
+
+    [GeneratedRegex("\"isLive\":\\s*(true|false)", RegexOptions.Compiled)]
+    private static partial Regex IsLiveRegex();
+
     [GeneratedRegex(@"member for (\d+) months?", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex MilestoneMonthsRegex();
 
@@ -871,6 +912,27 @@ internal static partial class Parser
     );
 
     private static Regex ContinuationRegex() => _continuationRegex;
+
+    private static readonly Regex _isLiveNowRegex = new(
+        "\"isLiveNow\":\\s*(true|false)",
+        RegexOptions.Compiled
+    );
+
+    private static Regex IsLiveNowRegex() => _isLiveNowRegex;
+
+    private static readonly Regex _isUpcomingRegex = new(
+        "\"isUpcoming\":\\s*(true|false)",
+        RegexOptions.Compiled
+    );
+
+    private static Regex IsUpcomingRegex() => _isUpcomingRegex;
+
+    private static readonly Regex _isLiveRegex = new(
+        "\"isLive\":\\s*(true|false)",
+        RegexOptions.Compiled
+    );
+
+    private static Regex IsLiveRegex() => _isLiveRegex;
 
     private static readonly Regex _milestoneMonthsRegex = new(
         @"member for (\d+) months?",

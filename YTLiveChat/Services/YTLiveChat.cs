@@ -58,6 +58,8 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
 #pragma warning disable CS0618
     private bool ContinuousMonitorSetting => _options.EnableContinuousLivestreamMonitor;
     private int LiveCheckFrequencySetting => _options.LiveCheckFrequency;
+    private bool RequireActiveBroadcastForAutoDetectedStreamSetting =>
+        _options.RequireActiveBroadcastForAutoDetectedStream;
 #pragma warning restore CS0618
 
     private const int MaxRetryAttempts = 5;
@@ -340,10 +342,17 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 true,
                 cancellationToken
             );
-            return options?.LiveId is null
-                ? _continuousMonitorEnabledForSession
+            if (options is null)
+            {
+                return _continuousMonitorEnabledForSession
                     ? null
                     : throw new InvalidOperationException(
+                        "No acceptable livestream candidate found for the provided target."
+                    );
+            }
+
+            return options.LiveId is null
+                ? throw new InvalidOperationException(
                     "Failed to retrieve valid initial FetchOptions (LiveId is missing)."
                 )
                 : options;
@@ -365,7 +374,8 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         string message = ex.ToString();
         return message.Contains("Live Stream canonical link not found", StringComparison.Ordinal)
             || message.Contains("Initial Continuation token not found", StringComparison.Ordinal)
-            || message.Contains("is finished live", StringComparison.Ordinal);
+            || message.Contains("is finished live", StringComparison.Ordinal)
+            || message.Contains("No acceptable livestream candidate found", StringComparison.Ordinal);
     }
 
     private void BeginActiveLivestream(string liveId)
@@ -1353,6 +1363,19 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                     cancellationToken
                 );
                 FetchOptions newOptions = Parser.GetOptionsFromLivePage(pageHtml); // Can throw
+                if (
+                    ShouldSkipAutoDetectedLiveStreamCandidate(
+                        handle,
+                        channelId,
+                        liveId,
+                        pageHtml,
+                        newOptions.LiveId
+                    )
+                )
+                {
+                    return null;
+                }
+
                 _logger.LogInformation(
                     "Successfully parsed initial options. Live ID: {LiveId}",
                     newOptions.LiveId
@@ -1383,6 +1406,68 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             );
             return _fetchOptionsInternal;
         }
+    }
+
+    private bool ShouldSkipAutoDetectedLiveStreamCandidate(
+        string? handle,
+        string? channelId,
+        string? explicitLiveId,
+        string pageHtml,
+        string? candidateLiveId
+    )
+    {
+        if (!string.IsNullOrWhiteSpace(explicitLiveId))
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(handle) && string.IsNullOrWhiteSpace(channelId))
+        {
+            return false;
+        }
+
+        string? candidateId = candidateLiveId;
+        if (candidateId is { Length: > 0 } && IsIgnoredAutoDetectedLiveId(candidateId))
+        {
+            _logger.LogInformation(
+                "Skipping auto-detected livestream {LiveId} because it is configured in IgnoredAutoDetectedLiveIds.",
+                candidateId
+            );
+            return true;
+        }
+
+        if (
+            RequireActiveBroadcastForAutoDetectedStreamSetting
+            && !Parser.IsActivelyBroadcastingLivePage(pageHtml)
+        )
+        {
+            _logger.LogInformation(
+                "Skipping auto-detected livestream candidate because page is not actively broadcasting (scheduled/free-chat/offline)."
+            );
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool IsIgnoredAutoDetectedLiveId(string liveId)
+    {
+#pragma warning disable CS0618
+        if (_options.IgnoredAutoDetectedLiveIds.Count == 0)
+        {
+            return false;
+        }
+
+        foreach (string ignoredLiveId in _options.IgnoredAutoDetectedLiveIds)
+        {
+            if (string.Equals(ignoredLiveId?.Trim(), liveId, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+#pragma warning restore CS0618
+
+        return false;
     }
 }
 

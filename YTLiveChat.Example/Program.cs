@@ -55,6 +55,25 @@ if (!string.IsNullOrWhiteSpace(runOptions.Handle) || !string.IsNullOrWhiteSpace(
     )
     {
         runOptions.EnableContinuousMonitor = true;
+
+        Console.Write("Only auto-detect streams that are actively broadcasting (skip scheduled/free-chat)? (Y/n): ");
+        string? activeOnlyResponse = Console.ReadLine();
+        runOptions.RequireActiveBroadcastForAutoDetectedStream =
+            string.IsNullOrWhiteSpace(activeOnlyResponse)
+            || activeOnlyResponse.Trim().Equals("y", StringComparison.OrdinalIgnoreCase);
+
+        Console.Write("Ignored auto-detected live IDs (comma-separated, optional): ");
+        string? ignoredLiveIdsInput = Console.ReadLine();
+        if (!string.IsNullOrWhiteSpace(ignoredLiveIdsInput))
+        {
+            runOptions.IgnoredAutoDetectedLiveIds = ignoredLiveIdsInput
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
         Console.Write("Live-check frequency in ms (default 10000): ");
         string? frequencyInput = Console.ReadLine();
         if (
@@ -107,6 +126,9 @@ builder.Services.Configure<YTLiveChatOptions>(options =>
     {
         options.EnableContinuousLivestreamMonitor = true;
         options.LiveCheckFrequency = runOptions.LiveCheckFrequency;
+        options.RequireActiveBroadcastForAutoDetectedStream =
+            runOptions.RequireActiveBroadcastForAutoDetectedStream;
+        options.IgnoredAutoDetectedLiveIds = runOptions.IgnoredAutoDetectedLiveIds;
     }
 #pragma warning restore CS0618
 

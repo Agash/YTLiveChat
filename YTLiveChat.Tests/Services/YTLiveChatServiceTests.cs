@@ -291,6 +291,164 @@ public class YTLiveChatServiceTests
     }
 
     [TestMethod]
+    public async Task Start_ContinuousMonitorMode_RequireActiveBroadcast_SkipsScheduledUntilLive()
+    {
+#pragma warning disable CS0618
+        _ytLiveChatOptions.EnableContinuousLivestreamMonitor = true;
+        _ytLiveChatOptions.LiveCheckFrequency = 50;
+        _ytLiveChatOptions.RequireActiveBroadcastForAutoDetectedStream = true;
+#pragma warning restore CS0618
+
+        string scheduledLiveId = "scheduledFreeChat01";
+        string expectedLiveId = "actualBroadcast01";
+        string apiKey = "apiKey_monitor_active_01";
+        string clientVersion = "cv_monitor_active_01";
+        string continuation = "cont_monitor_active_01";
+
+        string scheduledHtml = $$"""
+            <!DOCTYPE html><html><head>
+            <link rel="canonical" href="https://www.youtube.com/watch?v={{scheduledLiveId}}">
+            <script>
+            window.ytcfg.set({
+                "INNERTUBE_API_KEY": "{{apiKey}}",
+                "INNERTUBE_CONTEXT_CLIENT_VERSION": "{{clientVersion}}",
+                "isLiveNow": false,
+                "isUpcoming": true,
+                "INITIAL_DATA": { "contents": { "twoColumnWatchNextResults": { "conversationBar": { "liveChatRenderer": { "continuations": [ { "reloadContinuationData": { "continuation": "{{continuation}}" } }]} } } } }
+            });
+            </script></head><body></body></html>
+            """;
+
+        string liveHtml = UtilityTestData.GetSampleLivePageHtml(
+            expectedLiveId,
+            apiKey,
+            clientVersion,
+            continuation
+        );
+
+        _ = _mockYtHttpClient
+            .SetupSequence(c =>
+                c.GetOptionsAsync("monitorTarget", null, null, It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(scheduledHtml)
+            .ReturnsAsync(liveHtml)
+            .ReturnsAsync(scheduledHtml);
+
+        string itemRendererContentJson = TextMessageTestData.SimpleTextMessage1();
+        string itemObjectJson =
+            $$"""{ "liveChatTextMessageRenderer": {{itemRendererContentJson}} }""";
+        string endedResponseJson = UtilityTestData.StreamEndedResponse(itemObjectJson);
+        LiveChatResponse? endedResponse = JsonSerializer.Deserialize<LiveChatResponse>(
+            endedResponseJson
+        );
+        Assert.IsNotNull(endedResponse);
+
+        _ = _mockYtHttpClient
+            .Setup(c =>
+                c.GetLiveChatAsync(
+                    It.Is<FetchOptions>(fo => fo.LiveId == expectedLiveId),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((endedResponse, endedResponseJson));
+
+        TaskCompletionSource<LivestreamStartedEventArgs> startedTcs = new(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        _service.LivestreamStarted += (_, e) => _ = startedTcs.TrySetResult(e);
+
+        _service.Start(handle: "monitorTarget");
+
+        LivestreamStartedEventArgs startedArgs = await WaitForTcsResult(
+            startedTcs,
+            "LivestreamStarted"
+        );
+        Assert.AreEqual(expected: expectedLiveId, actual: startedArgs.LiveId);
+
+        _mockYtHttpClient.Verify(
+            c => c.GetLiveChatAsync(It.Is<FetchOptions>(fo => fo.LiveId == scheduledLiveId), It.IsAny<CancellationToken>()),
+            Times.Never
+        );
+
+        _service.Stop();
+    }
+
+    [TestMethod]
+    public async Task Start_ContinuousMonitorMode_IgnoresConfiguredAutoDetectedLiveIds()
+    {
+#pragma warning disable CS0618
+        _ytLiveChatOptions.EnableContinuousLivestreamMonitor = true;
+        _ytLiveChatOptions.LiveCheckFrequency = 50;
+        _ytLiveChatOptions.IgnoredAutoDetectedLiveIds.Add("ignoreThisLive01");
+#pragma warning restore CS0618
+
+        string ignoredLiveId = "ignoreThisLive01";
+        string selectedLiveId = "selectedLive02";
+        string apiKey = "apiKey_monitor_ignore_01";
+        string clientVersion = "cv_monitor_ignore_01";
+        string continuation = "cont_monitor_ignore_01";
+
+        string ignoredHtml = UtilityTestData.GetSampleLivePageHtml(
+            ignoredLiveId,
+            apiKey,
+            clientVersion,
+            continuation
+        );
+        string selectedHtml = UtilityTestData.GetSampleLivePageHtml(
+            selectedLiveId,
+            apiKey,
+            clientVersion,
+            continuation
+        );
+
+        _ = _mockYtHttpClient
+            .SetupSequence(c =>
+                c.GetOptionsAsync("monitorTarget", null, null, It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(ignoredHtml)
+            .ReturnsAsync(selectedHtml)
+            .ReturnsAsync(ignoredHtml);
+
+        string itemRendererContentJson = TextMessageTestData.SimpleTextMessage1();
+        string itemObjectJson =
+            $$"""{ "liveChatTextMessageRenderer": {{itemRendererContentJson}} }""";
+        string endedResponseJson = UtilityTestData.StreamEndedResponse(itemObjectJson);
+        LiveChatResponse? endedResponse = JsonSerializer.Deserialize<LiveChatResponse>(
+            endedResponseJson
+        );
+        Assert.IsNotNull(endedResponse);
+
+        _ = _mockYtHttpClient
+            .Setup(c =>
+                c.GetLiveChatAsync(
+                    It.Is<FetchOptions>(fo => fo.LiveId == selectedLiveId),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((endedResponse, endedResponseJson));
+
+        TaskCompletionSource<LivestreamStartedEventArgs> startedTcs = new(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        _service.LivestreamStarted += (_, e) => _ = startedTcs.TrySetResult(e);
+
+        _service.Start(handle: "monitorTarget");
+
+        LivestreamStartedEventArgs startedArgs = await WaitForTcsResult(
+            startedTcs,
+            "LivestreamStarted"
+        );
+        Assert.AreEqual(expected: selectedLiveId, actual: startedArgs.LiveId);
+
+        _mockYtHttpClient.Verify(
+            c => c.GetLiveChatAsync(It.Is<FetchOptions>(fo => fo.LiveId == ignoredLiveId), It.IsAny<CancellationToken>()),
+            Times.Never
+        );
+
+        _service.Stop();
+    }
+
+    [TestMethod]
     public async Task Start_GetOptionsAsyncThrows_ErrorEventFiredAndChatStopped()
     {
         string liveId = "failLiveId002";

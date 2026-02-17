@@ -125,6 +125,8 @@ internal static class UtilityTestData
             window.ytcfg.set({
                 "INNERTUBE_API_KEY": "{{apiKey}}",
                 "INNERTUBE_CONTEXT_CLIENT_VERSION": "{{clientVersion}}",
+                "isLiveNow": true,
+                "isUpcoming": false,
                 "INNERTUBE_CONTEXT": { "client": { "clientName": "WEB" } },
                 "INITIAL_DATA": { "contents": { "twoColumnWatchNextResults": { "conversationBar": { "liveChatRenderer": { "continuations": [ { "reloadContinuationData": { "continuation": "{{initialContinuation}}" } }]} } } } }
             });
