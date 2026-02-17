@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+using System.Text.Json;
+using System.Net;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -161,26 +162,137 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
         CancellationToken cancellationToken = default
     )
     {
-        string urlPath; // Relative path
-        if (!string.IsNullOrEmpty(handle))
+        string urlPath = BuildLivePagePath(handle, channelId, liveId);
+        return await GetPageHtmlWithConsentFallbackAsync(urlPath, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Fetches the streams tab HTML page for a given channel handle or ID.
+    /// </summary>
+    public virtual async Task<string> GetStreamsPageAsync(
+        string? handle,
+        string? channelId,
+        CancellationToken cancellationToken = default
+    )
+    {
+        string urlPath = BuildStreamsPagePath(handle, channelId);
+        return await GetPageHtmlWithConsentFallbackAsync(urlPath, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<string> GetPageHtmlWithConsentFallbackAsync(
+        string urlPath,
+        CancellationToken cancellationToken
+    )
+    {
+        // Always fetch channel/watch pages with a stateless client to avoid cookie-driven
+        // consent interstitial loops between monitor probes.
+        string html = await GetStringStatelessAsync(urlPath, cancellationToken).ConfigureAwait(false);
+        if (!IsConsentInterstitialPage(html))
         {
-            handle = handle!.StartsWith("@") ? handle : '@' + handle;
-            urlPath = $"/{handle}/live";
+            return html;
         }
-        else
+
+        _logger.LogWarning(
+            "Stateless fetch returned YouTube consent interstitial for {UrlPath}. Retrying with configured HttpClient.",
+            urlPath
+        );
+
+        string fallbackHtml = await GetStringAsync(urlPath, cancellationToken)
+            .ConfigureAwait(false);
+        if (!IsConsentInterstitialPage(fallbackHtml))
         {
-            urlPath =
-                !string.IsNullOrEmpty(channelId) ? $"/channel/{channelId}/live"
-                : !string.IsNullOrEmpty(liveId) ? $"/watch?v={liveId}"
-                : throw new ArgumentException(
-                    "At least one identifier (handle, channelId, or liveId) must be provided."
-                );
+            return fallbackHtml;
         }
-        // HttpClient.GetStringAsync will combine BaseAddress and urlPath
+
+        _logger.LogWarning(
+            "Configured HttpClient fallback still returned consent interstitial for {UrlPath}.",
+            urlPath
+        );
+        return fallbackHtml;
+    }
+
+    private async Task<string> GetStringAsync(string urlPath, CancellationToken cancellationToken)
+    {
+        // HttpClient.GetStringAsync will combine BaseAddress and urlPath.
 #if NETSTANDARD2_1 || NETSTANDARD2_0
         return await _httpClient.GetStringAsync(urlPath).ConfigureAwait(false);
 #else
         return await _httpClient.GetStringAsync(urlPath, cancellationToken).ConfigureAwait(false);
 #endif
     }
+
+    private async Task<string> GetStringStatelessAsync(
+        string urlPath,
+        CancellationToken cancellationToken
+    )
+    {
+        HttpClientHandler handler = new()
+        {
+            UseCookies = false,
+            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+        };
+
+        using HttpClient statelessClient = new(handler)
+        {
+            BaseAddress = _httpClient.BaseAddress,
+            Timeout = _httpClient.Timeout,
+        };
+
+        using HttpRequestMessage request = new(HttpMethod.Get, urlPath);
+#if NETSTANDARD2_1 || NETSTANDARD2_0
+        using HttpResponseMessage response = await statelessClient
+            .SendAsync(request)
+            .ConfigureAwait(false);
+#else
+        using HttpResponseMessage response = await statelessClient
+            .SendAsync(request, cancellationToken)
+            .ConfigureAwait(false);
+#endif
+        response.EnsureSuccessStatusCode();
+#if NETSTANDARD2_1 || NETSTANDARD2_0
+        return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+#else
+        return await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+#endif
+    }
+
+    private static bool IsConsentInterstitialPage(string html) =>
+        html.Contains("consent.youtube.com", StringComparison.OrdinalIgnoreCase)
+        || html.Contains("Before you continue to YouTube", StringComparison.OrdinalIgnoreCase);
+
+    private static string BuildLivePagePath(string? handle, string? channelId, string? liveId)
+    {
+        if (!string.IsNullOrEmpty(handle))
+        {
+            string normalizedHandle = handle!.StartsWith("@", StringComparison.Ordinal)
+                ? handle
+                : '@' + handle;
+            return $"/{normalizedHandle}/live";
+        }
+
+        return !string.IsNullOrEmpty(channelId) ? $"/channel/{channelId}/live"
+            : !string.IsNullOrEmpty(liveId) ? $"/watch?v={liveId}"
+            : throw new ArgumentException(
+                "At least one identifier (handle, channelId, or liveId) must be provided."
+            );
+    }
+
+    private static string BuildStreamsPagePath(string? handle, string? channelId)
+    {
+        if (!string.IsNullOrEmpty(handle))
+        {
+            string normalizedHandle = handle!.StartsWith("@", StringComparison.Ordinal)
+                ? handle
+                : '@' + handle;
+            return $"/{normalizedHandle}/streams";
+        }
+
+        return !string.IsNullOrEmpty(channelId) ? $"/channel/{channelId}/streams"
+            : throw new ArgumentException(
+                "A channel handle or channelId must be provided."
+            );
+    }
 }
+
