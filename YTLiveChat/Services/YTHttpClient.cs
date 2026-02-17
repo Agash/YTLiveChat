@@ -26,6 +26,12 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
         PropertyNameCaseInsensitive = true,
     };
 
+#if DEBUG
+    private const string PrettyPrintQueryValue = "true";
+#else
+    private const string PrettyPrintQueryValue = "false";
+#endif
+
     /// <summary>
     /// Fetches the latest live chat messages and continuation token based on the provided options.
     /// </summary>
@@ -43,7 +49,8 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
     )
     {
         // HttpClient.BaseAddress is expected to be set (e.g., "https://www.youtube.com")
-        string url = $"/youtubei/v1/live_chat/get_live_chat?key={options.ApiKey}";
+        string url =
+            $"/youtubei/v1/live_chat/get_live_chat?key={options.ApiKey}&prettyPrint={PrettyPrintQueryValue}";
         string? rawJson = null;
         try
         {
