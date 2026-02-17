@@ -10,4 +10,10 @@
     <PackageReference Include="Moq" Version="4.20.72" />
     <ProjectReference Include="..\YTLiveChat\YTLiveChat.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="TestData\WebSnapshots\*.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>WebSnapshots\%(Filename)%(Extension)</TargetPath>
+    </Content>
+  </ItemGroup>
 </Project>

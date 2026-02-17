@@ -39,6 +39,13 @@ public class ParserTests
         return Parser.ToChatItem(action);
     }
 
+    private static string LoadWebSnapshot(string fileName)
+    {
+        string path = Path.Combine(AppContext.BaseDirectory, "WebSnapshots", fileName);
+        Assert.IsTrue(File.Exists(path), $"Snapshot file not found: {path}");
+        return WebSnapshotTestData.LoadWebSnapshot(fileName);
+    }
+
     [TestMethod]
     public void ToChatItem_SimpleTextMessage1_ParsesCorrectly()
     {
@@ -979,14 +986,14 @@ public class ParserTests
     public void GetOptionsFromLivePage_ValidHtml_ReturnsOptions()
     {
         string html = UtilityTestData.GetSampleLivePageHtml(
-            "LIVE_ID_PAGE_TEST",
+            "LIVETEST001",
             "API_KEY_PAGE_TEST",
             "CLIENT_VERSION_PAGE_TEST",
             "CONTINUATION_PAGE_TEST"
         );
         Models.FetchOptions options = Parser.GetOptionsFromLivePage(html);
 
-        Assert.AreEqual("LIVE_ID_PAGE_TEST", options.LiveId);
+        Assert.AreEqual("LIVETEST001", options.LiveId);
         Assert.AreEqual("API_KEY_PAGE_TEST", options.ApiKey);
         Assert.AreEqual("CLIENT_VERSION_PAGE_TEST", options.ClientVersion);
         Assert.AreEqual("CONTINUATION_PAGE_TEST", options.Continuation);
@@ -995,17 +1002,17 @@ public class ParserTests
     [TestMethod]
     public void GetOptionsFromLivePage_FinishedStreamHtml_ThrowsException()
     {
-        string html = UtilityTestData.GetFinishedStreamPageHtml("FINISHED_ID_PAGE_TEST");
+        string html = UtilityTestData.GetFinishedStreamPageHtml("FINISHED001");
         Exception ex = Assert.Throws<Exception>(() => Parser.GetOptionsFromLivePage(html));
         Assert.IsTrue(ex.Message.Contains("is finished live"));
-        Assert.IsTrue(ex.Message.Contains("FINISHED_ID_PAGE_TEST"));
+        Assert.IsTrue(ex.Message.Contains("FINISHED001"));
     }
 
     [TestMethod]
     public void GetOptionsFromLivePage_MissingApiKey_ThrowsException()
     {
         string html = UtilityTestData
-            .GetSampleLivePageHtml("LIVE_ID_NO_KEY", " ", "CLIENT_V", "CONT")
+            .GetSampleLivePageHtml("NOKEYLIVE01", " ", "CLIENT_V", "CONT")
             .Replace("\"INNERTUBE_API_KEY\": \" \",", "");
         Exception ex = Assert.Throws<Exception>(() => Parser.GetOptionsFromLivePage(html));
         Assert.IsTrue(ex.Message.Contains("API Key (INNERTUBE_API_KEY) not found"));
@@ -1015,7 +1022,7 @@ public class ParserTests
     public void GetOptionsFromLivePage_MissingClientVersion_ThrowsException()
     {
         string html = UtilityTestData
-            .GetSampleLivePageHtml("LIVE_ID_NO_CV", "API_K", " ", "CONT")
+            .GetSampleLivePageHtml("NOCVLIVE001", "API_K", " ", "CONT")
             .Replace("\"INNERTUBE_CONTEXT_CLIENT_VERSION\": \" \",", "");
         Exception ex = Assert.Throws<Exception>(() => Parser.GetOptionsFromLivePage(html));
         Assert.IsTrue(
@@ -1027,7 +1034,7 @@ public class ParserTests
     public void GetOptionsFromLivePage_MissingContinuation_ThrowsException()
     {
         string html = UtilityTestData
-            .GetSampleLivePageHtml("LIVE_ID_NO_CONT", "API_K", "CLIENT_V", " ")
+            .GetSampleLivePageHtml("NOCONTLV001", "API_K", "CLIENT_V", " ")
             .Replace(
                 "\"reloadContinuationData\": { \"continuation\": \" \" }",
                 "\"reloadContinuationData\": { }"
@@ -1043,6 +1050,272 @@ public class ParserTests
             .GetSampleLivePageHtml(" ", "API_K", "CLIENT_V", "CONT")
             .Replace("<link rel=\"canonical\" href=\"https://www.youtube.com/watch?v= \">", "");
         Exception ex = Assert.Throws<Exception>(() => Parser.GetOptionsFromLivePage(html));
-        Assert.IsTrue(ex.Message.Contains("Live Stream canonical link not found"));
+        Assert.IsTrue(ex.Message.Contains("Live Stream ID not found"));
+    }
+
+    [TestMethod]
+    public void GetOptionsFromLivePage_MissingCanonical_UsesCanonicalBaseUrlFallback()
+    {
+        string liveId = "AbCdEfGhI12";
+        string html =
+            """
+            <html><head>
+            <script>
+            var cfg = {
+              "INNERTUBE_API_KEY":"API_KEY_X",
+              "INNERTUBE_CONTEXT_CLIENT_VERSION":"CLIENT_VERSION_X",
+              "canonicalBaseUrl":"\/watch?v=AbCdEfGhI12",
+              "continuation":"CONT_X"
+            };
+            </script>
+            </head><body></body></html>
+            """;
+
+        Models.FetchOptions options = Parser.GetOptionsFromLivePage(html);
+        Assert.AreEqual(liveId, options.LiveId);
+        Assert.AreEqual("API_KEY_X", options.ApiKey);
+        Assert.AreEqual("CLIENT_VERSION_X", options.ClientVersion);
+        Assert.AreEqual("CONT_X", options.Continuation);
+    }
+
+    [TestMethod]
+    public void GetOptionsFromLivePage_MissingCanonical_UsesChatTopicFallback()
+    {
+        string liveId = "ZyXwVuTsRq9";
+        string html =
+            """
+            <html><head>
+            <script>
+            var cfg = {
+              "INNERTUBE_API_KEY":"API_KEY_Y",
+              "INNERTUBE_CONTEXT_CLIENT_VERSION":"CLIENT_VERSION_Y",
+              "topic":"chat~ZyXwVuTsRq9",
+              "continuation":"CONT_Y"
+            };
+            </script>
+            </head><body></body></html>
+            """;
+
+        Models.FetchOptions options = Parser.GetOptionsFromLivePage(html);
+        Assert.AreEqual(liveId, options.LiveId);
+        Assert.AreEqual("API_KEY_Y", options.ApiKey);
+        Assert.AreEqual("CLIENT_VERSION_Y", options.ClientVersion);
+        Assert.AreEqual("CONT_Y", options.Continuation);
+    }
+
+    [TestMethod]
+    public void GetOptionsFromLivePage_HakosSnapshot_ParsesExpectedValues()
+    {
+        string html = WebSnapshotTestData.HakosLivePageSnapshot();
+        Models.FetchOptions options = Parser.GetOptionsFromLivePage(html);
+
+        Assert.AreEqual("oPOBYMu2zk8", options.LiveId);
+        Assert.AreEqual("AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8", options.ApiKey);
+        Assert.AreEqual("2.20260213.01.00", options.ClientVersion);
+        Assert.AreEqual(
+            "0ofMyAOAARpeQ2lrcUp3b1lWVU5uYlZCdWVDMUZSV1ZQY2xwVFp6VlVhWGMzV2xKUkVndHZVRTlDV1UxMU1ucHJPQm",
+            options.Continuation
+        );
+    }
+
+    [TestMethod]
+    public void IsActivelyBroadcastingLivePage_HakosSnapshot_ReturnsFalse()
+    {
+        bool isActive = Parser.IsActivelyBroadcastingLivePage(
+            WebSnapshotTestData.HakosLivePageSnapshot()
+        );
+        Assert.IsFalse(isActive);
+    }
+
+    [TestMethod]
+    public void IsActivelyBroadcastingLivePage_BijouSnapshot_ReturnsTrue()
+    {
+        bool isActive = Parser.IsActivelyBroadcastingLivePage(
+            WebSnapshotTestData.BijouLivePageSnapshot()
+        );
+        Assert.IsTrue(isActive);
+    }
+
+    [TestMethod]
+    public void ExtractStreamCandidatesFromStreamsPage_ReturnsLiveAndUpcomingSignals()
+    {
+        string html =
+            """
+            <html><body><script>
+            {"videoRenderer":{"videoId":"AAAAAAAAAAA","thumbnailOverlayTimeStatusRenderer":{"style":"LIVE"},"shortViewCountText":{"simpleText":"1.2K watching"}}}
+            {"videoRenderer":{"videoId":"BBBBBBBBBBB","thumbnailOverlayTimeStatusRenderer":{"style":"UPCOMING"},"upcomingEventData":{"startTime":"1771405200"},"shortViewCountText":{"simpleText":"29 waiting"}}}
+            </script></body></html>
+            """;
+
+        IReadOnlyList<StreamPageCandidate> candidates = Parser.ExtractStreamCandidatesFromStreamsPage(
+            html
+        );
+
+        Assert.AreEqual(2, candidates.Count);
+        Assert.AreEqual("AAAAAAAAAAA", candidates[0].LiveId);
+        Assert.IsTrue(candidates[0].IsLive);
+        Assert.AreEqual("BBBBBBBBBBB", candidates[1].LiveId);
+        Assert.IsTrue(candidates[1].IsUpcoming);
+        Assert.AreEqual(1771405200L, candidates[1].UpcomingStartTime);
+    }
+
+    [TestMethod]
+    public void ExtractStreamCandidatesFromStreamsPage_DeduplicatesByVideoId()
+    {
+        string html =
+            """
+            <html><body><script>
+            {"videoRenderer":{"videoId":"CCCCCCCCCCC","thumbnailOverlayTimeStatusRenderer":{"style":"UPCOMING"},"upcomingEventData":{"startTime":"1771405200"}}}
+            {"videoRenderer":{"videoId":"CCCCCCCCCCC","thumbnailOverlayTimeStatusRenderer":{"style":"LIVE"},"shortViewCountText":{"simpleText":"500 watching"}}}
+            </script></body></html>
+            """;
+
+        IReadOnlyList<StreamPageCandidate> candidates = Parser.ExtractStreamCandidatesFromStreamsPage(
+            html
+        );
+
+        Assert.AreEqual(1, candidates.Count);
+        Assert.AreEqual("CCCCCCCCCCC", candidates[0].LiveId);
+        Assert.IsTrue(candidates[0].IsLive);
+        Assert.IsTrue(candidates[0].IsUpcoming);
+    }
+
+    [TestMethod]
+    public void ExtractStreamCandidatesFromStreamsPage_RealSnapshots_ParsesLiveAndUpcoming()
+    {
+        IReadOnlyList<StreamPageCandidate> candidates = Parser.ExtractStreamCandidatesFromStreamsPage(
+            WebSnapshotTestData.StreamsPageSnapshotFragments()
+        );
+
+        Assert.IsTrue(candidates.Any(c => c.LiveId == "17PFTNoO_RE" && c.IsLive));
+        Assert.IsTrue(
+            candidates.Any(c =>
+                c.LiveId == "oPOBYMu2zk8"
+                && c.IsUpcoming
+                && c.UpcomingStartTime == 1771322400L
+            )
+        );
+        Assert.IsTrue(
+            candidates.Any(c =>
+                c.LiveId == "hlDFczhR2mo"
+                && c.IsUpcoming
+                && c.UpcomingStartTime == 1788748200L
+            )
+        );
+        Assert.IsTrue(
+            candidates.Any(c =>
+                c.LiveId == "197OEpjj8RI"
+                && c.IsUpcoming
+                && c.UpcomingStartTime == 1819720800L
+            )
+        );
+    }
+
+    [TestMethod]
+    public void ExtractStreamCandidatesFromStreamsPage_FullLunaStreamsSnapshot_ParsesLiveAndUpcoming()
+    {
+        string html = LoadWebSnapshot("HimemoriLuna.streams.2026-02-17.html");
+        IReadOnlyList<StreamPageCandidate> candidates = Parser.ExtractStreamCandidatesFromStreamsPage(
+            html
+        );
+
+        Assert.IsTrue(candidates.Count > 0);
+        Assert.IsTrue(candidates.Any(c => c.LiveId == "qT5OTDvJK1Q" && c.IsLive));
+        Assert.IsTrue(
+            candidates.Any(c =>
+                c.LiveId == "wPXfKeWU2YE" && c.IsUpcoming && c.UpcomingStartTime == 1791644100L
+            )
+        );
+    }
+
+    [TestMethod]
+    public void GetOptionsFromLivePage_FullLunaLiveSnapshot_ParsesExpectedValues()
+    {
+        string html = LoadWebSnapshot("HimemoriLuna.live.2026-02-17.html");
+        Models.FetchOptions options = Parser.GetOptionsFromLivePage(html);
+
+        Assert.AreEqual("qT5OTDvJK1Q", options.LiveId);
+        Assert.IsFalse(string.IsNullOrWhiteSpace(options.ApiKey));
+        Assert.IsFalse(string.IsNullOrWhiteSpace(options.ClientVersion));
+        Assert.IsFalse(string.IsNullOrWhiteSpace(options.Continuation));
+    }
+
+    [TestMethod]
+    public void IsActivelyBroadcastingLivePage_FullLunaLiveSnapshot_ReturnsTrue()
+    {
+        string html = LoadWebSnapshot("HimemoriLuna.live.2026-02-17.html");
+        bool isActive = Parser.IsActivelyBroadcastingLivePage(html);
+        Assert.IsTrue(isActive);
+    }
+
+    [TestMethod]
+    public void ExtractStreamCandidatesFromStreamsPage_FullAkiStreamsSnapshot_ParsesFreeChatAndUpcoming()
+    {
+        string html = LoadWebSnapshot("AkiRosenthal.streams.2026-02-17.html");
+        IReadOnlyList<StreamPageCandidate> candidates = Parser.ExtractStreamCandidatesFromStreamsPage(
+            html
+        );
+
+        Assert.IsTrue(candidates.Any(c =>
+            c.LiveId == "VoWHIX4tp5k" && c.IsUpcoming && c.UpcomingStartTime == 1798123500L
+        ));
+        Assert.IsTrue(candidates.Any(c =>
+            c.LiveId == "qS50yDHZOx4" && c.IsUpcoming && c.UpcomingStartTime == 1771332300L
+        ));
+        Assert.IsFalse(candidates.Any(c => c.IsLive));
+    }
+
+    [TestMethod]
+    public void IsActivelyBroadcastingLivePage_FullAkiLiveSnapshot_ReturnsFalse()
+    {
+        string html = LoadWebSnapshot("AkiRosenthal.live.2026-02-17.html");
+        bool isActive = Parser.IsActivelyBroadcastingLivePage(html);
+        Assert.IsFalse(isActive);
+    }
+
+    [TestMethod]
+    public void ExtractStreamCandidatesFromStreamsPage_FullIofiStreamsSnapshot_ParsesSingleUpcoming()
+    {
+        string html = LoadWebSnapshot("AiraniIofifteen.streams.2026-02-17.html");
+        IReadOnlyList<StreamPageCandidate> candidates = Parser.ExtractStreamCandidatesFromStreamsPage(
+            html
+        );
+
+        Assert.IsTrue(candidates.Any(c =>
+            c.LiveId == "c2lb7tb1SEA" && c.IsUpcoming && c.UpcomingStartTime == 1771333200L
+        ));
+        Assert.IsFalse(candidates.Any(c => c.IsLive));
+    }
+
+    [TestMethod]
+    public void IsActivelyBroadcastingLivePage_FullIofiLiveSnapshot_ReturnsFalse()
+    {
+        string html = LoadWebSnapshot("AiraniIofifteen.live.2026-02-17.html");
+        bool isActive = Parser.IsActivelyBroadcastingLivePage(html);
+        Assert.IsFalse(isActive);
+    }
+
+    [TestMethod]
+    public void ExtractStreamCandidatesFromStreamsPage_AkiCurrentSnapshot_FindsLiveMembersOnlyAndUpcomingFreeChat()
+    {
+        string html = LoadWebSnapshot("AkiRosenthal.streams.2026-02-17.current.html");
+        IReadOnlyList<StreamPageCandidate> candidates = Parser.ExtractStreamCandidatesFromStreamsPage(
+            html
+        );
+
+        Assert.IsTrue(candidates.Any(c => c.LiveId == "qS50yDHZOx4" && c.IsLive));
+        Assert.IsTrue(
+            candidates.Any(c =>
+                c.LiveId == "VoWHIX4tp5k" && c.IsUpcoming && c.UpcomingStartTime == 1798123500L
+            )
+        );
+    }
+
+    [TestMethod]
+    public void DetectInaccessibleLiveReason_MembersOnlyWatchSnapshot_ReturnsMembersOnly()
+    {
+        string html = LoadWebSnapshot("AkiRosenthal.memberlive.qS50yDHZOx4.2026-02-17.html");
+        string? reason = Parser.DetectInaccessibleLiveReason(html);
+        Assert.AreEqual("members-only", reason);
     }
 }

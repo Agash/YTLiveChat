@@ -112,7 +112,7 @@ public class YTLiveChatServiceTests
     [TestMethod]
     public async Task Start_SuccessfulInitializationAndFirstPoll_EventsFired()
     {
-        string liveId = "testLiveId_InitAndPoll_01";
+        string liveId = "TstLive0001";
         string apiKey = "apiKey_InitAndPoll_01";
         string clientVersion = "clientV_InitAndPoll_01";
         string initialContinuationFromHtml = "initialCont_FromHtml_01";
@@ -214,7 +214,7 @@ public class YTLiveChatServiceTests
         _ytLiveChatOptions.LiveCheckFrequency = 50;
 #pragma warning restore CS0618
 
-        string liveId = "continuousMonitorLive01";
+        string liveId = "ContMon0001";
         string apiKey = "apiKey_continuous_01";
         string clientVersion = "cv_continuous_01";
         string initialContinuation = "initial_continuous_01";
@@ -299,8 +299,8 @@ public class YTLiveChatServiceTests
         _ytLiveChatOptions.RequireActiveBroadcastForAutoDetectedStream = true;
 #pragma warning restore CS0618
 
-        string scheduledLiveId = "scheduledFreeChat01";
-        string expectedLiveId = "actualBroadcast01";
+        string scheduledLiveId = "SchedCh0001";
+        string expectedLiveId = "ActBroad001";
         string apiKey = "apiKey_monitor_active_01";
         string clientVersion = "cv_monitor_active_01";
         string continuation = "cont_monitor_active_01";
@@ -374,16 +374,353 @@ public class YTLiveChatServiceTests
     }
 
     [TestMethod]
+    public async Task Start_ContinuousMonitorMode_PrefersLiveCandidateFromStreamsPage()
+    {
+#pragma warning disable CS0618
+        _ytLiveChatOptions.EnableContinuousLivestreamMonitor = true;
+        _ytLiveChatOptions.LiveCheckFrequency = 50;
+        _ytLiveChatOptions.RequireActiveBroadcastForAutoDetectedStream = true;
+#pragma warning restore CS0618
+
+        string liveCandidate = "LIVECAND001";
+        string scheduledCandidate = "SCHEDCND001";
+        string apiKey = "apiKey_streams_01";
+        string clientVersion = "cv_streams_01";
+        string continuation = "cont_streams_01";
+
+        string streamsHtml =
+            """
+            <html><body><script>
+            {"videoRenderer":{"videoId":"__SCHEDULED__","thumbnailOverlayTimeStatusRenderer":{"style":"UPCOMING"},"upcomingEventData":{"startTime":"1771405200"},"shortViewCountText":{"simpleText":"29 waiting"}}}
+            {"videoRenderer":{"videoId":"__LIVE__","thumbnailOverlayTimeStatusRenderer":{"style":"LIVE"},"shortViewCountText":{"simpleText":"10K watching"}}}
+            </script></body></html>
+            """
+            .Replace("__SCHEDULED__", scheduledCandidate, StringComparison.Ordinal)
+            .Replace("__LIVE__", liveCandidate, StringComparison.Ordinal);
+
+        string livePageHtml = UtilityTestData.GetSampleLivePageHtml(
+            liveCandidate,
+            apiKey,
+            clientVersion,
+            continuation
+        );
+
+        _ = _mockYtHttpClient
+            .Setup(c => c.GetStreamsPageAsync("monitorTarget", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(streamsHtml);
+
+        _ = _mockYtHttpClient
+            .Setup(c => c.GetOptionsAsync(null, null, liveCandidate, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(livePageHtml);
+
+        string itemRendererContentJson = TextMessageTestData.SimpleTextMessage1();
+        string itemObjectJson =
+            $$"""{ "liveChatTextMessageRenderer": {{itemRendererContentJson}} }""";
+        string endedResponseJson = UtilityTestData.StreamEndedResponse(itemObjectJson);
+        LiveChatResponse? endedResponse = JsonSerializer.Deserialize<LiveChatResponse>(
+            endedResponseJson
+        );
+        Assert.IsNotNull(endedResponse);
+
+        _ = _mockYtHttpClient
+            .Setup(c =>
+                c.GetLiveChatAsync(
+                    It.Is<FetchOptions>(fo => fo.LiveId == liveCandidate),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((endedResponse, endedResponseJson));
+
+        TaskCompletionSource<LivestreamStartedEventArgs> startedTcs = new(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        _service.LivestreamStarted += (_, e) => _ = startedTcs.TrySetResult(e);
+
+        _service.Start(handle: "monitorTarget");
+
+        LivestreamStartedEventArgs startedArgs = await WaitForTcsResult(
+            startedTcs,
+            "LivestreamStarted"
+        );
+        Assert.AreEqual(expected: liveCandidate, actual: startedArgs.LiveId);
+
+        _mockYtHttpClient.Verify(
+            c =>
+                c.GetOptionsAsync(null, null, scheduledCandidate, It.IsAny<CancellationToken>()),
+            Times.Never
+        );
+        _service.Stop();
+    }
+
+    [TestMethod]
+    public async Task Start_ContinuousMonitorMode_RealSnapshotStreams_SelectsActiveLiveId()
+    {
+#pragma warning disable CS0618
+        _ytLiveChatOptions.EnableContinuousLivestreamMonitor = true;
+        _ytLiveChatOptions.LiveCheckFrequency = 50;
+        _ytLiveChatOptions.RequireActiveBroadcastForAutoDetectedStream = true;
+#pragma warning restore CS0618
+
+        const string expectedLiveId = "17PFTNoO_RE";
+
+        _ = _mockYtHttpClient
+            .Setup(c => c.GetStreamsPageAsync("monitorTarget", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WebSnapshotTestData.StreamsPageSnapshotFragments());
+
+        _ = _mockYtHttpClient
+            .Setup(c => c.GetOptionsAsync(null, null, expectedLiveId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WebSnapshotTestData.BijouLivePageSnapshot());
+
+        string itemObjectJson =
+            $$"""{ "liveChatTextMessageRenderer": {{TextMessageTestData.SimpleTextMessage1()}} }""";
+        string endedResponseJson = UtilityTestData.StreamEndedResponse(itemObjectJson);
+        LiveChatResponse? endedResponse = JsonSerializer.Deserialize<LiveChatResponse>(
+            endedResponseJson
+        );
+        Assert.IsNotNull(endedResponse);
+
+        _ = _mockYtHttpClient
+            .Setup(c =>
+                c.GetLiveChatAsync(
+                    It.Is<FetchOptions>(fo => fo.LiveId == expectedLiveId),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((endedResponse, endedResponseJson));
+
+        TaskCompletionSource<LivestreamStartedEventArgs> startedTcs = new(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        _service.LivestreamStarted += (_, e) => _ = startedTcs.TrySetResult(e);
+
+        _service.Start(handle: "monitorTarget");
+
+        LivestreamStartedEventArgs startedArgs = await WaitForTcsResult(
+            startedTcs,
+            "LivestreamStarted_RealSnapshotStreams"
+        );
+        Assert.AreEqual(expectedLiveId, startedArgs.LiveId);
+
+        _service.Stop();
+    }
+
+    [TestMethod]
+    public async Task Start_ContinuousMonitorMode_RealSnapshotUpcoming_SelectsNearestUpcomingWhenActiveOnlyOff()
+    {
+#pragma warning disable CS0618
+        _ytLiveChatOptions.EnableContinuousLivestreamMonitor = true;
+        _ytLiveChatOptions.LiveCheckFrequency = 50;
+        _ytLiveChatOptions.RequireActiveBroadcastForAutoDetectedStream = false;
+#pragma warning restore CS0618
+
+        const string expectedUpcomingLiveId = "oPOBYMu2zk8";
+
+        _ = _mockYtHttpClient
+            .Setup(c => c.GetStreamsPageAsync("monitorTarget", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WebSnapshotTestData.HakosStreamsSnapshotFragments());
+
+        _ = _mockYtHttpClient
+            .Setup(c =>
+                c.GetOptionsAsync(null, null, expectedUpcomingLiveId, It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(WebSnapshotTestData.HakosLivePageSnapshot());
+
+        string itemObjectJson =
+            $$"""{ "liveChatTextMessageRenderer": {{TextMessageTestData.SimpleTextMessage1()}} }""";
+        string endedResponseJson = UtilityTestData.StreamEndedResponse(itemObjectJson);
+        LiveChatResponse? endedResponse = JsonSerializer.Deserialize<LiveChatResponse>(
+            endedResponseJson
+        );
+        Assert.IsNotNull(endedResponse);
+
+        _ = _mockYtHttpClient
+            .Setup(c =>
+                c.GetLiveChatAsync(
+                    It.Is<FetchOptions>(fo => fo.LiveId == expectedUpcomingLiveId),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((endedResponse, endedResponseJson));
+
+        TaskCompletionSource<LivestreamStartedEventArgs> startedTcs = new(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        _service.LivestreamStarted += (_, e) => _ = startedTcs.TrySetResult(e);
+
+        _service.Start(handle: "monitorTarget");
+
+        LivestreamStartedEventArgs startedArgs = await WaitForTcsResult(
+            startedTcs,
+            "LivestreamStarted_UpcomingSnapshot"
+        );
+        Assert.AreEqual(expectedUpcomingLiveId, startedArgs.LiveId);
+
+        _service.Stop();
+    }
+
+    [TestMethod]
+    public async Task Start_ContinuousMonitorMode_AkiUpcomingOnly_ActiveOnlyWaitsWithoutStarting()
+    {
+#pragma warning disable CS0618
+        _ytLiveChatOptions.EnableContinuousLivestreamMonitor = true;
+        _ytLiveChatOptions.LiveCheckFrequency = 50;
+        _ytLiveChatOptions.RequireActiveBroadcastForAutoDetectedStream = true;
+#pragma warning restore CS0618
+
+        string streamsHtml = WebSnapshotTestData.LoadWebSnapshot(
+            "AkiRosenthal.streams.2026-02-17.html"
+        );
+        string liveHtml = WebSnapshotTestData.LoadWebSnapshot("AkiRosenthal.live.2026-02-17.html");
+
+        _ = _mockYtHttpClient
+            .Setup(c => c.GetStreamsPageAsync("monitorTarget", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(streamsHtml);
+        _ = _mockYtHttpClient
+            .Setup(c => c.GetOptionsAsync("monitorTarget", null, null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(liveHtml);
+
+        bool started = false;
+        _service.LivestreamStarted += (_, _) => started = true;
+
+        _service.Start(handle: "monitorTarget");
+        await Task.Delay(300);
+
+        Assert.IsFalse(started, "Active-only monitor should not start for upcoming-only snapshots.");
+        _mockYtHttpClient.Verify(
+            c => c.GetLiveChatAsync(It.IsAny<FetchOptions>(), It.IsAny<CancellationToken>()),
+            Times.Never
+        );
+
+        _service.Stop();
+    }
+
+    [TestMethod]
+    public async Task Start_ContinuousMonitorMode_IofiUpcomingOnly_ActiveOnlyWaitsWithoutStarting()
+    {
+#pragma warning disable CS0618
+        _ytLiveChatOptions.EnableContinuousLivestreamMonitor = true;
+        _ytLiveChatOptions.LiveCheckFrequency = 50;
+        _ytLiveChatOptions.RequireActiveBroadcastForAutoDetectedStream = true;
+#pragma warning restore CS0618
+
+        string streamsHtml = WebSnapshotTestData.LoadWebSnapshot(
+            "AiraniIofifteen.streams.2026-02-17.html"
+        );
+        string liveHtml = WebSnapshotTestData.LoadWebSnapshot(
+            "AiraniIofifteen.live.2026-02-17.html"
+        );
+
+        _ = _mockYtHttpClient
+            .Setup(c => c.GetStreamsPageAsync("monitorTarget", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(streamsHtml);
+        _ = _mockYtHttpClient
+            .Setup(c => c.GetOptionsAsync("monitorTarget", null, null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(liveHtml);
+
+        bool started = false;
+        _service.LivestreamStarted += (_, _) => started = true;
+
+        _service.Start(handle: "monitorTarget");
+        await Task.Delay(300);
+
+        Assert.IsFalse(started, "Active-only monitor should not start for upcoming-only snapshots.");
+        _mockYtHttpClient.Verify(
+            c => c.GetLiveChatAsync(It.IsAny<FetchOptions>(), It.IsAny<CancellationToken>()),
+            Times.Never
+        );
+
+        _service.Stop();
+    }
+
+    [TestMethod]
+    public async Task Start_ContinuousMonitorMode_LiveMembersOnlyCandidate_RaisesInaccessibleAndTemporarilySkipsCandidate()
+    {
+#pragma warning disable CS0618
+        _ytLiveChatOptions.EnableContinuousLivestreamMonitor = true;
+        _ytLiveChatOptions.LiveCheckFrequency = 50;
+        _ytLiveChatOptions.RequireActiveBroadcastForAutoDetectedStream = true;
+#pragma warning restore CS0618
+
+        const string inaccessibleLiveId = "qS50yDHZOx4";
+        string streamsHtml = WebSnapshotTestData.LoadWebSnapshot(
+            "AkiRosenthal.streams.2026-02-17.current.html"
+        );
+        string inaccessibleWatchHtml = WebSnapshotTestData.LoadWebSnapshot(
+            "AkiRosenthal.memberlive.qS50yDHZOx4.2026-02-17.html"
+        );
+        string fallbackLiveHtml = WebSnapshotTestData.LoadWebSnapshot(
+            "AkiRosenthal.live.2026-02-17.current.html"
+        );
+
+        _ = _mockYtHttpClient
+            .Setup(c => c.GetStreamsPageAsync("monitorTarget", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(streamsHtml);
+        _ = _mockYtHttpClient
+            .Setup(c =>
+                c.GetOptionsAsync(null, null, inaccessibleLiveId, It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(inaccessibleWatchHtml);
+        _ = _mockYtHttpClient
+            .Setup(c => c.GetOptionsAsync("monitorTarget", null, null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(fallbackLiveHtml);
+
+        TaskCompletionSource<LivestreamInaccessibleEventArgs> inaccessibleTcs = new(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        int inaccessibleEventCount = 0;
+
+#pragma warning disable CS0618
+        _service.LivestreamInaccessible += (_, e) =>
+        {
+            Interlocked.Increment(ref inaccessibleEventCount);
+            _ = inaccessibleTcs.TrySetResult(e);
+        };
+#pragma warning restore CS0618
+
+        _service.Start(handle: "monitorTarget");
+
+        LivestreamInaccessibleEventArgs inaccessibleArgs = await WaitForTcsResult(
+            inaccessibleTcs,
+            "LivestreamInaccessible"
+        );
+        Assert.AreEqual(inaccessibleLiveId, inaccessibleArgs.LiveId);
+        Assert.IsTrue(
+            (inaccessibleArgs.Reason ?? string.Empty).Contains(
+                "members-only",
+                StringComparison.OrdinalIgnoreCase
+            )
+        );
+
+        await Task.Delay(220);
+        Assert.AreEqual(
+            1,
+            inaccessibleEventCount,
+            "Inaccessible livestream event should only fire once per candidate while it remains filtered."
+        );
+
+        _mockYtHttpClient.Verify(
+            c => c.GetOptionsAsync(null, null, inaccessibleLiveId, It.IsAny<CancellationToken>()),
+            Times.Once
+        );
+        _mockYtHttpClient.Verify(
+            c => c.GetLiveChatAsync(It.IsAny<FetchOptions>(), It.IsAny<CancellationToken>()),
+            Times.Never
+        );
+
+        _service.Stop();
+    }
+
+    [TestMethod]
     public async Task Start_ContinuousMonitorMode_IgnoresConfiguredAutoDetectedLiveIds()
     {
 #pragma warning disable CS0618
         _ytLiveChatOptions.EnableContinuousLivestreamMonitor = true;
         _ytLiveChatOptions.LiveCheckFrequency = 50;
-        _ytLiveChatOptions.IgnoredAutoDetectedLiveIds.Add("ignoreThisLive01");
+        _ytLiveChatOptions.IgnoredAutoDetectedLiveIds.Add("IgnoreLv001");
 #pragma warning restore CS0618
 
-        string ignoredLiveId = "ignoreThisLive01";
-        string selectedLiveId = "selectedLive02";
+        string ignoredLiveId = "IgnoreLv001";
+        string selectedLiveId = "SelectLv002";
         string apiKey = "apiKey_monitor_ignore_01";
         string clientVersion = "cv_monitor_ignore_01";
         string continuation = "cont_monitor_ignore_01";
@@ -451,7 +788,7 @@ public class YTLiveChatServiceTests
     [TestMethod]
     public async Task Start_GetOptionsAsyncThrows_ErrorEventFiredAndChatStopped()
     {
-        string liveId = "failLiveId002";
+        string liveId = "FailLive002";
         HttpRequestException httpException = new(
             "Simulated network failure during GetOptionsAsync"
         );
@@ -488,7 +825,7 @@ public class YTLiveChatServiceTests
     [TestMethod]
     public async Task PollingLoop_ReceivesMultipleItemsAndUpdatesContinuation()
     {
-        string liveId = "pollLoopLiveId_Multi_02";
+        string liveId = "PollLoop002";
         string apiKey = "key_MultiPoll_02";
         string clientVersion = "cv_MultiPoll_02";
         string initialContinuationFromHtml = "cont_Multi_A_02";
@@ -592,7 +929,7 @@ public class YTLiveChatServiceTests
     [TestMethod]
     public async Task PollingLoop_StreamEnds_ChatStoppedEventFired()
     {
-        string liveId = "endStreamLiveId004";
+        string liveId = "EndStrm0004";
         string initialCont = "contFinal004";
         string apiKey = "keyFinal004";
         string clientVersion = "cvFinal004";
@@ -652,7 +989,7 @@ public class YTLiveChatServiceTests
     [TestMethod]
     public async Task PollingLoop_ReceivesSuperChat_EventFiredWithCorrectData()
     {
-        string liveId = "superChatTest001";
+        string liveId = "SupChat0001";
         string apiKey = "apiKeySC";
         string clientVersion = "cvSC";
         string initialCont = "initialContSC";
@@ -711,7 +1048,7 @@ public class YTLiveChatServiceTests
     [TestMethod]
     public async Task PollingLoop_ReceivesNewMember_EventFiredWithCorrectData()
     {
-        string liveId = "newMemberTest001";
+        string liveId = "NewMemb0001";
         string apiKey = "apiKeyNM";
         string clientVersion = "cvNM";
         string initialCont = "initialContNM";
@@ -774,7 +1111,7 @@ public class YTLiveChatServiceTests
     [TestMethod]
     public async Task PollingLoop_RawActionReceived_MapsParsedAndUnsupportedActions()
     {
-        string liveId = "rawActionTest001";
+        string liveId = "RawActn0001";
         string apiKey = "apiKeyRA";
         string clientVersion = "cvRA";
         string initialCont = "initialContRA";
@@ -856,7 +1193,7 @@ public class YTLiveChatServiceTests
     [TestMethod]
     public async Task PollingLoop_RawActionReceived_PollUpdateIsRawOnlyAndTickerGiftParses()
     {
-        string liveId = "rawActionTestPollTicker001";
+        string liveId = "RawPoll0001";
         string apiKey = "apiKeyRAPT";
         string clientVersion = "cvRAPT";
         string initialCont = "initialContRAPT";
@@ -924,7 +1261,7 @@ public class YTLiveChatServiceTests
     [TestMethod]
     public async Task StreamChatItemsAsync_YieldsParsedItems()
     {
-        string liveId = "streamItems001";
+        string liveId = "StrItems001";
         string apiKey = "apiKeyStreamItems";
         string clientVersion = "cvStreamItems";
         string initialCont = "initialContStreamItems";
@@ -974,7 +1311,7 @@ public class YTLiveChatServiceTests
     [TestMethod]
     public async Task StreamRawActionsAsync_YieldsRawActionsWithParsedMapping()
     {
-        string liveId = "streamRaw001";
+        string liveId = "StrmRaw0001";
         string apiKey = "apiKeyStreamRaw";
         string clientVersion = "cvStreamRaw";
         string initialCont = "initialContStreamRaw";
