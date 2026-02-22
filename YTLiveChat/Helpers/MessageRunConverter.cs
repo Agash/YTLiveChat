@@ -1,7 +1,9 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 using YTLiveChat.Models.Response;
+
+using static YTLiveChat.Helpers.YTLiveChatJsonSerializerContext;
 
 namespace YTLiveChat.Helpers;
 
@@ -16,13 +18,12 @@ internal class MessageRunConverter : JsonConverter<MessageRun>
         using JsonDocument doc = JsonDocument.ParseValue(ref reader);
 
         return doc.RootElement.TryGetProperty("emoji", out _)
-                ? JsonSerializer.Deserialize<MessageEmoji>(doc.RootElement, options)
+                ? JsonSerializer.Deserialize(doc.RootElement, Default.MessageEmoji)
             : doc.RootElement.TryGetProperty("text", out _)
-                ? (MessageRun?)JsonSerializer.Deserialize<MessageText>(doc.RootElement, options)
+                ? (MessageRun?)JsonSerializer.Deserialize(doc.RootElement, Default.MessageText)
             : throw new JsonException("Invalid MessageRun format.");
     }
 
-    // public override void Write(Utf8JsonWriter writer, MessageRun value, JsonSerializerOptions options) => throw new NotImplementedException(); // TODO: This fires and throws, where? How? Implement if needed
     public override void Write(
         Utf8JsonWriter writer,
         MessageRun value,
@@ -32,10 +33,10 @@ internal class MessageRunConverter : JsonConverter<MessageRun>
         switch (value)
         {
             case MessageEmoji emoji:
-                JsonSerializer.Serialize(writer, emoji, options);
+                JsonSerializer.Serialize(writer, emoji, Default.MessageEmoji);
                 break;
             case MessageText text:
-                JsonSerializer.Serialize(writer, text, options);
+                JsonSerializer.Serialize(writer, text, Default.MessageText);
                 break;
             default:
                 throw new JsonException($"Unknown MessageRun type: {value.GetType()}");

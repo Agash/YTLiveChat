@@ -4,6 +4,7 @@ using System.Net;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
+using YTLiveChat.Helpers;
 using YTLiveChat.Models;
 using YTLiveChat.Models.Response;
 
@@ -25,6 +26,7 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
     private static readonly JsonSerializerOptions s_jsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
+        TypeInfoResolver = YTLiveChatJsonSerializerContext.Default,
     };
 
 #if DEBUG
@@ -55,17 +57,19 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
         string? rawJson = null;
         try
         {
-            // The PostAsJsonAsync extension method might not be available if Microsoft.Extensions.Http is removed from the core.
-            // We need to use standard HttpClient methods.
-            var payload = new
+            var payload = new LiveChatRequest
             {
-                context = new
+                Context = new RequestContext
                 {
-                    client = new { clientVersion = options.ClientVersion, clientName = "WEB" },
+                    Client = new ClientInfo
+                    {
+                        ClientVersion = options.ClientVersion,
+                        ClientName = "WEB"
+                    }
                 },
-                continuation = options.Continuation,
+                Continuation = options.Continuation,
             };
-            string jsonPayload = JsonSerializer.Serialize(payload);
+            string jsonPayload = JsonSerializer.Serialize(payload, YTLiveChatJsonSerializerContext.Default.LiveChatRequest);
             using StringContent content = new(
                 jsonPayload,
                 System.Text.Encoding.UTF8,
@@ -97,9 +101,9 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
                 .Content.ReadAsStringAsync(cancellationToken)
                 .ConfigureAwait(false);
 #endif
-            LiveChatResponse? responseObject = JsonSerializer.Deserialize<LiveChatResponse>(
+            LiveChatResponse? responseObject = JsonSerializer.Deserialize(
                 rawJson,
-                s_jsonOptions
+                YTLiveChatJsonSerializerContext.Default.LiveChatResponse
             );
             return (responseObject, rawJson);
         }
