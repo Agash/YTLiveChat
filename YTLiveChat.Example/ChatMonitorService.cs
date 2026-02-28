@@ -536,9 +536,9 @@ internal class ChatMonitorService : IHostedService, IDisposable
         string text = membership.EventType switch
         {
             MembershipEventType.New => $"JOIN {membership.LevelName ?? "Member"}",
-            MembershipEventType.Milestone => membership.MilestoneMonths is int months
+            MembershipEventType.Milestone => (membership.MilestoneMonths is int months
                 ? $"MILESTONE {months}m"
-                : "MILESTONE",
+                : "MILESTONE") + $" (levelName: {membership.LevelName})",
             MembershipEventType.GiftPurchase => membership.GiftCount is int giftCount
                 ? $"GIFT x{giftCount}"
                 : "GIFT",

@@ -1026,6 +1026,12 @@ internal static partial class Parser
                 )
                 {
                     membershipInfo.EventType = Contracts.Models.MembershipEventType.Milestone;
+                    // Milestone membership events typically include the membership tier/level name in HeaderSubtext.
+                    if (!string.IsNullOrWhiteSpace(membershipInfo.HeaderSubtext))
+                    {
+                        membershipInfo.LevelName = membershipInfo.HeaderSubtext.Trim();
+                    }
+
                     Match monthsMatch = MilestoneMonthsRegex()
                         .Match(membershipInfo.HeaderPrimaryText);
                     if (
@@ -1402,7 +1408,7 @@ internal static partial class Parser
     )]
     private static partial Regex NewMemberLevelRegex();
 
-    [GeneratedRegex(@"Welcome to (.*?)!", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    [GeneratedRegex(@"^Welcome to (.+)!$", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex NewMemberLevelFromSubtextRegex();
 
     // Regex to extract gifter name from redemption message like "GifterName gifted you..."
@@ -1558,7 +1564,7 @@ internal static partial class Parser
     private static Regex NewMemberLevelRegex() => _newMemberLevelRegex;
 
     private static readonly Regex _newMemberLevelFromSubtextRegex = new(
-        @"Welcome to (.*?)!",
+        @"^Welcome to (.+)!$",
         RegexOptions.IgnoreCase | RegexOptions.Compiled
     );
 

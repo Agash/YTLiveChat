@@ -323,4 +323,25 @@ internal static class MembershipTestData
             }
             """;
     }
+    public static string NewMemberWithExclamationTier_RatBoss()
+    {
+        long ts = GetTimestampUsec(130); // Unique offset
+        return $$"""
+            {
+              "id": "NEW_MEMBER_RAT_BOSS_ID",
+              "timestampUsec": "{{ts}}",
+              "authorExternalChannelId": "UC_CHANNEL_ID_RAT_BOSS",
+              "headerSubtext": { "simpleText": "Welcome to Rat Boss!!" },
+              "authorName": { "simpleText": "RatBossUser" },
+              "authorPhoto": { "thumbnails": [{ "url": "https://yt4.ggpht.com/placeholder_ratboss_s32.png" }] },
+              "authorBadges": [{
+                "liveChatAuthorBadgeRenderer": {
+                  "customThumbnail": { "thumbnails": [{ "url": "https://yt3.ggpht.com/placeholder_ratboss_badge_s16.png" }] },
+                  "tooltip": "Member (1 month)",
+                  "accessibility": { "accessibilityData": { "label": "Member (1 month)" } }
+                }
+              }]
+            }
+            """; // Corresponds to liveChatMembershipItemRenderer
+    }
 }

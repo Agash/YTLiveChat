@@ -376,6 +376,22 @@ public class ParserTests
     }
 
     [TestMethod]
+    public void ToChatItem_NewMemberWithExclamationTier_RatBoss_ParsesCorrectly()
+    {
+        string rendererContentJson = MembershipTestData.NewMemberWithExclamationTier_RatBoss();
+        ChatItem? chatItem = ParseRendererContentToChatItem(
+            rendererContentJson,
+            "liveChatMembershipItemRenderer"
+        );
+
+        Assert.IsNotNull(chatItem);
+        Assert.IsNotNull(chatItem.MembershipDetails);
+        Assert.AreEqual(MembershipEventType.New, chatItem.MembershipDetails.EventType);
+        Assert.AreEqual("Rat Boss!", chatItem.MembershipDetails.LevelName, "Tier name should preserve '!'.");
+        Assert.AreEqual("Welcome to Rat Boss!!", chatItem.MembershipDetails.HeaderSubtext);
+    }
+
+    [TestMethod]
     public void ToChatItem_NewMemberFromLatestLog_WithNewMemberBadge_ParsesCorrectly()
     {
         string rendererContentJson = MembershipTestData.NewMemberFromLatestLogWithNewMemberBadge();
@@ -462,9 +478,9 @@ public class ParserTests
         Assert.IsNotNull(chatItem.MembershipDetails, "MembershipDetails should not be null.");
         Assert.AreEqual(MembershipEventType.Milestone, chatItem.MembershipDetails.EventType);
         Assert.AreEqual(
-            "Member",
+            "The Fam",
             chatItem.MembershipDetails.LevelName,
-            "Milestones do not expose tier name in this renderer."
+            "Milestone tier/level name should be parsed from HeaderSubtext."
         );
         Assert.AreEqual("Member (2 years)", chatItem.MembershipDetails.MembershipBadgeLabel);
         Assert.AreEqual(
@@ -526,7 +542,7 @@ public class ParserTests
         Assert.AreEqual("UC_CHANNEL_ID_MILESTONE_9M", chatItem.Author.ChannelId);
         Assert.IsNotNull(chatItem.MembershipDetails);
         Assert.AreEqual(MembershipEventType.Milestone, chatItem.MembershipDetails.EventType);
-        Assert.AreEqual("Member", chatItem.MembershipDetails.LevelName);
+        Assert.AreEqual("The Fam", chatItem.MembershipDetails.LevelName);
         Assert.AreEqual("Member (6 months)", chatItem.MembershipDetails.MembershipBadgeLabel);
         Assert.AreEqual("The Fam", chatItem.MembershipDetails.HeaderSubtext);
         Assert.AreEqual("Member for 9 months", chatItem.MembershipDetails.HeaderPrimaryText);
