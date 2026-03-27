@@ -1029,7 +1029,7 @@ internal static partial class Parser
                     // Milestone membership events typically include the membership tier/level name in HeaderSubtext.
                     if (!string.IsNullOrWhiteSpace(membershipInfo.HeaderSubtext))
                     {
-                        membershipInfo.LevelName = membershipInfo.HeaderSubtext.Trim();
+                        membershipInfo.LevelName = membershipInfo.HeaderSubtext!.Trim();
                     }
 
                     Match monthsMatch = MilestoneMonthsRegex()
