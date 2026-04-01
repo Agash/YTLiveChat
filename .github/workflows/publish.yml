@@ -82,6 +82,7 @@ jobs:
       url: https://www.nuget.org/packages/Agash.YTLiveChat
     permissions:
       contents: read
+      id-token: write
     steps:
       - name: Download NuGet Packages Artifact
         uses: actions/download-artifact@v4
@@ -95,11 +96,15 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
 
+      - name: NuGet login
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: Agash
+
       - name: Publish NuGet Packages
-        env:
-           NUGET_API_KEY: ${{ secrets.NUGET_APIKEY }}
         run: |
           Get-ChildItem "${{ env.NuGetDirectory }}" -Filter *.nupkg | ForEach-Object {
               Write-Host "Pushing $($_.FullName)..."
-              dotnet nuget push $_.FullName --api-key "$env:NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+              dotnet nuget push $_.FullName --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
           }

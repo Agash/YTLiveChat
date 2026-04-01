@@ -1,0 +1,4 @@
+﻿#nullable enable
+static YTLiveChat.DependencyInjection.ServiceCollectionExtensions.AddYTLiveChat(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.Configuration.IConfiguration? configuration = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static YTLiveChat.DependencyInjection.ServiceCollectionExtensions.AddYTLiveChat(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder) -> Microsoft.Extensions.Hosting.IHostApplicationBuilder!
+YTLiveChat.DependencyInjection.ServiceCollectionExtensions

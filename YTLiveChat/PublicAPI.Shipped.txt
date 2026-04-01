@@ -1,0 +1,710 @@
+﻿#nullable enable
+override YTLiveChat.Contracts.Models.EmojiPart.ToString() -> string!
+override YTLiveChat.Contracts.Models.ImagePart.ToString() -> string!
+override YTLiveChat.Contracts.Models.TextPart.ToString() -> string!
+virtual YTLiveChat.Services.YTHttpClient.GetLiveChatAsync(YTLiveChat.Models.FetchOptions! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(YTLiveChat.Models.Response.LiveChatResponse? Response, string? RawJson)>!
+virtual YTLiveChat.Services.YTHttpClient.GetOptionsAsync(string? handle, string? channelId, string? liveId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+virtual YTLiveChat.Services.YTHttpClient.GetStreamsPageAsync(string? handle, string? channelId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+virtual YTLiveChat.Services.YTLiveChat.Dispose(bool disposing) -> void
+virtual YTLiveChat.Services.YTLiveChat.OnChatReceived(YTLiveChat.Contracts.Services.ChatReceivedEventArgs! e) -> void
+virtual YTLiveChat.Services.YTLiveChat.OnChatStopped(YTLiveChat.Contracts.Services.ChatStoppedEventArgs! e) -> void
+virtual YTLiveChat.Services.YTLiveChat.OnErrorOccurred(YTLiveChat.Contracts.Services.ErrorOccurredEventArgs! e) -> void
+virtual YTLiveChat.Services.YTLiveChat.OnInitialPageLoaded(YTLiveChat.Contracts.Services.InitialPageLoadedEventArgs! e) -> void
+virtual YTLiveChat.Services.YTLiveChat.OnLivestreamEnded(YTLiveChat.Contracts.Services.LivestreamEndedEventArgs! e) -> void
+virtual YTLiveChat.Services.YTLiveChat.OnLivestreamInaccessible(YTLiveChat.Contracts.Services.LivestreamInaccessibleEventArgs! e) -> void
+virtual YTLiveChat.Services.YTLiveChat.OnLivestreamStarted(YTLiveChat.Contracts.Services.LivestreamStartedEventArgs! e) -> void
+virtual YTLiveChat.Services.YTLiveChat.OnRawActionReceived(YTLiveChat.Contracts.Services.RawActionReceivedEventArgs! e) -> void
+YTLiveChat.Contracts.Models.Author
+YTLiveChat.Contracts.Models.Author.Author() -> void
+YTLiveChat.Contracts.Models.Author.Badge.get -> YTLiveChat.Contracts.Models.Badge?
+YTLiveChat.Contracts.Models.Author.Badge.set -> void
+YTLiveChat.Contracts.Models.Author.ChannelId.get -> string!
+YTLiveChat.Contracts.Models.Author.ChannelId.set -> void
+YTLiveChat.Contracts.Models.Author.Name.get -> string!
+YTLiveChat.Contracts.Models.Author.Name.set -> void
+YTLiveChat.Contracts.Models.Author.Thumbnail.get -> YTLiveChat.Contracts.Models.ImagePart?
+YTLiveChat.Contracts.Models.Author.Thumbnail.set -> void
+YTLiveChat.Contracts.Models.Badge
+YTLiveChat.Contracts.Models.Badge.Badge() -> void
+YTLiveChat.Contracts.Models.Badge.Label.get -> string!
+YTLiveChat.Contracts.Models.Badge.Label.set -> void
+YTLiveChat.Contracts.Models.Badge.Thumbnail.get -> YTLiveChat.Contracts.Models.ImagePart?
+YTLiveChat.Contracts.Models.Badge.Thumbnail.set -> void
+YTLiveChat.Contracts.Models.ChatItem
+YTLiveChat.Contracts.Models.ChatItem.Author.get -> YTLiveChat.Contracts.Models.Author!
+YTLiveChat.Contracts.Models.ChatItem.Author.set -> void
+YTLiveChat.Contracts.Models.ChatItem.ChatItem() -> void
+YTLiveChat.Contracts.Models.ChatItem.Id.get -> string!
+YTLiveChat.Contracts.Models.ChatItem.Id.set -> void
+YTLiveChat.Contracts.Models.ChatItem.IsMembership.get -> bool
+YTLiveChat.Contracts.Models.ChatItem.IsMembership.set -> void
+YTLiveChat.Contracts.Models.ChatItem.IsModerator.get -> bool
+YTLiveChat.Contracts.Models.ChatItem.IsModerator.set -> void
+YTLiveChat.Contracts.Models.ChatItem.IsOwner.get -> bool
+YTLiveChat.Contracts.Models.ChatItem.IsOwner.set -> void
+YTLiveChat.Contracts.Models.ChatItem.IsTicker.get -> bool
+YTLiveChat.Contracts.Models.ChatItem.IsTicker.set -> void
+YTLiveChat.Contracts.Models.ChatItem.IsVerified.get -> bool
+YTLiveChat.Contracts.Models.ChatItem.IsVerified.set -> void
+YTLiveChat.Contracts.Models.ChatItem.MembershipDetails.get -> YTLiveChat.Contracts.Models.MembershipDetails?
+YTLiveChat.Contracts.Models.ChatItem.MembershipDetails.set -> void
+YTLiveChat.Contracts.Models.ChatItem.Message.get -> YTLiveChat.Contracts.Models.MessagePart![]!
+YTLiveChat.Contracts.Models.ChatItem.Message.set -> void
+YTLiveChat.Contracts.Models.ChatItem.Superchat.get -> YTLiveChat.Contracts.Models.Superchat?
+YTLiveChat.Contracts.Models.ChatItem.Superchat.set -> void
+YTLiveChat.Contracts.Models.ChatItem.Timestamp.get -> System.DateTimeOffset
+YTLiveChat.Contracts.Models.ChatItem.Timestamp.set -> void
+YTLiveChat.Contracts.Models.ChatItem.ViewerLeaderboardRank.get -> int?
+YTLiveChat.Contracts.Models.ChatItem.ViewerLeaderboardRank.set -> void
+YTLiveChat.Contracts.Models.EmojiPart
+YTLiveChat.Contracts.Models.EmojiPart.EmojiPart() -> void
+YTLiveChat.Contracts.Models.EmojiPart.EmojiText.get -> string!
+YTLiveChat.Contracts.Models.EmojiPart.EmojiText.set -> void
+YTLiveChat.Contracts.Models.EmojiPart.IsCustomEmoji.get -> bool
+YTLiveChat.Contracts.Models.EmojiPart.IsCustomEmoji.set -> void
+YTLiveChat.Contracts.Models.ImagePart
+YTLiveChat.Contracts.Models.ImagePart.Alt.get -> string?
+YTLiveChat.Contracts.Models.ImagePart.Alt.set -> void
+YTLiveChat.Contracts.Models.ImagePart.ImagePart() -> void
+YTLiveChat.Contracts.Models.ImagePart.Url.get -> string!
+YTLiveChat.Contracts.Models.ImagePart.Url.set -> void
+YTLiveChat.Contracts.Models.MembershipDetails
+YTLiveChat.Contracts.Models.MembershipDetails.EventType.get -> YTLiveChat.Contracts.Models.MembershipEventType
+YTLiveChat.Contracts.Models.MembershipDetails.EventType.set -> void
+YTLiveChat.Contracts.Models.MembershipDetails.GiftCount.get -> int?
+YTLiveChat.Contracts.Models.MembershipDetails.GiftCount.set -> void
+YTLiveChat.Contracts.Models.MembershipDetails.GifterUsername.get -> string?
+YTLiveChat.Contracts.Models.MembershipDetails.GifterUsername.set -> void
+YTLiveChat.Contracts.Models.MembershipDetails.HeaderPrimaryText.get -> string?
+YTLiveChat.Contracts.Models.MembershipDetails.HeaderPrimaryText.set -> void
+YTLiveChat.Contracts.Models.MembershipDetails.HeaderSubtext.get -> string?
+YTLiveChat.Contracts.Models.MembershipDetails.HeaderSubtext.set -> void
+YTLiveChat.Contracts.Models.MembershipDetails.LevelName.get -> string!
+YTLiveChat.Contracts.Models.MembershipDetails.LevelName.set -> void
+YTLiveChat.Contracts.Models.MembershipDetails.MembershipBadgeLabel.get -> string?
+YTLiveChat.Contracts.Models.MembershipDetails.MembershipBadgeLabel.set -> void
+YTLiveChat.Contracts.Models.MembershipDetails.MembershipDetails() -> void
+YTLiveChat.Contracts.Models.MembershipDetails.MilestoneMonths.get -> int?
+YTLiveChat.Contracts.Models.MembershipDetails.MilestoneMonths.set -> void
+YTLiveChat.Contracts.Models.MembershipDetails.RecipientUsername.get -> string?
+YTLiveChat.Contracts.Models.MembershipDetails.RecipientUsername.set -> void
+YTLiveChat.Contracts.Models.MembershipEventType
+YTLiveChat.Contracts.Models.MembershipEventType.GiftPurchase = 3 -> YTLiveChat.Contracts.Models.MembershipEventType
+YTLiveChat.Contracts.Models.MembershipEventType.GiftRedemption = 4 -> YTLiveChat.Contracts.Models.MembershipEventType
+YTLiveChat.Contracts.Models.MembershipEventType.Milestone = 2 -> YTLiveChat.Contracts.Models.MembershipEventType
+YTLiveChat.Contracts.Models.MembershipEventType.New = 1 -> YTLiveChat.Contracts.Models.MembershipEventType
+YTLiveChat.Contracts.Models.MembershipEventType.Unknown = 0 -> YTLiveChat.Contracts.Models.MembershipEventType
+YTLiveChat.Contracts.Models.MessagePart
+YTLiveChat.Contracts.Models.MessagePart.MessagePart() -> void
+YTLiveChat.Contracts.Models.Superchat
+YTLiveChat.Contracts.Models.Superchat.AmountString.get -> string!
+YTLiveChat.Contracts.Models.Superchat.AmountString.set -> void
+YTLiveChat.Contracts.Models.Superchat.AmountValue.get -> decimal
+YTLiveChat.Contracts.Models.Superchat.AmountValue.set -> void
+YTLiveChat.Contracts.Models.Superchat.AuthorNameTextColor.get -> string?
+YTLiveChat.Contracts.Models.Superchat.AuthorNameTextColor.set -> void
+YTLiveChat.Contracts.Models.Superchat.BodyBackgroundColor.get -> string!
+YTLiveChat.Contracts.Models.Superchat.BodyBackgroundColor.set -> void
+YTLiveChat.Contracts.Models.Superchat.BodyTextColor.get -> string?
+YTLiveChat.Contracts.Models.Superchat.BodyTextColor.set -> void
+YTLiveChat.Contracts.Models.Superchat.Currency.get -> string!
+YTLiveChat.Contracts.Models.Superchat.Currency.set -> void
+YTLiveChat.Contracts.Models.Superchat.HeaderBackgroundColor.get -> string?
+YTLiveChat.Contracts.Models.Superchat.HeaderBackgroundColor.set -> void
+YTLiveChat.Contracts.Models.Superchat.HeaderTextColor.get -> string?
+YTLiveChat.Contracts.Models.Superchat.HeaderTextColor.set -> void
+YTLiveChat.Contracts.Models.Superchat.Sticker.get -> YTLiveChat.Contracts.Models.ImagePart?
+YTLiveChat.Contracts.Models.Superchat.Sticker.set -> void
+YTLiveChat.Contracts.Models.Superchat.Superchat() -> void
+YTLiveChat.Contracts.Models.TextPart
+YTLiveChat.Contracts.Models.TextPart.Text.get -> string!
+YTLiveChat.Contracts.Models.TextPart.Text.set -> void
+YTLiveChat.Contracts.Models.TextPart.TextPart() -> void
+YTLiveChat.Contracts.Services.ChatReceivedEventArgs
+YTLiveChat.Contracts.Services.ChatReceivedEventArgs.ChatItem.get -> YTLiveChat.Contracts.Models.ChatItem!
+YTLiveChat.Contracts.Services.ChatReceivedEventArgs.ChatItem.set -> void
+YTLiveChat.Contracts.Services.ChatReceivedEventArgs.ChatReceivedEventArgs() -> void
+YTLiveChat.Contracts.Services.ChatStoppedEventArgs
+YTLiveChat.Contracts.Services.ChatStoppedEventArgs.ChatStoppedEventArgs() -> void
+YTLiveChat.Contracts.Services.ChatStoppedEventArgs.Reason.get -> string?
+YTLiveChat.Contracts.Services.ChatStoppedEventArgs.Reason.set -> void
+YTLiveChat.Contracts.Services.ErrorOccurredEventArgs
+YTLiveChat.Contracts.Services.ErrorOccurredEventArgs.ErrorOccurredEventArgs(System.Exception! exception) -> void
+YTLiveChat.Contracts.Services.InitialPageLoadedEventArgs
+YTLiveChat.Contracts.Services.InitialPageLoadedEventArgs.InitialPageLoadedEventArgs() -> void
+YTLiveChat.Contracts.Services.InitialPageLoadedEventArgs.LiveId.get -> string!
+YTLiveChat.Contracts.Services.InitialPageLoadedEventArgs.LiveId.set -> void
+YTLiveChat.Contracts.Services.IYTLiveChat
+YTLiveChat.Contracts.Services.IYTLiveChat.ChatReceived -> System.EventHandler<YTLiveChat.Contracts.Services.ChatReceivedEventArgs!>?
+YTLiveChat.Contracts.Services.IYTLiveChat.ChatStopped -> System.EventHandler<YTLiveChat.Contracts.Services.ChatStoppedEventArgs!>?
+YTLiveChat.Contracts.Services.IYTLiveChat.ErrorOccurred -> System.EventHandler<YTLiveChat.Contracts.Services.ErrorOccurredEventArgs!>?
+YTLiveChat.Contracts.Services.IYTLiveChat.InitialPageLoaded -> System.EventHandler<YTLiveChat.Contracts.Services.InitialPageLoadedEventArgs!>?
+YTLiveChat.Contracts.Services.IYTLiveChat.LivestreamEnded -> System.EventHandler<YTLiveChat.Contracts.Services.LivestreamEndedEventArgs!>?
+YTLiveChat.Contracts.Services.IYTLiveChat.LivestreamInaccessible -> System.EventHandler<YTLiveChat.Contracts.Services.LivestreamInaccessibleEventArgs!>?
+YTLiveChat.Contracts.Services.IYTLiveChat.LivestreamStarted -> System.EventHandler<YTLiveChat.Contracts.Services.LivestreamStartedEventArgs!>?
+YTLiveChat.Contracts.Services.IYTLiveChat.RawActionReceived -> System.EventHandler<YTLiveChat.Contracts.Services.RawActionReceivedEventArgs!>?
+YTLiveChat.Contracts.Services.IYTLiveChat.Start(string? handle = null, string? channelId = null, string? liveId = null, bool overwrite = false) -> void
+YTLiveChat.Contracts.Services.IYTLiveChat.Stop() -> void
+YTLiveChat.Contracts.Services.IYTLiveChat.StreamChatItemsAsync(string? handle = null, string? channelId = null, string? liveId = null, bool overwrite = false, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<YTLiveChat.Contracts.Models.ChatItem!>!
+YTLiveChat.Contracts.Services.IYTLiveChat.StreamRawActionsAsync(string? handle = null, string? channelId = null, string? liveId = null, bool overwrite = false, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<YTLiveChat.Contracts.Services.RawActionReceivedEventArgs!>!
+YTLiveChat.Contracts.Services.LivestreamEndedEventArgs
+YTLiveChat.Contracts.Services.LivestreamEndedEventArgs.LiveId.get -> string!
+YTLiveChat.Contracts.Services.LivestreamEndedEventArgs.LiveId.set -> void
+YTLiveChat.Contracts.Services.LivestreamEndedEventArgs.LivestreamEndedEventArgs() -> void
+YTLiveChat.Contracts.Services.LivestreamEndedEventArgs.Reason.get -> string?
+YTLiveChat.Contracts.Services.LivestreamEndedEventArgs.Reason.set -> void
+YTLiveChat.Contracts.Services.LivestreamInaccessibleEventArgs
+YTLiveChat.Contracts.Services.LivestreamInaccessibleEventArgs.LiveId.get -> string!
+YTLiveChat.Contracts.Services.LivestreamInaccessibleEventArgs.LiveId.set -> void
+YTLiveChat.Contracts.Services.LivestreamInaccessibleEventArgs.LivestreamInaccessibleEventArgs() -> void
+YTLiveChat.Contracts.Services.LivestreamInaccessibleEventArgs.Reason.get -> string?
+YTLiveChat.Contracts.Services.LivestreamInaccessibleEventArgs.Reason.set -> void
+YTLiveChat.Contracts.Services.LivestreamStartedEventArgs
+YTLiveChat.Contracts.Services.LivestreamStartedEventArgs.LiveId.get -> string!
+YTLiveChat.Contracts.Services.LivestreamStartedEventArgs.LiveId.set -> void
+YTLiveChat.Contracts.Services.LivestreamStartedEventArgs.LivestreamStartedEventArgs() -> void
+YTLiveChat.Contracts.Services.RawActionReceivedEventArgs
+YTLiveChat.Contracts.Services.RawActionReceivedEventArgs.ParsedChatItem.get -> YTLiveChat.Contracts.Models.ChatItem?
+YTLiveChat.Contracts.Services.RawActionReceivedEventArgs.ParsedChatItem.set -> void
+YTLiveChat.Contracts.Services.RawActionReceivedEventArgs.RawAction.get -> System.Text.Json.JsonElement
+YTLiveChat.Contracts.Services.RawActionReceivedEventArgs.RawAction.set -> void
+YTLiveChat.Contracts.Services.RawActionReceivedEventArgs.RawActionReceivedEventArgs() -> void
+YTLiveChat.Contracts.YTLiveChatOptions
+YTLiveChat.Contracts.YTLiveChatOptions.DebugLogFilePath.get -> string!
+YTLiveChat.Contracts.YTLiveChatOptions.DebugLogFilePath.set -> void
+YTLiveChat.Contracts.YTLiveChatOptions.DebugLogReceivedJsonItems.get -> bool
+YTLiveChat.Contracts.YTLiveChatOptions.DebugLogReceivedJsonItems.set -> void
+YTLiveChat.Contracts.YTLiveChatOptions.EnableContinuousLivestreamMonitor.get -> bool
+YTLiveChat.Contracts.YTLiveChatOptions.EnableContinuousLivestreamMonitor.set -> void
+YTLiveChat.Contracts.YTLiveChatOptions.IgnoredAutoDetectedLiveIds.get -> System.Collections.Generic.List<string!>!
+YTLiveChat.Contracts.YTLiveChatOptions.IgnoredAutoDetectedLiveIds.set -> void
+YTLiveChat.Contracts.YTLiveChatOptions.LiveCheckFrequency.get -> int
+YTLiveChat.Contracts.YTLiveChatOptions.LiveCheckFrequency.set -> void
+YTLiveChat.Contracts.YTLiveChatOptions.RequestFrequency.get -> int
+YTLiveChat.Contracts.YTLiveChatOptions.RequestFrequency.set -> void
+YTLiveChat.Contracts.YTLiveChatOptions.RequireActiveBroadcastForAutoDetectedStream.get -> bool
+YTLiveChat.Contracts.YTLiveChatOptions.RequireActiveBroadcastForAutoDetectedStream.set -> void
+YTLiveChat.Contracts.YTLiveChatOptions.YoutubeBaseUrl.get -> string!
+YTLiveChat.Contracts.YTLiveChatOptions.YoutubeBaseUrl.set -> void
+YTLiveChat.Contracts.YTLiveChatOptions.YTLiveChatOptions() -> void
+YTLiveChat.Models.ClientInfo
+YTLiveChat.Models.ClientInfo.ClientName.get -> string!
+YTLiveChat.Models.ClientInfo.ClientName.init -> void
+YTLiveChat.Models.ClientInfo.ClientVersion.get -> string!
+YTLiveChat.Models.ClientInfo.ClientVersion.init -> void
+YTLiveChat.Models.FetchOptions
+YTLiveChat.Models.FetchOptions.ApiKey.get -> string!
+YTLiveChat.Models.FetchOptions.ApiKey.set -> void
+YTLiveChat.Models.FetchOptions.ClientVersion.get -> string!
+YTLiveChat.Models.FetchOptions.ClientVersion.set -> void
+YTLiveChat.Models.FetchOptions.Continuation.get -> string!
+YTLiveChat.Models.FetchOptions.Continuation.set -> void
+YTLiveChat.Models.FetchOptions.LiveId.get -> string!
+YTLiveChat.Models.FetchOptions.LiveId.set -> void
+YTLiveChat.Models.LiveChatRequest
+YTLiveChat.Models.LiveChatRequest.Context.get -> YTLiveChat.Models.RequestContext!
+YTLiveChat.Models.LiveChatRequest.Context.init -> void
+YTLiveChat.Models.LiveChatRequest.Continuation.get -> string?
+YTLiveChat.Models.LiveChatRequest.Continuation.init -> void
+YTLiveChat.Models.RequestContext
+YTLiveChat.Models.RequestContext.Client.get -> YTLiveChat.Models.ClientInfo!
+YTLiveChat.Models.RequestContext.Client.init -> void
+YTLiveChat.Models.Response.Accessibility
+YTLiveChat.Models.Response.Accessibility.AccessibilityData.get -> YTLiveChat.Models.Response.AccessibilityData?
+YTLiveChat.Models.Response.Accessibility.AccessibilityData.init -> void
+YTLiveChat.Models.Response.Accessibility.Label.get -> string?
+YTLiveChat.Models.Response.Accessibility.Label.init -> void
+YTLiveChat.Models.Response.AccessibilityData
+YTLiveChat.Models.Response.AccessibilityData.Label.get -> string?
+YTLiveChat.Models.Response.AccessibilityData.Label.init -> void
+YTLiveChat.Models.Response.Action
+YTLiveChat.Models.Response.Action.AddChatItemAction.get -> YTLiveChat.Models.Response.AddChatItemAction?
+YTLiveChat.Models.Response.Action.AddChatItemAction.init -> void
+YTLiveChat.Models.Response.Action.AddLiveChatTickerItemAction.get -> YTLiveChat.Models.Response.AddLiveChatTickerItemAction?
+YTLiveChat.Models.Response.Action.AddLiveChatTickerItemAction.init -> void
+YTLiveChat.Models.Response.Action.ChangeEngagementPanelVisibilityAction.get -> System.Text.Json.JsonElement?
+YTLiveChat.Models.Response.Action.ChangeEngagementPanelVisibilityAction.init -> void
+YTLiveChat.Models.Response.Action.ExtensionData.get -> System.Collections.Generic.IDictionary<string!, System.Text.Json.JsonElement>?
+YTLiveChat.Models.Response.Action.ExtensionData.set -> void
+YTLiveChat.Models.Response.Action.MarkChatItemsByAuthorAsDeletedAction.get -> YTLiveChat.Models.Response.RemoveChatItemByAuthorAction?
+YTLiveChat.Models.Response.Action.MarkChatItemsByAuthorAsDeletedAction.init -> void
+YTLiveChat.Models.Response.Action.RemoveChatItemAction.get -> YTLiveChat.Models.Response.RemoveChatItemAction?
+YTLiveChat.Models.Response.Action.RemoveChatItemAction.init -> void
+YTLiveChat.Models.Response.Action.RemoveChatItemByAuthorAction.get -> YTLiveChat.Models.Response.RemoveChatItemByAuthorAction?
+YTLiveChat.Models.Response.Action.RemoveChatItemByAuthorAction.init -> void
+YTLiveChat.Models.Response.Action.ReplaceChatItemAction.get -> YTLiveChat.Models.Response.ReplaceChatItemAction?
+YTLiveChat.Models.Response.Action.ReplaceChatItemAction.init -> void
+YTLiveChat.Models.Response.Action.SignalAction.get -> YTLiveChat.Models.Response.SignalAction?
+YTLiveChat.Models.Response.Action.SignalAction.init -> void
+YTLiveChat.Models.Response.AddChatItemAction
+YTLiveChat.Models.Response.AddChatItemAction.ClientId.get -> string?
+YTLiveChat.Models.Response.AddChatItemAction.ClientId.init -> void
+YTLiveChat.Models.Response.AddChatItemAction.Item.get -> YTLiveChat.Models.Response.AddChatItemActionItem?
+YTLiveChat.Models.Response.AddChatItemAction.Item.init -> void
+YTLiveChat.Models.Response.AddChatItemActionItem
+YTLiveChat.Models.Response.AddChatItemActionItem.LiveChatMembershipItemRenderer.get -> YTLiveChat.Models.Response.LiveChatMembershipItemRenderer?
+YTLiveChat.Models.Response.AddChatItemActionItem.LiveChatMembershipItemRenderer.init -> void
+YTLiveChat.Models.Response.AddChatItemActionItem.LiveChatPaidMessageRenderer.get -> YTLiveChat.Models.Response.LiveChatPaidMessageRenderer?
+YTLiveChat.Models.Response.AddChatItemActionItem.LiveChatPaidMessageRenderer.init -> void
+YTLiveChat.Models.Response.AddChatItemActionItem.LiveChatPaidStickerRenderer.get -> YTLiveChat.Models.Response.LiveChatPaidStickerRenderer?
+YTLiveChat.Models.Response.AddChatItemActionItem.LiveChatPaidStickerRenderer.init -> void
+YTLiveChat.Models.Response.AddChatItemActionItem.LiveChatPlaceholderItemRenderer.get -> YTLiveChat.Models.Response.LiveChatPlaceholderItemRenderer?
+YTLiveChat.Models.Response.AddChatItemActionItem.LiveChatPlaceholderItemRenderer.init -> void
+YTLiveChat.Models.Response.AddChatItemActionItem.LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer.get -> YTLiveChat.Models.Response.LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer?
+YTLiveChat.Models.Response.AddChatItemActionItem.LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer.init -> void
+YTLiveChat.Models.Response.AddChatItemActionItem.LiveChatSponsorshipsGiftRedemptionAnnouncementRenderer.get -> YTLiveChat.Models.Response.LiveChatSponsorshipsGiftRedemptionAnnouncementRenderer?
+YTLiveChat.Models.Response.AddChatItemActionItem.LiveChatSponsorshipsGiftRedemptionAnnouncementRenderer.init -> void
+YTLiveChat.Models.Response.AddChatItemActionItem.LiveChatTextMessageRenderer.get -> YTLiveChat.Models.Response.LiveChatTextMessageRenderer?
+YTLiveChat.Models.Response.AddChatItemActionItem.LiveChatTextMessageRenderer.init -> void
+YTLiveChat.Models.Response.AddChatItemActionItem.LiveChatViewerEngagementMessageRenderer.get -> System.Text.Json.Nodes.JsonObject?
+YTLiveChat.Models.Response.AddChatItemActionItem.LiveChatViewerEngagementMessageRenderer.init -> void
+YTLiveChat.Models.Response.AddLiveChatTickerItemAction
+YTLiveChat.Models.Response.AddLiveChatTickerItemAction.DurationSec.get -> string?
+YTLiveChat.Models.Response.AddLiveChatTickerItemAction.DurationSec.init -> void
+YTLiveChat.Models.Response.AddLiveChatTickerItemAction.Item.get -> YTLiveChat.Models.Response.AddLiveChatTickerItemActionItem?
+YTLiveChat.Models.Response.AddLiveChatTickerItemAction.Item.init -> void
+YTLiveChat.Models.Response.AddLiveChatTickerItemActionItem
+YTLiveChat.Models.Response.AddLiveChatTickerItemActionItem.LiveChatTickerPaidMessageItemRenderer.get -> YTLiveChat.Models.Response.LiveChatTickerPaidMessageItemRenderer?
+YTLiveChat.Models.Response.AddLiveChatTickerItemActionItem.LiveChatTickerPaidMessageItemRenderer.init -> void
+YTLiveChat.Models.Response.AddLiveChatTickerItemActionItem.LiveChatTickerPaidStickerItemRenderer.get -> YTLiveChat.Models.Response.LiveChatTickerPaidStickerItemRenderer?
+YTLiveChat.Models.Response.AddLiveChatTickerItemActionItem.LiveChatTickerPaidStickerItemRenderer.init -> void
+YTLiveChat.Models.Response.AddLiveChatTickerItemActionItem.LiveChatTickerSponsorItemRenderer.get -> YTLiveChat.Models.Response.LiveChatTickerSponsorItemRenderer?
+YTLiveChat.Models.Response.AddLiveChatTickerItemActionItem.LiveChatTickerSponsorItemRenderer.init -> void
+YTLiveChat.Models.Response.AuthorBadgeContainer
+YTLiveChat.Models.Response.AuthorBadgeContainer.LiveChatAuthorBadgeRenderer.get -> YTLiveChat.Models.Response.LiveChatAuthorBadgeRenderer?
+YTLiveChat.Models.Response.AuthorBadgeContainer.LiveChatAuthorBadgeRenderer.init -> void
+YTLiveChat.Models.Response.AuthorPhoto
+YTLiveChat.Models.Response.AuthorPhoto.Thumbnails.get -> System.Collections.Generic.List<YTLiveChat.Models.Response.Thumbnail!>?
+YTLiveChat.Models.Response.AuthorPhoto.Thumbnails.init -> void
+YTLiveChat.Models.Response.BeforeContentButtonContainer
+YTLiveChat.Models.Response.BeforeContentButtonContainer.ButtonViewModel.get -> YTLiveChat.Models.Response.ButtonViewModel?
+YTLiveChat.Models.Response.BeforeContentButtonContainer.ButtonViewModel.init -> void
+YTLiveChat.Models.Response.ButtonViewModel
+YTLiveChat.Models.Response.ButtonViewModel.Title.get -> string?
+YTLiveChat.Models.Response.ButtonViewModel.Title.init -> void
+YTLiveChat.Models.Response.CommandMetadata
+YTLiveChat.Models.Response.CommandMetadata.WebCommandMetadata.get -> YTLiveChat.Models.Response.WebCommandMetadata?
+YTLiveChat.Models.Response.CommandMetadata.WebCommandMetadata.init -> void
+YTLiveChat.Models.Response.ContextMenuEndpoint
+YTLiveChat.Models.Response.ContextMenuEndpoint.ClickTrackingParams.get -> string?
+YTLiveChat.Models.Response.ContextMenuEndpoint.ClickTrackingParams.init -> void
+YTLiveChat.Models.Response.ContextMenuEndpoint.CommandMetadata.get -> YTLiveChat.Models.Response.CommandMetadata?
+YTLiveChat.Models.Response.ContextMenuEndpoint.CommandMetadata.init -> void
+YTLiveChat.Models.Response.ContextMenuEndpoint.Endpoint.get -> YTLiveChat.Models.Response.LiveChatItemContextMenuEndpoint?
+YTLiveChat.Models.Response.ContextMenuEndpoint.Endpoint.init -> void
+YTLiveChat.Models.Response.Continuation
+YTLiveChat.Models.Response.Continuation.InvalidationContinuationData.get -> YTLiveChat.Models.Response.InvalidationContinuationData?
+YTLiveChat.Models.Response.Continuation.InvalidationContinuationData.init -> void
+YTLiveChat.Models.Response.Continuation.TimedContinuationData.get -> YTLiveChat.Models.Response.TimedContinuationData?
+YTLiveChat.Models.Response.Continuation.TimedContinuationData.init -> void
+YTLiveChat.Models.Response.ContinuationContents
+YTLiveChat.Models.Response.ContinuationContents.FrameworkUpdates.get -> YTLiveChat.Models.Response.FrameworkUpdates?
+YTLiveChat.Models.Response.ContinuationContents.FrameworkUpdates.init -> void
+YTLiveChat.Models.Response.ContinuationContents.LiveChatContinuation.get -> YTLiveChat.Models.Response.LiveChatContinuation?
+YTLiveChat.Models.Response.ContinuationContents.LiveChatContinuation.init -> void
+YTLiveChat.Models.Response.ContinuationContents.LiveChatStreamingResponseExtension.get -> YTLiveChat.Models.Response.LiveChatStreamingResponseExtension?
+YTLiveChat.Models.Response.ContinuationContents.LiveChatStreamingResponseExtension.init -> void
+YTLiveChat.Models.Response.ContinuationContents.ResponseContext.get -> YTLiveChat.Models.Response.ResponseContext?
+YTLiveChat.Models.Response.ContinuationContents.ResponseContext.init -> void
+YTLiveChat.Models.Response.ContinuationContents.TrackingParams.get -> string?
+YTLiveChat.Models.Response.ContinuationContents.TrackingParams.init -> void
+YTLiveChat.Models.Response.CustomThumbnail
+YTLiveChat.Models.Response.CustomThumbnail.Thumbnails.get -> System.Collections.Generic.List<YTLiveChat.Models.Response.Thumbnail!>?
+YTLiveChat.Models.Response.CustomThumbnail.Thumbnails.init -> void
+YTLiveChat.Models.Response.Emoji
+YTLiveChat.Models.Response.Emoji.EmojiId.get -> string?
+YTLiveChat.Models.Response.Emoji.EmojiId.init -> void
+YTLiveChat.Models.Response.Emoji.Image.get -> YTLiveChat.Models.Response.EmojiImage?
+YTLiveChat.Models.Response.Emoji.Image.init -> void
+YTLiveChat.Models.Response.Emoji.IsCustomEmoji.get -> bool
+YTLiveChat.Models.Response.Emoji.IsCustomEmoji.init -> void
+YTLiveChat.Models.Response.Emoji.SearchTerms.get -> System.Collections.Generic.List<string!>?
+YTLiveChat.Models.Response.Emoji.SearchTerms.init -> void
+YTLiveChat.Models.Response.Emoji.Shortcuts.get -> System.Collections.Generic.List<string!>?
+YTLiveChat.Models.Response.Emoji.Shortcuts.init -> void
+YTLiveChat.Models.Response.Emoji.SupportsSkinTone.get -> bool
+YTLiveChat.Models.Response.Emoji.SupportsSkinTone.init -> void
+YTLiveChat.Models.Response.Emoji.VariantIds.get -> System.Collections.Generic.List<string!>?
+YTLiveChat.Models.Response.Emoji.VariantIds.init -> void
+YTLiveChat.Models.Response.EmojiImage
+YTLiveChat.Models.Response.EmojiImage.Accessibility.get -> YTLiveChat.Models.Response.Accessibility?
+YTLiveChat.Models.Response.EmojiImage.Accessibility.init -> void
+YTLiveChat.Models.Response.EmojiImage.Thumbnails.get -> System.Collections.Generic.List<YTLiveChat.Models.Response.Thumbnail!>?
+YTLiveChat.Models.Response.EmojiImage.Thumbnails.init -> void
+YTLiveChat.Models.Response.EntityBatchUpdate
+YTLiveChat.Models.Response.EntityBatchUpdate.Mutations.get -> System.Collections.Generic.List<YTLiveChat.Models.Response.Mutation!>?
+YTLiveChat.Models.Response.EntityBatchUpdate.Mutations.init -> void
+YTLiveChat.Models.Response.EntityBatchUpdate.Timestamp.get -> YTLiveChat.Models.Response.Timestamp?
+YTLiveChat.Models.Response.EntityBatchUpdate.Timestamp.init -> void
+YTLiveChat.Models.Response.FrameworkUpdates
+YTLiveChat.Models.Response.FrameworkUpdates.EntityBatchUpdate.get -> YTLiveChat.Models.Response.EntityBatchUpdate?
+YTLiveChat.Models.Response.FrameworkUpdates.EntityBatchUpdate.init -> void
+YTLiveChat.Models.Response.HeaderText
+YTLiveChat.Models.Response.HeaderText.Runs.get -> System.Collections.Generic.List<YTLiveChat.Models.Response.MessageRun!>?
+YTLiveChat.Models.Response.HeaderText.Runs.init -> void
+YTLiveChat.Models.Response.HeaderText.SimpleText.get -> string?
+YTLiveChat.Models.Response.HeaderText.SimpleText.init -> void
+YTLiveChat.Models.Response.Icon
+YTLiveChat.Models.Response.Icon.IconType.get -> string?
+YTLiveChat.Models.Response.Icon.IconType.init -> void
+YTLiveChat.Models.Response.IconSource
+YTLiveChat.Models.Response.IconSource.Sources.get -> System.Collections.Generic.List<YTLiveChat.Models.Response.Source!>?
+YTLiveChat.Models.Response.IconSource.Sources.init -> void
+YTLiveChat.Models.Response.InvalidationContinuationData
+YTLiveChat.Models.Response.InvalidationContinuationData.ClickTrackingParams.get -> string?
+YTLiveChat.Models.Response.InvalidationContinuationData.ClickTrackingParams.init -> void
+YTLiveChat.Models.Response.InvalidationContinuationData.Continuation.get -> string?
+YTLiveChat.Models.Response.InvalidationContinuationData.Continuation.init -> void
+YTLiveChat.Models.Response.InvalidationContinuationData.InvalidationId.get -> YTLiveChat.Models.Response.InvalidationId?
+YTLiveChat.Models.Response.InvalidationContinuationData.InvalidationId.init -> void
+YTLiveChat.Models.Response.InvalidationContinuationData.TimeoutMs.get -> int
+YTLiveChat.Models.Response.InvalidationContinuationData.TimeoutMs.init -> void
+YTLiveChat.Models.Response.InvalidationId
+YTLiveChat.Models.Response.InvalidationId.ObjectId.get -> string?
+YTLiveChat.Models.Response.InvalidationId.ObjectId.init -> void
+YTLiveChat.Models.Response.InvalidationId.ObjectSource.get -> int
+YTLiveChat.Models.Response.InvalidationId.ObjectSource.init -> void
+YTLiveChat.Models.Response.InvalidationId.ProtoCreationTimestampMs.get -> string?
+YTLiveChat.Models.Response.InvalidationId.ProtoCreationTimestampMs.init -> void
+YTLiveChat.Models.Response.InvalidationId.SubscribeToGcmTopics.get -> bool
+YTLiveChat.Models.Response.InvalidationId.SubscribeToGcmTopics.init -> void
+YTLiveChat.Models.Response.InvalidationId.Topic.get -> string?
+YTLiveChat.Models.Response.InvalidationId.Topic.init -> void
+YTLiveChat.Models.Response.LiveChatAuthorBadgeRenderer
+YTLiveChat.Models.Response.LiveChatAuthorBadgeRenderer.Accessibility.get -> YTLiveChat.Models.Response.Accessibility?
+YTLiveChat.Models.Response.LiveChatAuthorBadgeRenderer.Accessibility.init -> void
+YTLiveChat.Models.Response.LiveChatAuthorBadgeRenderer.CustomThumbnail.get -> YTLiveChat.Models.Response.CustomThumbnail?
+YTLiveChat.Models.Response.LiveChatAuthorBadgeRenderer.CustomThumbnail.init -> void
+YTLiveChat.Models.Response.LiveChatAuthorBadgeRenderer.Icon.get -> YTLiveChat.Models.Response.Icon?
+YTLiveChat.Models.Response.LiveChatAuthorBadgeRenderer.Icon.init -> void
+YTLiveChat.Models.Response.LiveChatAuthorBadgeRenderer.Tooltip.get -> string?
+YTLiveChat.Models.Response.LiveChatAuthorBadgeRenderer.Tooltip.init -> void
+YTLiveChat.Models.Response.LiveChatContinuation
+YTLiveChat.Models.Response.LiveChatContinuation.Actions.get -> System.Collections.Generic.List<YTLiveChat.Models.Response.Action!>?
+YTLiveChat.Models.Response.LiveChatContinuation.Actions.init -> void
+YTLiveChat.Models.Response.LiveChatContinuation.Continuations.get -> System.Collections.Generic.List<YTLiveChat.Models.Response.Continuation!>?
+YTLiveChat.Models.Response.LiveChatContinuation.Continuations.init -> void
+YTLiveChat.Models.Response.LiveChatContinuation.TrackingParams.get -> string?
+YTLiveChat.Models.Response.LiveChatContinuation.TrackingParams.init -> void
+YTLiveChat.Models.Response.LiveChatItemContextMenuEndpoint
+YTLiveChat.Models.Response.LiveChatItemContextMenuEndpoint.Params.get -> string?
+YTLiveChat.Models.Response.LiveChatItemContextMenuEndpoint.Params.init -> void
+YTLiveChat.Models.Response.LiveChatMembershipItemRenderer
+YTLiveChat.Models.Response.LiveChatMembershipItemRenderer.HeaderPrimaryText.get -> YTLiveChat.Models.Response.HeaderText?
+YTLiveChat.Models.Response.LiveChatMembershipItemRenderer.HeaderPrimaryText.init -> void
+YTLiveChat.Models.Response.LiveChatMembershipItemRenderer.HeaderSubtext.get -> YTLiveChat.Models.Response.HeaderText?
+YTLiveChat.Models.Response.LiveChatMembershipItemRenderer.HeaderSubtext.init -> void
+YTLiveChat.Models.Response.LiveChatMembershipItemRenderer.Message.get -> YTLiveChat.Models.Response.Message?
+YTLiveChat.Models.Response.LiveChatMembershipItemRenderer.Message.init -> void
+YTLiveChat.Models.Response.LiveChatPaidMessageRenderer
+YTLiveChat.Models.Response.LiveChatPaidMessageRenderer.AuthorNameTextColor.get -> long
+YTLiveChat.Models.Response.LiveChatPaidMessageRenderer.AuthorNameTextColor.init -> void
+YTLiveChat.Models.Response.LiveChatPaidMessageRenderer.BodyBackgroundColor.get -> long
+YTLiveChat.Models.Response.LiveChatPaidMessageRenderer.BodyBackgroundColor.init -> void
+YTLiveChat.Models.Response.LiveChatPaidMessageRenderer.BodyTextColor.get -> long
+YTLiveChat.Models.Response.LiveChatPaidMessageRenderer.BodyTextColor.init -> void
+YTLiveChat.Models.Response.LiveChatPaidMessageRenderer.HeaderBackgroundColor.get -> long
+YTLiveChat.Models.Response.LiveChatPaidMessageRenderer.HeaderBackgroundColor.init -> void
+YTLiveChat.Models.Response.LiveChatPaidMessageRenderer.HeaderTextColor.get -> long
+YTLiveChat.Models.Response.LiveChatPaidMessageRenderer.HeaderTextColor.init -> void
+YTLiveChat.Models.Response.LiveChatPaidMessageRenderer.IsV2Style.get -> bool
+YTLiveChat.Models.Response.LiveChatPaidMessageRenderer.IsV2Style.init -> void
+YTLiveChat.Models.Response.LiveChatPaidMessageRenderer.Message.get -> YTLiveChat.Models.Response.Message?
+YTLiveChat.Models.Response.LiveChatPaidMessageRenderer.Message.init -> void
+YTLiveChat.Models.Response.LiveChatPaidMessageRenderer.PurchaseAmountText.get -> YTLiveChat.Models.Response.PurchaseAmountText?
+YTLiveChat.Models.Response.LiveChatPaidMessageRenderer.PurchaseAmountText.init -> void
+YTLiveChat.Models.Response.LiveChatPaidMessageRenderer.TextInputBackgroundColor.get -> long
+YTLiveChat.Models.Response.LiveChatPaidMessageRenderer.TextInputBackgroundColor.init -> void
+YTLiveChat.Models.Response.LiveChatPaidMessageRenderer.TimestampColor.get -> long
+YTLiveChat.Models.Response.LiveChatPaidMessageRenderer.TimestampColor.init -> void
+YTLiveChat.Models.Response.LiveChatPaidStickerRenderer
+YTLiveChat.Models.Response.LiveChatPaidStickerRenderer.AuthorNameTextColor.get -> long
+YTLiveChat.Models.Response.LiveChatPaidStickerRenderer.AuthorNameTextColor.init -> void
+YTLiveChat.Models.Response.LiveChatPaidStickerRenderer.BackgroundColor.get -> long
+YTLiveChat.Models.Response.LiveChatPaidStickerRenderer.BackgroundColor.init -> void
+YTLiveChat.Models.Response.LiveChatPaidStickerRenderer.IsV2Style.get -> bool
+YTLiveChat.Models.Response.LiveChatPaidStickerRenderer.IsV2Style.init -> void
+YTLiveChat.Models.Response.LiveChatPaidStickerRenderer.MoneyChipBackgroundColor.get -> long
+YTLiveChat.Models.Response.LiveChatPaidStickerRenderer.MoneyChipBackgroundColor.init -> void
+YTLiveChat.Models.Response.LiveChatPaidStickerRenderer.MoneyChipTextColor.get -> long
+YTLiveChat.Models.Response.LiveChatPaidStickerRenderer.MoneyChipTextColor.init -> void
+YTLiveChat.Models.Response.LiveChatPaidStickerRenderer.PurchaseAmountText.get -> YTLiveChat.Models.Response.PurchaseAmountText?
+YTLiveChat.Models.Response.LiveChatPaidStickerRenderer.PurchaseAmountText.init -> void
+YTLiveChat.Models.Response.LiveChatPaidStickerRenderer.Sticker.get -> YTLiveChat.Models.Response.Sticker?
+YTLiveChat.Models.Response.LiveChatPaidStickerRenderer.Sticker.init -> void
+YTLiveChat.Models.Response.LiveChatPaidStickerRenderer.StickerDisplayHeight.get -> int
+YTLiveChat.Models.Response.LiveChatPaidStickerRenderer.StickerDisplayHeight.init -> void
+YTLiveChat.Models.Response.LiveChatPaidStickerRenderer.StickerDisplayWidth.get -> int
+YTLiveChat.Models.Response.LiveChatPaidStickerRenderer.StickerDisplayWidth.init -> void
+YTLiveChat.Models.Response.LiveChatParticipantRenderer
+YTLiveChat.Models.Response.LiveChatParticipantRenderer.AuthorBadges.get -> System.Collections.Generic.List<YTLiveChat.Models.Response.AuthorBadgeContainer!>?
+YTLiveChat.Models.Response.LiveChatParticipantRenderer.AuthorBadges.init -> void
+YTLiveChat.Models.Response.LiveChatParticipantRenderer.AuthorName.get -> YTLiveChat.Models.Response.SimpleText?
+YTLiveChat.Models.Response.LiveChatParticipantRenderer.AuthorName.init -> void
+YTLiveChat.Models.Response.LiveChatParticipantRenderer.AuthorPhoto.get -> YTLiveChat.Models.Response.AuthorPhoto?
+YTLiveChat.Models.Response.LiveChatParticipantRenderer.AuthorPhoto.init -> void
+YTLiveChat.Models.Response.LiveChatPlaceholderItemRenderer
+YTLiveChat.Models.Response.LiveChatPlaceholderItemRenderer.Id.get -> string?
+YTLiveChat.Models.Response.LiveChatPlaceholderItemRenderer.Id.init -> void
+YTLiveChat.Models.Response.LiveChatPlaceholderItemRenderer.TimestampUsec.get -> string?
+YTLiveChat.Models.Response.LiveChatPlaceholderItemRenderer.TimestampUsec.init -> void
+YTLiveChat.Models.Response.LiveChatResponse
+YTLiveChat.Models.Response.LiveChatResponse.ClickTrackingParamsType5.get -> string?
+YTLiveChat.Models.Response.LiveChatResponse.ClickTrackingParamsType5.init -> void
+YTLiveChat.Models.Response.LiveChatResponse.ContinuationContents.get -> YTLiveChat.Models.Response.ContinuationContents?
+YTLiveChat.Models.Response.LiveChatResponse.ContinuationContents.init -> void
+YTLiveChat.Models.Response.LiveChatResponse.FrameworkUpdates.get -> YTLiveChat.Models.Response.FrameworkUpdates?
+YTLiveChat.Models.Response.LiveChatResponse.FrameworkUpdates.init -> void
+YTLiveChat.Models.Response.LiveChatResponse.InvalidationContinuationData.get -> YTLiveChat.Models.Response.InvalidationContinuationData?
+YTLiveChat.Models.Response.LiveChatResponse.InvalidationContinuationData.init -> void
+YTLiveChat.Models.Response.LiveChatResponse.LiveChatParticipantRenderer.get -> YTLiveChat.Models.Response.LiveChatParticipantRenderer?
+YTLiveChat.Models.Response.LiveChatResponse.LiveChatParticipantRenderer.init -> void
+YTLiveChat.Models.Response.LiveChatResponse.LiveChatStreamingResponseExtension.get -> YTLiveChat.Models.Response.LiveChatStreamingResponseExtension?
+YTLiveChat.Models.Response.LiveChatResponse.LiveChatStreamingResponseExtension.init -> void
+YTLiveChat.Models.Response.LiveChatResponse.ReactionControlPanelOverlayViewModel.get -> YTLiveChat.Models.Response.ReactionControlPanelOverlayViewModel?
+YTLiveChat.Models.Response.LiveChatResponse.ReactionControlPanelOverlayViewModel.init -> void
+YTLiveChat.Models.Response.LiveChatResponse.ResponseContext.get -> YTLiveChat.Models.Response.ResponseContext?
+YTLiveChat.Models.Response.LiveChatResponse.ResponseContext.init -> void
+YTLiveChat.Models.Response.LiveChatResponse.SignalAction.get -> YTLiveChat.Models.Response.SignalAction?
+YTLiveChat.Models.Response.LiveChatResponse.SignalAction.init -> void
+YTLiveChat.Models.Response.LiveChatResponse.TrackingParams.get -> string?
+YTLiveChat.Models.Response.LiveChatResponse.TrackingParams.init -> void
+YTLiveChat.Models.Response.LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer
+YTLiveChat.Models.Response.LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer.Header.get -> YTLiveChat.Models.Response.SponsorshipsHeaderContainer?
+YTLiveChat.Models.Response.LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer.Header.init -> void
+YTLiveChat.Models.Response.LiveChatSponsorshipsGiftRedemptionAnnouncementRenderer
+YTLiveChat.Models.Response.LiveChatSponsorshipsGiftRedemptionAnnouncementRenderer.Message.get -> YTLiveChat.Models.Response.Message?
+YTLiveChat.Models.Response.LiveChatSponsorshipsGiftRedemptionAnnouncementRenderer.Message.init -> void
+YTLiveChat.Models.Response.LiveChatSponsorshipsHeaderRenderer
+YTLiveChat.Models.Response.LiveChatSponsorshipsHeaderRenderer.AuthorBadges.get -> System.Collections.Generic.List<YTLiveChat.Models.Response.AuthorBadgeContainer!>?
+YTLiveChat.Models.Response.LiveChatSponsorshipsHeaderRenderer.AuthorBadges.init -> void
+YTLiveChat.Models.Response.LiveChatSponsorshipsHeaderRenderer.AuthorName.get -> YTLiveChat.Models.Response.SimpleText?
+YTLiveChat.Models.Response.LiveChatSponsorshipsHeaderRenderer.AuthorName.init -> void
+YTLiveChat.Models.Response.LiveChatSponsorshipsHeaderRenderer.AuthorPhoto.get -> YTLiveChat.Models.Response.AuthorPhoto?
+YTLiveChat.Models.Response.LiveChatSponsorshipsHeaderRenderer.AuthorPhoto.init -> void
+YTLiveChat.Models.Response.LiveChatSponsorshipsHeaderRenderer.ContextMenuAccessibility.get -> YTLiveChat.Models.Response.Accessibility?
+YTLiveChat.Models.Response.LiveChatSponsorshipsHeaderRenderer.ContextMenuAccessibility.init -> void
+YTLiveChat.Models.Response.LiveChatSponsorshipsHeaderRenderer.ContextMenuEndpoint.get -> YTLiveChat.Models.Response.ContextMenuEndpoint?
+YTLiveChat.Models.Response.LiveChatSponsorshipsHeaderRenderer.ContextMenuEndpoint.init -> void
+YTLiveChat.Models.Response.LiveChatSponsorshipsHeaderRenderer.Image.get -> YTLiveChat.Models.Response.IconSource?
+YTLiveChat.Models.Response.LiveChatSponsorshipsHeaderRenderer.Image.init -> void
+YTLiveChat.Models.Response.LiveChatSponsorshipsHeaderRenderer.PrimaryText.get -> YTLiveChat.Models.Response.HeaderText?
+YTLiveChat.Models.Response.LiveChatSponsorshipsHeaderRenderer.PrimaryText.init -> void
+YTLiveChat.Models.Response.LiveChatStreamingResponseExtension
+YTLiveChat.Models.Response.LiveChatStreamingResponseExtension.LastPublishAtUsec.get -> string?
+YTLiveChat.Models.Response.LiveChatStreamingResponseExtension.LastPublishAtUsec.init -> void
+YTLiveChat.Models.Response.LiveChatTextMessageRenderer
+YTLiveChat.Models.Response.LiveChatTextMessageRenderer.BeforeContentButtons.get -> System.Collections.Generic.List<YTLiveChat.Models.Response.BeforeContentButtonContainer!>?
+YTLiveChat.Models.Response.LiveChatTextMessageRenderer.BeforeContentButtons.init -> void
+YTLiveChat.Models.Response.LiveChatTextMessageRenderer.Message.get -> YTLiveChat.Models.Response.Message?
+YTLiveChat.Models.Response.LiveChatTextMessageRenderer.Message.init -> void
+YTLiveChat.Models.Response.LiveChatTickerPaidMessageItemRenderer
+YTLiveChat.Models.Response.LiveChatTickerPaidMessageItemRenderer.Id.get -> string?
+YTLiveChat.Models.Response.LiveChatTickerPaidMessageItemRenderer.Id.init -> void
+YTLiveChat.Models.Response.LiveChatTickerPaidMessageItemRenderer.ShowItemEndpoint.get -> YTLiveChat.Models.Response.TickerShowItemEndpoint?
+YTLiveChat.Models.Response.LiveChatTickerPaidMessageItemRenderer.ShowItemEndpoint.init -> void
+YTLiveChat.Models.Response.LiveChatTickerPaidStickerItemRenderer
+YTLiveChat.Models.Response.LiveChatTickerPaidStickerItemRenderer.Id.get -> string?
+YTLiveChat.Models.Response.LiveChatTickerPaidStickerItemRenderer.Id.init -> void
+YTLiveChat.Models.Response.LiveChatTickerPaidStickerItemRenderer.ShowItemEndpoint.get -> YTLiveChat.Models.Response.TickerShowItemEndpoint?
+YTLiveChat.Models.Response.LiveChatTickerPaidStickerItemRenderer.ShowItemEndpoint.init -> void
+YTLiveChat.Models.Response.LiveChatTickerShowItemRenderer
+YTLiveChat.Models.Response.LiveChatTickerShowItemRenderer.LiveChatMembershipItemRenderer.get -> YTLiveChat.Models.Response.LiveChatMembershipItemRenderer?
+YTLiveChat.Models.Response.LiveChatTickerShowItemRenderer.LiveChatMembershipItemRenderer.init -> void
+YTLiveChat.Models.Response.LiveChatTickerShowItemRenderer.LiveChatPaidMessageRenderer.get -> YTLiveChat.Models.Response.LiveChatPaidMessageRenderer?
+YTLiveChat.Models.Response.LiveChatTickerShowItemRenderer.LiveChatPaidMessageRenderer.init -> void
+YTLiveChat.Models.Response.LiveChatTickerShowItemRenderer.LiveChatPaidStickerRenderer.get -> YTLiveChat.Models.Response.LiveChatPaidStickerRenderer?
+YTLiveChat.Models.Response.LiveChatTickerShowItemRenderer.LiveChatPaidStickerRenderer.init -> void
+YTLiveChat.Models.Response.LiveChatTickerShowItemRenderer.LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer.get -> YTLiveChat.Models.Response.LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer?
+YTLiveChat.Models.Response.LiveChatTickerShowItemRenderer.LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer.init -> void
+YTLiveChat.Models.Response.LiveChatTickerSponsorItemRenderer
+YTLiveChat.Models.Response.LiveChatTickerSponsorItemRenderer.Id.get -> string?
+YTLiveChat.Models.Response.LiveChatTickerSponsorItemRenderer.Id.init -> void
+YTLiveChat.Models.Response.LiveChatTickerSponsorItemRenderer.ShowItemEndpoint.get -> YTLiveChat.Models.Response.TickerShowItemEndpoint?
+YTLiveChat.Models.Response.LiveChatTickerSponsorItemRenderer.ShowItemEndpoint.init -> void
+YTLiveChat.Models.Response.MainAppWebResponseContext
+YTLiveChat.Models.Response.MainAppWebResponseContext.LoggedOut.get -> bool
+YTLiveChat.Models.Response.MainAppWebResponseContext.LoggedOut.init -> void
+YTLiveChat.Models.Response.MainAppWebResponseContext.TrackingParam.get -> string?
+YTLiveChat.Models.Response.MainAppWebResponseContext.TrackingParam.init -> void
+YTLiveChat.Models.Response.Message
+YTLiveChat.Models.Response.Message.Runs.get -> System.Collections.Generic.List<YTLiveChat.Models.Response.MessageRun!>?
+YTLiveChat.Models.Response.Message.Runs.init -> void
+YTLiveChat.Models.Response.MessageEmoji
+YTLiveChat.Models.Response.MessageEmoji.Emoji.get -> YTLiveChat.Models.Response.Emoji?
+YTLiveChat.Models.Response.MessageEmoji.Emoji.init -> void
+YTLiveChat.Models.Response.MessageEmoji.IsCustomEmoji.get -> bool
+YTLiveChat.Models.Response.MessageEmoji.IsCustomEmoji.init -> void
+YTLiveChat.Models.Response.MessageEmoji.VariantIds.get -> System.Collections.Generic.List<string!>?
+YTLiveChat.Models.Response.MessageEmoji.VariantIds.init -> void
+YTLiveChat.Models.Response.MessageRendererBase
+YTLiveChat.Models.Response.MessageRendererBase.AuthorBadges.get -> System.Collections.Generic.List<YTLiveChat.Models.Response.AuthorBadgeContainer!>?
+YTLiveChat.Models.Response.MessageRendererBase.AuthorBadges.init -> void
+YTLiveChat.Models.Response.MessageRendererBase.AuthorExternalChannelId.get -> string?
+YTLiveChat.Models.Response.MessageRendererBase.AuthorExternalChannelId.init -> void
+YTLiveChat.Models.Response.MessageRendererBase.AuthorName.get -> YTLiveChat.Models.Response.SimpleText?
+YTLiveChat.Models.Response.MessageRendererBase.AuthorName.init -> void
+YTLiveChat.Models.Response.MessageRendererBase.AuthorPhoto.get -> YTLiveChat.Models.Response.AuthorPhoto?
+YTLiveChat.Models.Response.MessageRendererBase.AuthorPhoto.init -> void
+YTLiveChat.Models.Response.MessageRendererBase.ContextMenuAccessibility.get -> YTLiveChat.Models.Response.Accessibility?
+YTLiveChat.Models.Response.MessageRendererBase.ContextMenuAccessibility.init -> void
+YTLiveChat.Models.Response.MessageRendererBase.ContextMenuEndpoint.get -> YTLiveChat.Models.Response.ContextMenuEndpoint?
+YTLiveChat.Models.Response.MessageRendererBase.ContextMenuEndpoint.init -> void
+YTLiveChat.Models.Response.MessageRendererBase.Id.get -> string?
+YTLiveChat.Models.Response.MessageRendererBase.Id.init -> void
+YTLiveChat.Models.Response.MessageRendererBase.TimestampUsec.get -> string?
+YTLiveChat.Models.Response.MessageRendererBase.TimestampUsec.init -> void
+YTLiveChat.Models.Response.MessageRendererBase.TrackingParams.get -> string?
+YTLiveChat.Models.Response.MessageRendererBase.TrackingParams.init -> void
+YTLiveChat.Models.Response.MessageRun
+YTLiveChat.Models.Response.MessageText
+YTLiveChat.Models.Response.MessageText.Bold.get -> bool
+YTLiveChat.Models.Response.MessageText.Bold.init -> void
+YTLiveChat.Models.Response.MessageText.FontFace.get -> string?
+YTLiveChat.Models.Response.MessageText.FontFace.init -> void
+YTLiveChat.Models.Response.MessageText.Italics.get -> bool
+YTLiveChat.Models.Response.MessageText.Italics.init -> void
+YTLiveChat.Models.Response.MessageText.NavigationEndpoint.get -> YTLiveChat.Models.Response.NavigationEndpoint?
+YTLiveChat.Models.Response.MessageText.NavigationEndpoint.init -> void
+YTLiveChat.Models.Response.MessageText.Text.get -> string?
+YTLiveChat.Models.Response.MessageText.Text.init -> void
+YTLiveChat.Models.Response.Mutation
+YTLiveChat.Models.Response.Mutation.EntityKey.get -> string?
+YTLiveChat.Models.Response.Mutation.EntityKey.init -> void
+YTLiveChat.Models.Response.Mutation.Payload.get -> YTLiveChat.Models.Response.MutationPayload?
+YTLiveChat.Models.Response.Mutation.Payload.init -> void
+YTLiveChat.Models.Response.Mutation.Type.get -> string?
+YTLiveChat.Models.Response.Mutation.Type.init -> void
+YTLiveChat.Models.Response.MutationPayload
+YTLiveChat.Models.Response.MutationPayload.ExtensionData.get -> System.Collections.Generic.IDictionary<string!, System.Text.Json.JsonElement>?
+YTLiveChat.Models.Response.MutationPayload.ExtensionData.set -> void
+YTLiveChat.Models.Response.NavigationEndpoint
+YTLiveChat.Models.Response.NavigationEndpoint.ClickTrackingParams.get -> string?
+YTLiveChat.Models.Response.NavigationEndpoint.ClickTrackingParams.init -> void
+YTLiveChat.Models.Response.NavigationEndpoint.CommandMetadata.get -> YTLiveChat.Models.Response.CommandMetadata?
+YTLiveChat.Models.Response.NavigationEndpoint.CommandMetadata.init -> void
+YTLiveChat.Models.Response.NavigationEndpoint.UrlEndpoint.get -> YTLiveChat.Models.Response.UrlEndpoint?
+YTLiveChat.Models.Response.NavigationEndpoint.UrlEndpoint.init -> void
+YTLiveChat.Models.Response.Param
+YTLiveChat.Models.Response.Param.Key.get -> string?
+YTLiveChat.Models.Response.Param.Key.init -> void
+YTLiveChat.Models.Response.Param.Value.get -> string?
+YTLiveChat.Models.Response.Param.Value.init -> void
+YTLiveChat.Models.Response.PurchaseAmountText
+YTLiveChat.Models.Response.PurchaseAmountText.Text.get -> string?
+YTLiveChat.Models.Response.PurchaseAmountText.Text.init -> void
+YTLiveChat.Models.Response.ReactionControlPanelOverlayViewModel
+YTLiveChat.Models.Response.ReactionControlPanelOverlayViewModel.EmojiFountain.get -> System.Text.Json.Nodes.JsonObject?
+YTLiveChat.Models.Response.ReactionControlPanelOverlayViewModel.EmojiFountain.init -> void
+YTLiveChat.Models.Response.ReactionControlPanelOverlayViewModel.LiveReactionsSettingEntityKey.get -> string?
+YTLiveChat.Models.Response.ReactionControlPanelOverlayViewModel.LiveReactionsSettingEntityKey.init -> void
+YTLiveChat.Models.Response.ReactionControlPanelOverlayViewModel.ReactionControlPanel.get -> System.Text.Json.Nodes.JsonObject?
+YTLiveChat.Models.Response.ReactionControlPanelOverlayViewModel.ReactionControlPanel.init -> void
+YTLiveChat.Models.Response.RemoveChatItemAction
+YTLiveChat.Models.Response.RemoveChatItemAction.TargetItemId.get -> string?
+YTLiveChat.Models.Response.RemoveChatItemAction.TargetItemId.init -> void
+YTLiveChat.Models.Response.RemoveChatItemByAuthorAction
+YTLiveChat.Models.Response.RemoveChatItemByAuthorAction.ExternalChannelId.get -> string?
+YTLiveChat.Models.Response.RemoveChatItemByAuthorAction.ExternalChannelId.init -> void
+YTLiveChat.Models.Response.ReplaceChatItemAction
+YTLiveChat.Models.Response.ReplaceChatItemAction.ReplacementItem.get -> YTLiveChat.Models.Response.ReplacementItem?
+YTLiveChat.Models.Response.ReplaceChatItemAction.ReplacementItem.init -> void
+YTLiveChat.Models.Response.ReplaceChatItemAction.TargetItemId.get -> string?
+YTLiveChat.Models.Response.ReplaceChatItemAction.TargetItemId.init -> void
+YTLiveChat.Models.Response.ReplacementItem
+YTLiveChat.Models.Response.ReplacementItem.LiveChatPlaceholderItemRenderer.get -> YTLiveChat.Models.Response.LiveChatPlaceholderItemRenderer?
+YTLiveChat.Models.Response.ReplacementItem.LiveChatPlaceholderItemRenderer.init -> void
+YTLiveChat.Models.Response.ReplacementItem.LiveChatTextMessageRenderer.get -> YTLiveChat.Models.Response.LiveChatTextMessageRenderer?
+YTLiveChat.Models.Response.ReplacementItem.LiveChatTextMessageRenderer.init -> void
+YTLiveChat.Models.Response.ResponseContext
+YTLiveChat.Models.Response.ResponseContext.MainAppWebResponseContext.get -> YTLiveChat.Models.Response.MainAppWebResponseContext?
+YTLiveChat.Models.Response.ResponseContext.MainAppWebResponseContext.init -> void
+YTLiveChat.Models.Response.ResponseContext.ServiceTrackingParams.get -> System.Collections.Generic.List<YTLiveChat.Models.Response.ServiceTrackingParam!>?
+YTLiveChat.Models.Response.ResponseContext.ServiceTrackingParams.init -> void
+YTLiveChat.Models.Response.ResponseContext.VisitorData.get -> string?
+YTLiveChat.Models.Response.ResponseContext.VisitorData.init -> void
+YTLiveChat.Models.Response.ResponseContext.WebResponseContextExtensionData.get -> YTLiveChat.Models.Response.WebResponseContextExtensionData?
+YTLiveChat.Models.Response.ResponseContext.WebResponseContextExtensionData.init -> void
+YTLiveChat.Models.Response.ServiceTrackingParam
+YTLiveChat.Models.Response.ServiceTrackingParam.Params.get -> System.Collections.Generic.List<YTLiveChat.Models.Response.Param!>?
+YTLiveChat.Models.Response.ServiceTrackingParam.Params.init -> void
+YTLiveChat.Models.Response.ServiceTrackingParam.Service.get -> string?
+YTLiveChat.Models.Response.ServiceTrackingParam.Service.init -> void
+YTLiveChat.Models.Response.ShowLiveChatItemEndpoint
+YTLiveChat.Models.Response.ShowLiveChatItemEndpoint.Renderer.get -> YTLiveChat.Models.Response.LiveChatTickerShowItemRenderer?
+YTLiveChat.Models.Response.ShowLiveChatItemEndpoint.Renderer.init -> void
+YTLiveChat.Models.Response.SignalAction
+YTLiveChat.Models.Response.SignalAction.Signal.get -> string?
+YTLiveChat.Models.Response.SignalAction.Signal.init -> void
+YTLiveChat.Models.Response.SimpleText
+YTLiveChat.Models.Response.SimpleText.Text.get -> string?
+YTLiveChat.Models.Response.SimpleText.Text.init -> void
+YTLiveChat.Models.Response.Source
+YTLiveChat.Models.Response.Source.Url.get -> string?
+YTLiveChat.Models.Response.Source.Url.init -> void
+YTLiveChat.Models.Response.SponsorshipsHeaderContainer
+YTLiveChat.Models.Response.SponsorshipsHeaderContainer.LiveChatSponsorshipsHeaderRenderer.get -> YTLiveChat.Models.Response.LiveChatSponsorshipsHeaderRenderer?
+YTLiveChat.Models.Response.SponsorshipsHeaderContainer.LiveChatSponsorshipsHeaderRenderer.init -> void
+YTLiveChat.Models.Response.Sticker
+YTLiveChat.Models.Response.Sticker.Accessibility.get -> YTLiveChat.Models.Response.Accessibility?
+YTLiveChat.Models.Response.Sticker.Accessibility.init -> void
+YTLiveChat.Models.Response.Sticker.Thumbnails.get -> System.Collections.Generic.List<YTLiveChat.Models.Response.Thumbnail!>?
+YTLiveChat.Models.Response.Sticker.Thumbnails.init -> void
+YTLiveChat.Models.Response.Thumbnail
+YTLiveChat.Models.Response.Thumbnail.Height.get -> int
+YTLiveChat.Models.Response.Thumbnail.Height.init -> void
+YTLiveChat.Models.Response.Thumbnail.Url.get -> string?
+YTLiveChat.Models.Response.Thumbnail.Url.init -> void
+YTLiveChat.Models.Response.Thumbnail.Width.get -> int
+YTLiveChat.Models.Response.Thumbnail.Width.init -> void
+YTLiveChat.Models.Response.TickerShowItemEndpoint
+YTLiveChat.Models.Response.TickerShowItemEndpoint.ShowLiveChatItemEndpoint.get -> YTLiveChat.Models.Response.ShowLiveChatItemEndpoint?
+YTLiveChat.Models.Response.TickerShowItemEndpoint.ShowLiveChatItemEndpoint.init -> void
+YTLiveChat.Models.Response.TimedContinuationData
+YTLiveChat.Models.Response.TimedContinuationData.ClickTrackingParams.get -> string?
+YTLiveChat.Models.Response.TimedContinuationData.ClickTrackingParams.init -> void
+YTLiveChat.Models.Response.TimedContinuationData.Continuation.get -> string?
+YTLiveChat.Models.Response.TimedContinuationData.Continuation.init -> void
+YTLiveChat.Models.Response.TimedContinuationData.TimeoutMs.get -> int
+YTLiveChat.Models.Response.TimedContinuationData.TimeoutMs.init -> void
+YTLiveChat.Models.Response.Timestamp
+YTLiveChat.Models.Response.Timestamp.Nanos.get -> int
+YTLiveChat.Models.Response.Timestamp.Nanos.init -> void
+YTLiveChat.Models.Response.Timestamp.Seconds.get -> string?
+YTLiveChat.Models.Response.Timestamp.Seconds.init -> void
+YTLiveChat.Models.Response.UrlEndpoint
+YTLiveChat.Models.Response.UrlEndpoint.Nofollow.get -> bool
+YTLiveChat.Models.Response.UrlEndpoint.Nofollow.init -> void
+YTLiveChat.Models.Response.UrlEndpoint.Target.get -> string?
+YTLiveChat.Models.Response.UrlEndpoint.Target.init -> void
+YTLiveChat.Models.Response.UrlEndpoint.Url.get -> string?
+YTLiveChat.Models.Response.UrlEndpoint.Url.init -> void
+YTLiveChat.Models.Response.WebCommandMetadata
+YTLiveChat.Models.Response.WebCommandMetadata.IgnoreNavigation.get -> bool
+YTLiveChat.Models.Response.WebCommandMetadata.IgnoreNavigation.init -> void
+YTLiveChat.Models.Response.WebCommandMetadata.RootVe.get -> int
+YTLiveChat.Models.Response.WebCommandMetadata.RootVe.init -> void
+YTLiveChat.Models.Response.WebCommandMetadata.Url.get -> string?
+YTLiveChat.Models.Response.WebCommandMetadata.Url.init -> void
+YTLiveChat.Models.Response.WebCommandMetadata.WebPageType.get -> string?
+YTLiveChat.Models.Response.WebCommandMetadata.WebPageType.init -> void
+YTLiveChat.Models.Response.WebResponseContextExtensionData
+YTLiveChat.Models.Response.WebResponseContextExtensionData.HasDecorated.get -> bool
+YTLiveChat.Models.Response.WebResponseContextExtensionData.HasDecorated.init -> void
+YTLiveChat.Services.YTHttpClient
+YTLiveChat.Services.YTHttpClient.YTHttpClient(System.Net.Http.HttpClient! httpClient, Microsoft.Extensions.Logging.ILogger<YTLiveChat.Services.YTHttpClient!>? logger = null) -> void
+YTLiveChat.Services.YTLiveChat
+YTLiveChat.Services.YTLiveChat.ChatReceived -> System.EventHandler<YTLiveChat.Contracts.Services.ChatReceivedEventArgs!>?
+YTLiveChat.Services.YTLiveChat.ChatStopped -> System.EventHandler<YTLiveChat.Contracts.Services.ChatStoppedEventArgs!>?
+YTLiveChat.Services.YTLiveChat.Dispose() -> void
+YTLiveChat.Services.YTLiveChat.ErrorOccurred -> System.EventHandler<YTLiveChat.Contracts.Services.ErrorOccurredEventArgs!>?
+YTLiveChat.Services.YTLiveChat.InitialPageLoaded -> System.EventHandler<YTLiveChat.Contracts.Services.InitialPageLoadedEventArgs!>?
+YTLiveChat.Services.YTLiveChat.LivestreamEnded -> System.EventHandler<YTLiveChat.Contracts.Services.LivestreamEndedEventArgs!>?
+YTLiveChat.Services.YTLiveChat.LivestreamInaccessible -> System.EventHandler<YTLiveChat.Contracts.Services.LivestreamInaccessibleEventArgs!>?
+YTLiveChat.Services.YTLiveChat.LivestreamStarted -> System.EventHandler<YTLiveChat.Contracts.Services.LivestreamStartedEventArgs!>?
+YTLiveChat.Services.YTLiveChat.RawActionReceived -> System.EventHandler<YTLiveChat.Contracts.Services.RawActionReceivedEventArgs!>?
+YTLiveChat.Services.YTLiveChat.Start(string? handle = null, string? channelId = null, string? liveId = null, bool overwrite = false) -> void
+YTLiveChat.Services.YTLiveChat.Stop() -> void
+YTLiveChat.Services.YTLiveChat.StreamChatItemsAsync(string? handle = null, string? channelId = null, string? liveId = null, bool overwrite = false, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<YTLiveChat.Contracts.Models.ChatItem!>!
+YTLiveChat.Services.YTLiveChat.StreamRawActionsAsync(string? handle = null, string? channelId = null, string? liveId = null, bool overwrite = false, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<YTLiveChat.Contracts.Services.RawActionReceivedEventArgs!>!
+YTLiveChat.Services.YTLiveChat.YTLiveChat(YTLiveChat.Contracts.YTLiveChatOptions! options, YTLiveChat.Services.YTHttpClient! ytHttpClient, Microsoft.Extensions.Logging.ILogger<YTLiveChat.Services.YTLiveChat!>? logger = null) -> void

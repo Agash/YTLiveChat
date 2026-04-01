@@ -41,6 +41,15 @@ public interface IYTLiveChat : IDisposable
     event EventHandler<LivestreamEndedEventArgs>? LivestreamEnded;
 
     /// <summary>
+    /// Fires when monitor mode detects a livestream candidate but cannot initialize chat access
+    /// (for example members-only/login-required/unplayable restrictions).
+    /// </summary>
+    [Obsolete(
+        "BETA/UNSUPPORTED: Continuous livestream monitor mode may change or break at any time and is not covered by semver stability guarantees."
+    )]
+    event EventHandler<LivestreamInaccessibleEventArgs>? LivestreamInaccessible;
+
+    /// <summary>
     /// Fires when a raw action payload was received (including unsupported action types).
     /// </summary>
     event EventHandler<RawActionReceivedEventArgs>? RawActionReceived;
@@ -154,6 +163,22 @@ public class LivestreamEndedEventArgs : EventArgs
 
     /// <summary>
     /// Reason why the livestream was considered ended.
+    /// </summary>
+    public string? Reason { get; set; }
+}
+
+/// <summary>
+/// EventArgs for LivestreamInaccessible event.
+/// </summary>
+public class LivestreamInaccessibleEventArgs : EventArgs
+{
+    /// <summary>
+    /// Video ID of the detected livestream candidate.
+    /// </summary>
+    public required string LiveId { get; set; }
+
+    /// <summary>
+    /// Best-effort reason why chat access could not be initialized.
     /// </summary>
     public string? Reason { get; set; }
 }

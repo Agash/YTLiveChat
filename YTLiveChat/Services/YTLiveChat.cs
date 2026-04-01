@@ -38,6 +38,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     public event EventHandler<LivestreamEndedEventArgs>? LivestreamEnded;
 
     /// <inheritdoc />
+    public event EventHandler<LivestreamInaccessibleEventArgs>? LivestreamInaccessible;
+
+    /// <inheritdoc />
     public event EventHandler<RawActionReceivedEventArgs>? RawActionReceived;
 
     /// <inheritdoc />
@@ -53,11 +56,17 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     private Task? _pollingTask; // Keep track of the polling task
     private bool _continuousMonitorEnabledForSession;
     private string? _activeLiveId;
+    private string? _lastInaccessibleLiveId;
     private bool _terminateCurrentSession;
+    private readonly Dictionary<string, DateTimeOffset> _temporaryInaccessibleAutoDetectedLiveIds =
+        new(StringComparer.OrdinalIgnoreCase);
+    private static readonly TimeSpan s_inaccessibleCandidateRetryFloor = TimeSpan.FromMinutes(5);
 
 #pragma warning disable CS0618
     private bool ContinuousMonitorSetting => _options.EnableContinuousLivestreamMonitor;
     private int LiveCheckFrequencySetting => _options.LiveCheckFrequency;
+    private bool RequireActiveBroadcastForAutoDetectedStreamSetting =>
+        _options.RequireActiveBroadcastForAutoDetectedStream;
 #pragma warning restore CS0618
 
     private const int MaxRetryAttempts = 5;
@@ -254,9 +263,20 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             _continuousMonitorEnabledForSession =
                 ContinuousMonitorSetting && isHandleOrChannelTarget && !isDirectLiveId;
             _terminateCurrentSession = false;
+            _lastInaccessibleLiveId = null;
+            _temporaryInaccessibleAutoDetectedLiveIds.Clear();
 
             while (!cancellationToken.IsCancellationRequested)
             {
+                if (_continuousMonitorEnabledForSession)
+                {
+                    _logger.LogInformation(
+                        "Monitor probe started for target (Handle: {Handle}, ChannelId: {ChannelId}).",
+                        handle ?? "N/A",
+                        channelId ?? "N/A"
+                    );
+                }
+
                 _fetchOptionsInternal = await TryGetFetchOptionsForSessionAsync(
                     handle,
                     channelId,
@@ -266,6 +286,14 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 if (_fetchOptionsInternal == null)
                 {
                     // Continuous mode: no active live yet, keep checking.
+                    if (_continuousMonitorEnabledForSession)
+                    {
+                        _logger.LogInformation(
+                            "Monitor probe found no usable livestream. Next check in {DelayMs} ms.",
+                            LiveCheckFrequencySetting
+                        );
+                    }
+
                     await Task
                         .Delay(TimeSpan.FromMilliseconds(LiveCheckFrequencySetting), cancellationToken)
                         .ConfigureAwait(false);
@@ -331,22 +359,73 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         CancellationToken cancellationToken
     )
     {
+        string? resolvedHandle = handle;
+        string? resolvedChannelId = channelId;
+        string? resolvedLiveId = liveId;
+
+        if (
+            _continuousMonitorEnabledForSession
+            && string.IsNullOrWhiteSpace(liveId)
+            && (!string.IsNullOrWhiteSpace(handle) || !string.IsNullOrWhiteSpace(channelId))
+        )
+        {
+            string? streamsCandidate = await TrySelectCandidateFromStreamsPageAsync(
+                handle,
+                channelId,
+                cancellationToken
+            );
+
+            if (!string.IsNullOrWhiteSpace(streamsCandidate))
+            {
+                _logger.LogInformation(
+                    "Monitor probe selected streams candidate {LiveId} before /live fallback.",
+                    streamsCandidate
+                );
+                resolvedLiveId = streamsCandidate;
+                resolvedHandle = null;
+                resolvedChannelId = null;
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "Monitor probe found no streams candidate. Falling back to /live resolution."
+                );
+            }
+        }
+
         try
         {
             FetchOptions? options = await GetFetchOptionsAsync(
-                handle,
-                channelId,
-                liveId,
+                resolvedHandle,
+                resolvedChannelId,
+                resolvedLiveId,
                 true,
                 cancellationToken
             );
-            return options?.LiveId is null
+            return options is null
                 ? _continuousMonitorEnabledForSession
                     ? null
                     : throw new InvalidOperationException(
+                        "No acceptable livestream candidate found for the provided target."
+                    )
+                : options.LiveId is null
+                ? throw new InvalidOperationException(
                     "Failed to retrieve valid initial FetchOptions (LiveId is missing)."
                 )
                 : options;
+        }
+        catch (InvalidOperationException ex) when (
+            _continuousMonitorEnabledForSession && IsLikelyInaccessibleLiveError(ex)
+        )
+        {
+            if (!string.IsNullOrWhiteSpace(resolvedLiveId))
+            {
+                _temporaryInaccessibleAutoDetectedLiveIds[resolvedLiveId!] =
+                    DateTimeOffset.UtcNow + GetInaccessibleCandidateRetryDelay();
+            }
+
+            NotifyInaccessibleLivestreamCandidate(resolvedLiveId, ex.Message);
+            return null;
         }
         catch (InvalidOperationException ex) when (
             _continuousMonitorEnabledForSession && IsLikelyNoActiveLiveError(ex)
@@ -364,13 +443,59 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     {
         string message = ex.ToString();
         return message.Contains("Live Stream canonical link not found", StringComparison.Ordinal)
+            || message.Contains("Live Stream ID not found", StringComparison.Ordinal)
             || message.Contains("Initial Continuation token not found", StringComparison.Ordinal)
-            || message.Contains("is finished live", StringComparison.Ordinal);
+            || message.Contains("is finished live", StringComparison.Ordinal)
+            || message.Contains("No acceptable livestream candidate found", StringComparison.Ordinal);
+    }
+
+    private static bool IsLikelyInaccessibleLiveError(InvalidOperationException ex)
+    {
+        string message = ex.ToString();
+        return message.Contains("Live stream is inaccessible", StringComparison.Ordinal);
+    }
+
+    private void NotifyInaccessibleLivestreamCandidate(string? liveId, string reason)
+    {
+        if (string.IsNullOrWhiteSpace(liveId))
+        {
+            _logger.LogInformation(
+                "Detected inaccessible livestream candidate but no liveId was available. Reason: {Reason}",
+                reason
+            );
+            return;
+        }
+
+        if (string.Equals(_lastInaccessibleLiveId, liveId, StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogDebug(
+                "Livestream candidate {LiveId} is still inaccessible. Reason: {Reason}",
+                liveId,
+                reason
+            );
+            return;
+        }
+
+        _lastInaccessibleLiveId = liveId;
+        _logger.LogInformation(
+            "Detected inaccessible livestream candidate {LiveId}. Reason: {Reason}",
+            liveId,
+            reason
+        );
+        OnLivestreamInaccessible(
+            new LivestreamInaccessibleEventArgs
+            {
+                LiveId = liveId!,
+                Reason = reason,
+            }
+        );
     }
 
     private void BeginActiveLivestream(string liveId)
     {
         _activeLiveId = liveId;
+        _lastInaccessibleLiveId = null;
+        _temporaryInaccessibleAutoDetectedLiveIds.Clear();
         OnLivestreamStarted(new() { LiveId = liveId });
     }
 
@@ -1343,16 +1468,30 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 channelId ?? "N/A",
                 liveId ?? "N/A"
             );
+            string? pageHtml = null;
             try
             {
                 // Use the injected YTHttpClient instance
-                string pageHtml = await _ytHttpClient.GetOptionsAsync(
+                pageHtml = await _ytHttpClient.GetOptionsAsync(
                     handle,
                     channelId,
                     liveId,
                     cancellationToken
                 );
                 FetchOptions newOptions = Parser.GetOptionsFromLivePage(pageHtml); // Can throw
+                if (
+                    ShouldSkipAutoDetectedLiveStreamCandidate(
+                        handle,
+                        channelId,
+                        liveId,
+                        pageHtml,
+                        newOptions.LiveId
+                    )
+                )
+                {
+                    return null;
+                }
+
                 _logger.LogInformation(
                     "Successfully parsed initial options. Live ID: {LiveId}",
                     newOptions.LiveId
@@ -1366,12 +1505,41 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to get or parse initial options.");
-                // Wrap the exception to provide context before re-throwing
-                throw new InvalidOperationException(
-                    $"Failed to initialize from YouTube page: {ex.Message}",
+                string? inaccessibleKind = pageHtml is null
+                    ? null
+                    : Parser.DetectInaccessibleLiveReason(pageHtml);
+                string inaccessibleReason =
+                    inaccessibleKind is null
+                        ? string.Empty
+                        : $"Live stream is inaccessible ({inaccessibleKind}).";
+                if (
+                    string.IsNullOrEmpty(inaccessibleReason)
+                    && ex is InvalidOperationException ioe
+                    && ioe.Message.Contains("Live stream is inaccessible", StringComparison.Ordinal)
+                )
+                {
+                    inaccessibleReason = ioe.Message;
+                }
+
+                InvalidOperationException wrapped = new(
+                    string.IsNullOrEmpty(inaccessibleReason)
+                        ? $"Failed to initialize from YouTube page: {ex.Message}"
+                        : inaccessibleReason,
                     ex
                 );
+
+                if (_continuousMonitorEnabledForSession && IsLikelyNoActiveLiveError(wrapped))
+                {
+                    _logger.LogDebug(
+                        ex,
+                        "No active livestream candidate found on this poll attempt. Monitor mode will keep waiting."
+                    );
+                    throw wrapped;
+                }
+
+                _logger.LogError(ex, "Failed to get or parse initial options.");
+                // Wrap the exception to provide context before re-throwing
+                throw wrapped;
             }
         }
         else
@@ -1382,6 +1550,294 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 _fetchOptionsInternal.LiveId
             );
             return _fetchOptionsInternal;
+        }
+    }
+
+    /// <summary>Invokes the LivestreamInaccessible event.</summary>
+    protected virtual void OnLivestreamInaccessible(LivestreamInaccessibleEventArgs e)
+    {
+        try
+        {
+            LivestreamInaccessible?.Invoke(this, e);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error invoking LivestreamInaccessible event handler.");
+        }
+    }
+
+    private async Task<string?> TrySelectCandidateFromStreamsPageAsync(
+        string? handle,
+        string? channelId,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            string streamsHtml = await _ytHttpClient
+                .GetStreamsPageAsync(handle, channelId, cancellationToken)
+                .ConfigureAwait(false);
+            IReadOnlyList<StreamPageCandidate> candidates = Parser.ExtractStreamCandidatesFromStreamsPage(
+                streamsHtml
+            );
+            if (candidates.Count == 0)
+            {
+                int rawVideoIdMentions = CountOccurrences(
+                    streamsHtml,
+                    "\"videoId\"",
+                    StringComparison.Ordinal
+                );
+                int escapedVideoIdMentions = CountOccurrences(
+                    streamsHtml,
+                    "\\\"videoId\\\"",
+                    StringComparison.Ordinal
+                );
+                int initialDataMentions = CountOccurrences(
+                    streamsHtml,
+                    "ytInitialData",
+                    StringComparison.Ordinal
+                );
+                bool isConsentInterstitial = streamsHtml.IndexOf(
+                    "consent.youtube.com",
+                    StringComparison.OrdinalIgnoreCase
+                ) >= 0;
+                _logger.LogInformation(
+                    "Streams page parsing found 0 candidates for monitor target. Raw page contains {VideoIdMentions} '\"videoId\"' mentions, {EscapedVideoIdMentions} escaped mentions, ytInitialData mentions: {InitialDataMentions}, consent interstitial: {IsConsentInterstitial}.",
+                    rawVideoIdMentions,
+                    escapedVideoIdMentions,
+                    initialDataMentions,
+                    isConsentInterstitial
+                );
+                return null;
+            }
+
+            _logger.LogInformation(
+                "Streams page parsing found {Count} candidates.",
+                candidates.Count
+            );
+
+            PruneExpiredInaccessibleCandidateCooldowns();
+            IEnumerable<StreamPageCandidate> filteredCandidates = candidates.Where(c =>
+                !IsIgnoredAutoDetectedLiveId(c.LiveId)
+                && !IsTemporarilyInaccessibleCandidate(c.LiveId)
+            );
+            List<StreamPageCandidate> filteredCandidateList = filteredCandidates.ToList();
+            if (filteredCandidateList.Count == 0)
+            {
+                _logger.LogInformation(
+                    "All streams candidates were filtered out by ignored-live-id settings or temporary inaccessible-live filters."
+                );
+                return null;
+            }
+
+            if (RequireActiveBroadcastForAutoDetectedStreamSetting)
+            {
+                foreach (StreamPageCandidate candidate in filteredCandidateList)
+                {
+                    if (!candidate.IsLive)
+                    {
+                        continue;
+                    }
+
+                    _logger.LogDebug(
+                        "Selected LIVE candidate from streams page: {LiveId}",
+                        candidate.LiveId
+                    );
+                    return candidate.LiveId;
+                }
+
+                _logger.LogInformation(
+                    "No actively broadcasting candidate found on streams page (active-only mode)."
+                );
+                return null;
+            }
+
+            foreach (StreamPageCandidate candidate in filteredCandidateList)
+            {
+                if (!candidate.IsLive)
+                {
+                    continue;
+                }
+
+                _logger.LogDebug(
+                    "Selected LIVE candidate from streams page: {LiveId}",
+                    candidate.LiveId
+                );
+                return candidate.LiveId;
+            }
+
+            StreamPageCandidate? upcomingCandidate = null;
+            foreach (StreamPageCandidate candidate in filteredCandidateList.Where(c => c.IsUpcoming))
+            {
+                if (
+                    !upcomingCandidate.HasValue
+                    || (candidate.UpcomingStartTime ?? long.MaxValue)
+                        < (upcomingCandidate.Value.UpcomingStartTime ?? long.MaxValue)
+                )
+                {
+                    upcomingCandidate = candidate;
+                }
+            }
+
+            if (!upcomingCandidate.HasValue)
+            {
+                _logger.LogInformation(
+                    "No LIVE or UPCOMING candidate found after filtering streams candidates."
+                );
+                return null;
+            }
+
+            _logger.LogDebug(
+                "Selected UPCOMING candidate from streams page: {LiveId} (Start: {Start})",
+                upcomingCandidate.Value.LiveId,
+                upcomingCandidate.Value.UpcomingStartTime
+            );
+            return upcomingCandidate.Value.LiveId;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogDebug(
+                ex,
+                "Failed to parse streams page candidates. Falling back to /live page parsing."
+            );
+            return null;
+        }
+    }
+
+    private bool ShouldSkipAutoDetectedLiveStreamCandidate(
+        string? handle,
+        string? channelId,
+        string? explicitLiveId,
+        string pageHtml,
+        string? candidateLiveId
+    )
+    {
+        if (!string.IsNullOrWhiteSpace(explicitLiveId))
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(handle) && string.IsNullOrWhiteSpace(channelId))
+        {
+            return false;
+        }
+
+        string? candidateId = candidateLiveId;
+        if (candidateId is { Length: > 0 } && IsIgnoredAutoDetectedLiveId(candidateId))
+        {
+            _logger.LogInformation(
+                "Skipping auto-detected livestream {LiveId} because it is configured in IgnoredAutoDetectedLiveIds.",
+                candidateId
+            );
+            return true;
+        }
+
+        if (
+            RequireActiveBroadcastForAutoDetectedStreamSetting
+            && !Parser.IsActivelyBroadcastingLivePage(pageHtml)
+        )
+        {
+            _logger.LogInformation(
+                "Skipping auto-detected livestream candidate because page is not actively broadcasting (scheduled/free-chat/offline)."
+            );
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool IsIgnoredAutoDetectedLiveId(string liveId)
+    {
+#pragma warning disable CS0618
+        if (_options.IgnoredAutoDetectedLiveIds.Count == 0)
+        {
+            return false;
+        }
+
+        foreach (string ignoredLiveId in _options.IgnoredAutoDetectedLiveIds)
+        {
+            if (string.Equals(ignoredLiveId?.Trim(), liveId, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+#pragma warning restore CS0618
+
+        return false;
+    }
+
+    private static int CountOccurrences(string value, string token, StringComparison comparison)
+    {
+        if (string.IsNullOrEmpty(value) || string.IsNullOrEmpty(token))
+        {
+            return 0;
+        }
+
+        int count = 0;
+        int index = 0;
+        while (true)
+        {
+            int found = value.IndexOf(token, index, comparison);
+            if (found < 0)
+            {
+                break;
+            }
+
+            count++;
+            index = found + token.Length;
+        }
+
+        return count;
+    }
+
+    private TimeSpan GetInaccessibleCandidateRetryDelay()
+    {
+        TimeSpan fromFrequency = TimeSpan.FromMilliseconds(
+            Math.Max(LiveCheckFrequencySetting * 5, 0)
+        );
+        return fromFrequency > s_inaccessibleCandidateRetryFloor
+            ? fromFrequency
+            : s_inaccessibleCandidateRetryFloor;
+    }
+
+    private bool IsTemporarilyInaccessibleCandidate(string liveId)
+    {
+        if (!_temporaryInaccessibleAutoDetectedLiveIds.TryGetValue(liveId, out DateTimeOffset retryAt))
+        {
+            return false;
+        }
+
+        if (DateTimeOffset.UtcNow < retryAt)
+        {
+            return true;
+        }
+
+        _ = _temporaryInaccessibleAutoDetectedLiveIds.Remove(liveId);
+        return false;
+    }
+
+    private void PruneExpiredInaccessibleCandidateCooldowns()
+    {
+        if (_temporaryInaccessibleAutoDetectedLiveIds.Count == 0)
+        {
+            return;
+        }
+
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        List<string> expiredKeys = [];
+        foreach (KeyValuePair<string, DateTimeOffset> entry in _temporaryInaccessibleAutoDetectedLiveIds)
+        {
+            string key = entry.Key;
+            DateTimeOffset retryAt = entry.Value;
+            if (retryAt <= now)
+            {
+                expiredKeys.Add(key);
+            }
+        }
+
+        foreach (string key in expiredKeys)
+        {
+            _ = _temporaryInaccessibleAutoDetectedLiveIds.Remove(key);
         }
     }
 }

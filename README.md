@@ -54,8 +54,11 @@ Continuous livestream monitor mode is currently **BETA/UNSUPPORTED** and can cha
 - `YTLiveChatOptions.LiveCheckFrequency`
 - `IYTLiveChat.LivestreamStarted`
 - `IYTLiveChat.LivestreamEnded`
+- `IYTLiveChat.LivestreamInaccessible`
 
 These members intentionally emit compiler warnings via `[Obsolete]` to signal unstable API status.
+
+Monitor note: channel/watch page resolution is fetched via stateless (no-cookie) requests inside the library to reduce consent-interstitial loops during long-running monitor sessions.
 
 ## Quick Start (DI)
 

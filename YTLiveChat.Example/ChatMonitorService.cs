@@ -3,81 +3,71 @@ using System.Text.Json;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+using YTLiveChat.Contracts;
 using YTLiveChat.Contracts.Models;
 using YTLiveChat.Contracts.Services;
+using YTLiveChat.Services;
 
 namespace YTLiveChat.Example;
 
 internal class ChatMonitorService : IHostedService, IDisposable
 {
     private readonly ILogger<ChatMonitorService> _logger;
-    private readonly IYTLiveChat _ytLiveChat;
-    private readonly ExampleRunOptions _options;
+    private readonly IReadOnlyList<ExampleRunOptions> _runOptions;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILoggerFactory _loggerFactory;
     private readonly IHostApplicationLifetime _appLifetime;
     private readonly CancellationTokenSource _stoppingCts = new();
+
+    private readonly List<MonitorSession> _sessions = [];
+    private readonly object _sessionLock = new();
 
     private static readonly object s_consoleLock = new();
 
     public ChatMonitorService(
         ILogger<ChatMonitorService> logger,
-        IYTLiveChat ytLiveChat,
-        ExampleRunOptions options,
+        IReadOnlyList<ExampleRunOptions> runOptions,
+        IHttpClientFactory httpClientFactory,
+        ILoggerFactory loggerFactory,
         IHostApplicationLifetime appLifetime
     )
     {
         _logger = logger;
-        _ytLiveChat = ytLiveChat;
-        _options = options;
+        _runOptions = runOptions;
+        _httpClientFactory = httpClientFactory;
+        _loggerFactory = loggerFactory;
         _appLifetime = appLifetime;
         _ = appLifetime.ApplicationStopping.Register(OnApplicationStopping);
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        string identifierInfo = !string.IsNullOrEmpty(_options.Handle)
-            ? $"Handle: {_options.Handle}"
-            : $"Live ID: {_options.LiveId}";
-        _logger.LogInformation("Chat Monitor Service starting for {IdentifierInfo}", identifierInfo);
-
-        _ytLiveChat.InitialPageLoaded += OnInitialPageLoaded;
-#pragma warning disable CS0618
-        _ytLiveChat.LivestreamStarted += OnLivestreamStarted;
-        _ytLiveChat.LivestreamEnded += OnLivestreamEnded;
-#pragma warning restore CS0618
-        _ytLiveChat.ChatReceived += OnChatReceived;
-        _ytLiveChat.RawActionReceived += OnRawActionReceived;
-        _ytLiveChat.ChatStopped += OnChatStopped;
-        _ytLiveChat.ErrorOccurred += OnErrorOccurred;
-
-        try
+        if (_runOptions.Count == 0)
         {
-            if (!string.IsNullOrEmpty(_options.Handle))
+            _logger.LogError("No targets configured for chat monitor.");
+            _appLifetime.StopApplication();
+            return Task.CompletedTask;
+        }
+
+        foreach (ExampleRunOptions runOptions in _runOptions)
+        {
+            MonitorSession session = BuildSession(runOptions);
+            _sessions.Add(session);
+            AttachHandlers(session);
+
+            try
             {
-                _logger.LogDebug("Starting YTLiveChat with Handle: {Handle}", _options.Handle);
-                _ytLiveChat.Start(handle: _options.Handle);
+                StartSession(session);
             }
-            else if (!string.IsNullOrEmpty(_options.ChannelId))
+            catch (Exception ex)
             {
-                _logger.LogDebug(
-                    "Starting YTLiveChat with ChannelId: {ChannelId}",
-                    _options.ChannelId
-                );
-                _ytLiveChat.Start(channelId: _options.ChannelId);
-            }
-            else if (!string.IsNullOrEmpty(_options.LiveId))
-            {
-                _logger.LogDebug("Starting YTLiveChat with Live ID: {LiveId}", _options.LiveId);
-                _ytLiveChat.Start(liveId: _options.LiveId);
-            }
-            else
-            {
-                _logger.LogError("Cannot start chat monitor: No valid Live ID or Handle was provided in options.");
-                _appLifetime.StopApplication();
+                _logger.LogError(ex, "Failed to start target {SourceTag}", session.SourceTag);
+                MarkSessionStopped(session, $"Start failed: {ex.Message}");
             }
         }
-        catch (Exception ex)
+
+        if (_sessions.All(s => s.IsStopped))
         {
-            _logger.LogError(ex, "Failed to start YTLiveChat service for {IdentifierInfo}", identifierInfo);
             _appLifetime.StopApplication();
         }
 
@@ -86,65 +76,212 @@ internal class ChatMonitorService : IHostedService, IDisposable
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Chat Monitor Service stopping.");
-        _ytLiveChat.InitialPageLoaded -= OnInitialPageLoaded;
-#pragma warning disable CS0618
-        _ytLiveChat.LivestreamStarted -= OnLivestreamStarted;
-        _ytLiveChat.LivestreamEnded -= OnLivestreamEnded;
-#pragma warning restore CS0618
-        _ytLiveChat.ChatReceived -= OnChatReceived;
-        _ytLiveChat.RawActionReceived -= OnRawActionReceived;
-        _ytLiveChat.ChatStopped -= OnChatStopped;
-        _ytLiveChat.ErrorOccurred -= OnErrorOccurred;
-        _ytLiveChat.Stop();
+        _logger.LogInformation("Stopping all chat monitor sessions.");
+        foreach (MonitorSession session in _sessions)
+        {
+            DetachHandlers(session);
+            session.Chat.Stop();
+        }
+
         _stoppingCts.Cancel();
         return Task.CompletedTask;
     }
 
-    private void OnInitialPageLoaded(object? sender, InitialPageLoadedEventArgs e)
+    private MonitorSession BuildSession(ExampleRunOptions options)
     {
-        _logger.LogInformation("Successfully loaded initial chat data for Live ID: {LiveId}", e.LiveId);
+        YTLiveChatOptions ytOptions = new()
+        {
+            YoutubeBaseUrl = "https://www.youtube.com",
+        };
 
+#pragma warning disable CS0618
+        if (options.EnableContinuousMonitor)
+        {
+            ytOptions.EnableContinuousLivestreamMonitor = true;
+            ytOptions.LiveCheckFrequency = options.LiveCheckFrequency;
+            ytOptions.RequireActiveBroadcastForAutoDetectedStream =
+                options.RequireActiveBroadcastForAutoDetectedStream;
+            ytOptions.IgnoredAutoDetectedLiveIds = options.IgnoredAutoDetectedLiveIds;
+        }
+#pragma warning restore CS0618
+
+        if (options.EnableJsonLogging)
+        {
+            ytOptions.DebugLogReceivedJsonItems = true;
+            if (!string.IsNullOrWhiteSpace(options.DebugLogPath))
+            {
+                ytOptions.DebugLogFilePath = options.DebugLogPath!;
+            }
+        }
+
+        HttpClient httpClient = _httpClientFactory.CreateClient("YTLiveChatExample");
+        httpClient.BaseAddress ??= new Uri("https://www.youtube.com");
+        YTHttpClient ytHttpClient = new(httpClient, _loggerFactory.CreateLogger<YTHttpClient>());
+        IYTLiveChat chat = new YTLiveChat.Services.YTLiveChat(
+            ytOptions,
+            ytHttpClient,
+            _loggerFactory.CreateLogger<YTLiveChat.Services.YTLiveChat>()
+        );
+
+        return new(options.SourceTag, options, chat);
+    }
+
+    private void StartSession(MonitorSession session)
+    {
+        if (!string.IsNullOrWhiteSpace(session.Options.Handle))
+        {
+            session.Chat.Start(handle: session.Options.Handle);
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(session.Options.ChannelId))
+        {
+            session.Chat.Start(channelId: session.Options.ChannelId);
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(session.Options.LiveId))
+        {
+            session.Chat.Start(liveId: session.Options.LiveId);
+            return;
+        }
+
+        throw new InvalidOperationException("No valid target identifier configured.");
+    }
+
+    private void AttachHandlers(MonitorSession session)
+    {
+        session.InitialPageLoadedHandler = (_, e) => OnInitialPageLoaded(session, e);
+#pragma warning disable CS0618
+        session.LivestreamStartedHandler = (_, e) => OnLivestreamStarted(session, e);
+        session.LivestreamEndedHandler = (_, e) => OnLivestreamEnded(session, e);
+        session.LivestreamInaccessibleHandler = (_, e) => OnLivestreamInaccessible(session, e);
+#pragma warning restore CS0618
+        session.ChatReceivedHandler = (_, e) => OnChatReceived(session, e);
+        session.RawActionReceivedHandler = (_, e) => OnRawActionReceived(session, e);
+        session.ChatStoppedHandler = (_, e) => OnChatStopped(session, e);
+        session.ErrorOccurredHandler = (_, e) => OnErrorOccurred(session, e);
+
+        session.Chat.InitialPageLoaded += session.InitialPageLoadedHandler;
+#pragma warning disable CS0618
+        session.Chat.LivestreamStarted += session.LivestreamStartedHandler;
+        session.Chat.LivestreamEnded += session.LivestreamEndedHandler;
+        session.Chat.LivestreamInaccessible += session.LivestreamInaccessibleHandler;
+#pragma warning restore CS0618
+        session.Chat.ChatReceived += session.ChatReceivedHandler;
+        session.Chat.RawActionReceived += session.RawActionReceivedHandler;
+        session.Chat.ChatStopped += session.ChatStoppedHandler;
+        session.Chat.ErrorOccurred += session.ErrorOccurredHandler;
+    }
+
+    private static void DetachHandlers(MonitorSession session)
+    {
+        if (session.InitialPageLoadedHandler != null)
+        {
+            session.Chat.InitialPageLoaded -= session.InitialPageLoadedHandler;
+        }
+
+#pragma warning disable CS0618
+        if (session.LivestreamStartedHandler != null)
+        {
+            session.Chat.LivestreamStarted -= session.LivestreamStartedHandler;
+        }
+
+        if (session.LivestreamEndedHandler != null)
+        {
+            session.Chat.LivestreamEnded -= session.LivestreamEndedHandler;
+        }
+
+        if (session.LivestreamInaccessibleHandler != null)
+        {
+            session.Chat.LivestreamInaccessible -= session.LivestreamInaccessibleHandler;
+        }
+#pragma warning restore CS0618
+
+        if (session.ChatReceivedHandler != null)
+        {
+            session.Chat.ChatReceived -= session.ChatReceivedHandler;
+        }
+
+        if (session.RawActionReceivedHandler != null)
+        {
+            session.Chat.RawActionReceived -= session.RawActionReceivedHandler;
+        }
+
+        if (session.ChatStoppedHandler != null)
+        {
+            session.Chat.ChatStopped -= session.ChatStoppedHandler;
+        }
+
+        if (session.ErrorOccurredHandler != null)
+        {
+            session.Chat.ErrorOccurred -= session.ErrorOccurredHandler;
+        }
+    }
+
+    private void OnInitialPageLoaded(MonitorSession session, InitialPageLoadedEventArgs e)
+    {
         lock (s_consoleLock)
         {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write("LIVE ");
+            WriteTimestamp(DateTimeOffset.UtcNow);
+            WriteSourceTag(session.SourceTag);
+            WriteTag("LIVE", ConsoleColor.Green);
             Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Write("-> ");
+            Console.Write(" -> ");
             Console.ResetColor();
             Console.WriteLine(e.LiveId);
         }
     }
 
-    private void OnLivestreamStarted(object? sender, LivestreamStartedEventArgs e)
+    private void OnLivestreamStarted(MonitorSession session, LivestreamStartedEventArgs e)
     {
         lock (s_consoleLock)
         {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write("STREAM START ");
+            WriteTimestamp(DateTimeOffset.UtcNow);
+            WriteSourceTag(session.SourceTag);
+            WriteTag("STREAM START", ConsoleColor.Green);
             Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Write("-> ");
+            Console.Write(" -> ");
             Console.ResetColor();
             Console.WriteLine(e.LiveId);
         }
     }
 
-    private void OnLivestreamEnded(object? sender, LivestreamEndedEventArgs e)
+    private void OnLivestreamEnded(MonitorSession session, LivestreamEndedEventArgs e)
     {
         lock (s_consoleLock)
         {
-            Console.ForegroundColor = ConsoleColor.DarkYellow;
-            Console.Write("STREAM END ");
+            WriteTimestamp(DateTimeOffset.UtcNow);
+            WriteSourceTag(session.SourceTag);
+            WriteTag("STREAM END", ConsoleColor.DarkYellow);
             Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Write("-> ");
+            Console.Write(" -> ");
             Console.ResetColor();
             Console.WriteLine($"{e.LiveId} ({e.Reason ?? "Unknown"})");
         }
     }
 
-    private void OnChatReceived(object? sender, ChatReceivedEventArgs e) => RenderChatItem(e.ChatItem);
+    private void OnLivestreamInaccessible(
+        MonitorSession session,
+        LivestreamInaccessibleEventArgs e
+    )
+    {
+        lock (s_consoleLock)
+        {
+            WriteTimestamp(DateTimeOffset.UtcNow);
+            WriteSourceTag(session.SourceTag);
+            WriteTag("STREAM BLOCKED", ConsoleColor.DarkYellow);
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write(" -> ");
+            Console.ResetColor();
+            Console.WriteLine($"{e.LiveId} ({e.Reason ?? "Unknown"})");
+        }
+    }
 
-    private void OnRawActionReceived(object? sender, RawActionReceivedEventArgs e)
+    private static void OnChatReceived(MonitorSession session, ChatReceivedEventArgs e) =>
+        RenderChatItem(session.SourceTag, e.ChatItem);
+
+    private static void OnRawActionReceived(MonitorSession session, RawActionReceivedEventArgs e)
     {
         if (e.ParsedChatItem != null)
         {
@@ -164,6 +301,7 @@ internal class ChatMonitorService : IHostedService, IDisposable
         lock (s_consoleLock)
         {
             WriteTimestamp(DateTimeOffset.UtcNow);
+            WriteSourceTag(session.SourceTag);
             WriteTag("RAW", ConsoleColor.DarkGray);
             Console.Write(' ');
             Console.ForegroundColor = ConsoleColor.DarkYellow;
@@ -173,34 +311,34 @@ internal class ChatMonitorService : IHostedService, IDisposable
         }
     }
 
-    private void OnChatStopped(object? sender, ChatStoppedEventArgs e)
+    private void OnChatStopped(MonitorSession session, ChatStoppedEventArgs e)
     {
-        _logger.LogWarning("Chat listener reported stopped. Reason: {Reason}", e.Reason ?? "Unknown");
-
         lock (s_consoleLock)
         {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.Write("STOP ");
+            WriteTimestamp(DateTimeOffset.UtcNow);
+            WriteSourceTag(session.SourceTag);
+            WriteTag("STOP", ConsoleColor.Red);
             Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Write("-> ");
+            Console.Write(" -> ");
             Console.ResetColor();
             Console.WriteLine(e.Reason ?? "Unknown");
         }
 
-        _appLifetime.StopApplication();
+        MarkSessionStopped(session, e.Reason);
     }
 
-    private void OnErrorOccurred(object? sender, ErrorOccurredEventArgs e)
+    private void OnErrorOccurred(MonitorSession session, ErrorOccurredEventArgs e)
     {
         Exception ex = e.GetException();
-        _logger.LogError(ex, "An error occurred in the chat listener.");
+        _logger.LogError(ex, "Error from target {SourceTag}", session.SourceTag);
 
         lock (s_consoleLock)
         {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.Write("ERROR ");
+            WriteTimestamp(DateTimeOffset.UtcNow);
+            WriteSourceTag(session.SourceTag);
+            WriteTag("ERROR", ConsoleColor.Red);
             Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Write("-> ");
+            Console.Write(" -> ");
             Console.ResetColor();
             Console.WriteLine(ex.Message);
         }
@@ -209,32 +347,42 @@ internal class ChatMonitorService : IHostedService, IDisposable
         {
 #if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
             if (httpEx.StatusCode == System.Net.HttpStatusCode.Forbidden)
-            {
-                _logger.LogCritical("Stopping application due to Forbidden HTTP error.");
-                _appLifetime.StopApplication();
-            }
 #else
             if (httpEx.Message.Contains("403") || httpEx.Message.Contains("Forbidden"))
+#endif
             {
-                _logger.LogCritical(
-                    "Stopping application due to Forbidden HTTP error (detected via message)."
-                );
+                _logger.LogCritical("Stopping application due to forbidden HTTP error.");
                 _appLifetime.StopApplication();
             }
-#endif
         }
-        else if (ex is InvalidOperationException && ex.Message.StartsWith("Failed to initialize"))
+    }
+
+    private void MarkSessionStopped(MonitorSession session, string? reason)
+    {
+        bool shouldStopApp = false;
+        lock (_sessionLock)
         {
-            _logger.LogCritical("Stopping application due to initialization failure.");
+            if (session.IsStopped)
+            {
+                return;
+            }
+
+            session.IsStopped = true;
+            DetachHandlers(session);
+            session.Chat.Stop();
+            shouldStopApp = _sessions.All(s => s.IsStopped);
+        }
+
+        if (shouldStopApp)
+        {
+            _logger.LogInformation("All sessions stopped. Shutting down host.");
             _appLifetime.StopApplication();
         }
     }
 
     private void OnApplicationStopping()
     {
-        _logger.LogInformation(
-            "Application stopping event received. Initiating graceful shutdown of chat monitor..."
-        );
+        _logger.LogInformation("Application stopping. Stopping monitor sessions.");
     }
 
     public void Dispose()
@@ -245,29 +393,30 @@ internal class ChatMonitorService : IHostedService, IDisposable
 
     protected virtual void Dispose(bool disposing)
     {
-        if (disposing)
+        if (!disposing)
         {
-            _logger.LogDebug("Disposing ChatMonitorService.");
-            _ytLiveChat.InitialPageLoaded -= OnInitialPageLoaded;
-#pragma warning disable CS0618
-            _ytLiveChat.LivestreamStarted -= OnLivestreamStarted;
-            _ytLiveChat.LivestreamEnded -= OnLivestreamEnded;
-#pragma warning restore CS0618
-            _ytLiveChat.ChatReceived -= OnChatReceived;
-            _ytLiveChat.RawActionReceived -= OnRawActionReceived;
-            _ytLiveChat.ChatStopped -= OnChatStopped;
-            _ytLiveChat.ErrorOccurred -= OnErrorOccurred;
-
-            _ytLiveChat.Stop();
-            _stoppingCts.Dispose();
+            return;
         }
+
+        foreach (MonitorSession session in _sessions)
+        {
+            DetachHandlers(session);
+            session.Chat.Stop();
+            if (session.Chat is IDisposable disposableChat)
+            {
+                disposableChat.Dispose();
+            }
+        }
+
+        _stoppingCts.Dispose();
     }
 
-    private static void RenderChatItem(ChatItem item)
+    private static void RenderChatItem(string sourceTag, ChatItem item)
     {
         lock (s_consoleLock)
         {
             WriteTimestamp(item.Timestamp);
+            WriteSourceTag(sourceTag);
 
             if (item.ViewerLeaderboardRank is int rank)
             {
@@ -347,6 +496,16 @@ internal class ChatMonitorService : IHostedService, IDisposable
         Console.ResetColor();
     }
 
+    private static void WriteSourceTag(string sourceTag)
+    {
+        Console.Write(' ');
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.Write('[');
+        Console.Write(sourceTag);
+        Console.Write(']');
+        Console.ResetColor();
+    }
+
     private static void WriteTag(string text, ConsoleColor color)
     {
         Console.Write(' ');
@@ -377,9 +536,9 @@ internal class ChatMonitorService : IHostedService, IDisposable
         string text = membership.EventType switch
         {
             MembershipEventType.New => $"JOIN {membership.LevelName ?? "Member"}",
-            MembershipEventType.Milestone => membership.MilestoneMonths is int months
+            MembershipEventType.Milestone => (membership.MilestoneMonths is int months
                 ? $"MILESTONE {months}m"
-                : "MILESTONE",
+                : "MILESTONE") + $" (levelName: {membership.LevelName})",
             MembershipEventType.GiftPurchase => membership.GiftCount is int giftCount
                 ? $"GIFT x{giftCount}"
                 : "GIFT",
@@ -447,7 +606,9 @@ internal class ChatMonitorService : IHostedService, IDisposable
     {
         if (item.MembershipDetails == null)
         {
-            return item.Superchat?.Sticker?.Alt != null ? $"Sticker: {item.Superchat.Sticker.Alt}" : null;
+            return item.Superchat?.Sticker?.Alt != null
+                ? $"Sticker: {item.Superchat.Sticker.Alt}"
+                : null;
         }
 
         MembershipDetails membership = item.MembershipDetails;
@@ -460,18 +621,42 @@ internal class ChatMonitorService : IHostedService, IDisposable
             _ => membership.HeaderPrimaryText ?? membership.HeaderSubtext,
         };
     }
+
+    private sealed class MonitorSession
+    {
+        public MonitorSession(string sourceTag, ExampleRunOptions options, IYTLiveChat chat)
+        {
+            SourceTag = sourceTag;
+            Options = options;
+            Chat = chat;
+        }
+
+        public string SourceTag { get; }
+        public ExampleRunOptions Options { get; }
+        public IYTLiveChat Chat { get; }
+        public bool IsStopped { get; set; }
+
+        public EventHandler<InitialPageLoadedEventArgs>? InitialPageLoadedHandler { get; set; }
+        public EventHandler<LivestreamStartedEventArgs>? LivestreamStartedHandler { get; set; }
+        public EventHandler<LivestreamEndedEventArgs>? LivestreamEndedHandler { get; set; }
+        public EventHandler<LivestreamInaccessibleEventArgs>? LivestreamInaccessibleHandler { get; set; }
+        public EventHandler<ChatReceivedEventArgs>? ChatReceivedHandler { get; set; }
+        public EventHandler<RawActionReceivedEventArgs>? RawActionReceivedHandler { get; set; }
+        public EventHandler<ChatStoppedEventArgs>? ChatStoppedHandler { get; set; }
+        public EventHandler<ErrorOccurredEventArgs>? ErrorOccurredHandler { get; set; }
+    }
 }
 
-/// <summary>
-/// Simple class to hold runtime options, like the Live ID.
-/// </summary>
 internal class ExampleRunOptions
 {
+    public string SourceTag { get; set; } = string.Empty;
     public string? LiveId { get; set; }
     public string? Handle { get; set; }
     public string? ChannelId { get; set; }
     public bool EnableContinuousMonitor { get; set; }
     public int LiveCheckFrequency { get; set; } = 10000;
+    public bool RequireActiveBroadcastForAutoDetectedStream { get; set; }
+    public List<string> IgnoredAutoDetectedLiveIds { get; set; } = [];
     public bool EnableJsonLogging { get; set; }
     public string? DebugLogPath { get; set; }
 }

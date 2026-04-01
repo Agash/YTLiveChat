@@ -267,3 +267,10 @@ dotnet_style_qualification_for_field = false:silent
 dotnet_style_qualification_for_property = false:silent
 dotnet_style_qualification_for_method = false:silent
 dotnet_style_qualification_for_event = false:silent
+
+#### API Analyzer ####
+
+dotnet_diagnostic.CA1065.severity = none
+dotnet_diagnostic.RS0016.severity = warning
+dotnet_diagnostic.RS0017.severity = warning
+dotnet_public_api_analyzer.require_new_in_unshipped = true
