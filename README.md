@@ -183,6 +183,10 @@ If you add parser support for new payloads, include:
 - parser updates in `YTLiveChat/Helpers/Parser.cs`
 - tests + fixtures in `YTLiveChat.Tests`
 
+## Acknowledgements
+
+- [**WolfwithSword**](https://github.com/WolfwithSword) — testing and feedback
+
 ## License
 
 MIT. See `LICENSE.txt`.
