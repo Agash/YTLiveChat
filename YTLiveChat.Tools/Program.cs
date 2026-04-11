@@ -1,6 +1,11 @@
 using System.Text;
 using System.Text.Json;
 
+if (args.Length > 0 && args[0].Equals("watch", StringComparison.OrdinalIgnoreCase))
+{
+    return await WatchMode.RunAsync(args[1..]);
+}
+
 Options options = ParseOptions(args);
 if (options.Paths.Count == 0)
 {
@@ -455,6 +460,9 @@ static void PrintUsage()
     Console.WriteLine(
         "  dotnet run --project YTLiveChat.Tools -- [options] <logPath1> [logPath2 ...]"
     );
+    Console.WriteLine(
+        "  dotnet run --project YTLiveChat.Tools -- watch [watch-options] <@handle|UCxxx|liveId> [...]"
+    );
     Console.WriteLine();
     Console.WriteLine("Options:");
     Console.WriteLine(
@@ -850,20 +858,43 @@ static List<JsonElement> ReadActionsFromLog(string path)
 
 static IEnumerable<JsonElement> ExtractActions(JsonElement response)
 {
+    // Normal InnerTube response path
     if (
-        !response.TryGetProperty("continuationContents", out JsonElement continuationContents)
-        || !continuationContents.TryGetProperty("liveChatContinuation", out JsonElement liveChat)
-        || !liveChat.TryGetProperty("actions", out JsonElement actions)
-        || actions.ValueKind != JsonValueKind.Array
+        response.TryGetProperty("continuationContents", out JsonElement continuationContents)
+        && continuationContents.TryGetProperty("liveChatContinuation", out JsonElement liveChat)
+        && liveChat.TryGetProperty("actions", out JsonElement actions)
+        && actions.ValueKind == JsonValueKind.Array
     )
     {
+        foreach (JsonElement action in actions.EnumerateArray())
+        {
+            yield return action;
+        }
+
         yield break;
     }
 
-    foreach (JsonElement action in actions.EnumerateArray())
+    // Direct action object — from watch mode JSONL capture files
+    if (response.ValueKind == JsonValueKind.Object && IsDirectAction(response))
     {
-        yield return action;
+        yield return response;
     }
+}
+
+static bool IsDirectAction(JsonElement element)
+{
+    foreach (JsonProperty prop in element.EnumerateObject())
+    {
+        if (
+            prop.Name.EndsWith("Action", StringComparison.Ordinal)
+            || prop.Name.EndsWith("Command", StringComparison.Ordinal)
+        )
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 static void PrintSorted(Dictionary<string, int> counts)
