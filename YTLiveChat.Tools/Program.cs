@@ -12,6 +12,9 @@ if (options.Paths.Count == 0)
     }
 }
 
+// Dump mode: collect full untruncated renderer JSON for extraction
+List<JsonElement> dumpedRenderers = [];
+
 HashSet<string> knownActionTypes =
 [
     "addChatItemAction",
@@ -99,6 +102,7 @@ foreach (string path in options.Paths)
                     unknownRendererVariants,
                     variantSamples
                 );
+                TryDumpRenderer(rendererType!, rendererValue, options, dumpedRenderers);
             }
             else if (
                 actionType == "addLiveChatTickerItemAction"
@@ -135,6 +139,7 @@ foreach (string path in options.Paths)
                         unknownRendererVariants,
                         variantSamples
                     );
+                    TryDumpRenderer(nestedRenderer!, nestedRendererValue, options, dumpedRenderers);
                 }
             }
         }
@@ -197,6 +202,26 @@ if (options.EnableVariants)
     PrintVariants(unknownRendererVariants, variantSamples, options.MaxVariantRows);
 }
 
+if (options.DumpRenderer != null)
+{
+    Console.WriteLine();
+    Console.WriteLine($"== Dump: {options.DumpRenderer}{(options.FilterSubtext != null ? $" (headerSubtext prefix: \"{options.FilterSubtext}\")" : "")} ==");
+    Console.WriteLine($"  {dumpedRenderers.Count} match(es)");
+
+    JsonSerializerOptions prettyJson = new() { WriteIndented = true };
+    string dumpJson = JsonSerializer.Serialize(dumpedRenderers, prettyJson);
+
+    if (options.DumpOutput != null)
+    {
+        File.WriteAllText(options.DumpOutput, dumpJson, Encoding.UTF8);
+        Console.WriteLine($"  Written to: {options.DumpOutput}");
+    }
+    else
+    {
+        Console.WriteLine(dumpJson);
+    }
+}
+
 if (parseErrors.Count > 0)
 {
     Console.WriteLine();
@@ -210,6 +235,65 @@ if (parseErrors.Count > 0)
 }
 
 return 0;
+
+static void TryDumpRenderer(
+    string rendererType,
+    JsonElement rendererValue,
+    Options options,
+    List<JsonElement> dumpedRenderers
+)
+{
+    if (options.DumpRenderer == null)
+    {
+        return;
+    }
+
+    if (!rendererType.Equals(options.DumpRenderer, StringComparison.OrdinalIgnoreCase))
+    {
+        return;
+    }
+
+    if (options.FilterSubtext != null)
+    {
+        string? headerSubtext = TryGetSimpleText(rendererValue, "headerSubtext")
+            ?? TryGetRunsAsPlainText(rendererValue, "headerSubtext")
+            ?? TryGetSimpleText(rendererValue, "headerPrimaryText")
+            ?? TryGetRunsAsPlainText(rendererValue, "headerPrimaryText");
+
+        if (
+            headerSubtext == null
+            || !headerSubtext.StartsWith(options.FilterSubtext, StringComparison.OrdinalIgnoreCase)
+        )
+        {
+            return;
+        }
+    }
+
+    dumpedRenderers.Add(rendererValue.Clone());
+}
+
+static string? TryGetRunsAsPlainText(JsonElement container, string propertyName)
+{
+    if (
+        !container.TryGetProperty(propertyName, out JsonElement richText)
+        || !richText.TryGetProperty("runs", out JsonElement runs)
+        || runs.ValueKind != JsonValueKind.Array
+    )
+    {
+        return null;
+    }
+
+    StringBuilder sb = new();
+    foreach (JsonElement run in runs.EnumerateArray())
+    {
+        if (run.TryGetProperty("text", out JsonElement text))
+        {
+            sb.Append(text.GetString());
+        }
+    }
+
+    return sb.Length > 0 ? sb.ToString() : null;
+}
 
 static void AnalyzeRenderer(
     string rendererType,
@@ -267,6 +351,9 @@ static Options ParseOptions(string[] args)
     List<string> paths = [];
     bool enableVariants = false;
     int maxVariantRows = 25;
+    string? dumpRenderer = null;
+    string? filterSubtext = null;
+    string? dumpOutput = null;
 
     foreach (string arg in args)
     {
@@ -288,6 +375,27 @@ static Options ParseOptions(string[] args)
             continue;
         }
 
+        const string dumpRendererPrefix = "--dump-renderer=";
+        if (arg.StartsWith(dumpRendererPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            dumpRenderer = arg[dumpRendererPrefix.Length..];
+            continue;
+        }
+
+        const string filterSubtextPrefix = "--filter-subtext=";
+        if (arg.StartsWith(filterSubtextPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            filterSubtext = arg[filterSubtextPrefix.Length..];
+            continue;
+        }
+
+        const string dumpOutputPrefix = "--dump-output=";
+        if (arg.StartsWith(dumpOutputPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            dumpOutput = arg[dumpOutputPrefix.Length..];
+            continue;
+        }
+
         if (arg.Equals("--help", StringComparison.OrdinalIgnoreCase))
         {
             PrintUsage();
@@ -297,7 +405,7 @@ static Options ParseOptions(string[] args)
         paths.Add(arg);
     }
 
-    return new(paths, enableVariants, maxVariantRows);
+    return new(paths, enableVariants, maxVariantRows, dumpRenderer, filterSubtext, dumpOutput);
 }
 
 static Options PromptOptionsInteractive()
@@ -338,21 +446,48 @@ static Options PromptOptionsInteractive()
         maxVariantRows = parsed;
     }
 
-    return new(paths, enableVariants, maxVariantRows);
+    return new(paths, enableVariants, maxVariantRows, DumpRenderer: null, FilterSubtext: null, DumpOutput: null);
 }
 
 static void PrintUsage()
 {
     Console.WriteLine("Usage:");
     Console.WriteLine(
-        "  dotnet run --project YTLiveChat.Tools -- [--variants] [--max-variant-rows=25] <logPath1> [logPath2 ...]"
+        "  dotnet run --project YTLiveChat.Tools -- [options] <logPath1> [logPath2 ...]"
     );
     Console.WriteLine();
     Console.WriteLine("Options:");
     Console.WriteLine(
-        "  --variants                Enables variant signatures for memberships, super chats/stickers, and unknown renderers."
+        "  --variants                    Enables variant signatures for memberships, super chats/stickers, and unknown renderers."
     );
-    Console.WriteLine("  --max-variant-rows=<n>    Limits printed rows per variant section.");
+    Console.WriteLine("  --max-variant-rows=<n>        Limits printed rows per variant section. Default: 25.");
+    Console.WriteLine(
+        "  --dump-renderer=<name>        Extract full untruncated JSON for all matching renderer types."
+    );
+    Console.WriteLine(
+        "  --filter-subtext=<prefix>     When used with --dump-renderer, only include items whose headerSubtext"
+    );
+    Console.WriteLine(
+        "                                or headerPrimaryText starts with the given prefix (case-insensitive)."
+    );
+    Console.WriteLine(
+        "  --dump-output=<path>          Write dumped JSON array to a file instead of stdout."
+    );
+    Console.WriteLine();
+    Console.WriteLine("Examples:");
+    Console.WriteLine(
+        "  # Find all membership item renderers in a log:"
+    );
+    Console.WriteLine(
+        "  dotnet run --project YTLiveChat.Tools -- --dump-renderer=liveChatMembershipItemRenderer log.json"
+    );
+    Console.WriteLine();
+    Console.WriteLine(
+        "  # Extract only membership upgrade events (by headerSubtext prefix) to a file:"
+    );
+    Console.WriteLine(
+        "  dotnet run --project YTLiveChat.Tools -- --dump-renderer=liveChatMembershipItemRenderer --filter-subtext=\"Upgraded\" --dump-output=upgrade_events.json log.json"
+    );
 }
 
 static bool TryGetNestedShowRenderer(
@@ -774,4 +909,11 @@ static void PrintVariants(
 static void Increment(Dictionary<string, int> dict, string key) =>
     dict[key] = dict.TryGetValue(key, out int value) ? value + 1 : 1;
 
-internal sealed record Options(IReadOnlyList<string> Paths, bool EnableVariants, int MaxVariantRows);
+internal sealed record Options(
+    IReadOnlyList<string> Paths,
+    bool EnableVariants,
+    int MaxVariantRows,
+    string? DumpRenderer,
+    string? FilterSubtext,
+    string? DumpOutput
+);
