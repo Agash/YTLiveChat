@@ -811,6 +811,28 @@ static string? GetActionType(JsonElement action)
 static List<JsonElement> ReadActionsFromLog(string path)
 {
     List<JsonElement> actionsOut = [];
+
+    // JSONL format: one compact action JSON per line (produced by watch mode)
+    if (path.EndsWith(".jsonl", StringComparison.OrdinalIgnoreCase))
+    {
+        foreach (string line in File.ReadLines(path, Encoding.UTF8))
+        {
+            string trimmedLine = line.Trim();
+            if (string.IsNullOrWhiteSpace(trimmedLine))
+            {
+                continue;
+            }
+
+            using JsonDocument doc = JsonDocument.Parse(trimmedLine, new JsonDocumentOptions { AllowTrailingCommas = true });
+            foreach (JsonElement action in ExtractActions(doc.RootElement))
+            {
+                actionsOut.Add(action.Clone());
+            }
+        }
+
+        return actionsOut;
+    }
+
     string json = File.ReadAllText(path, Encoding.UTF8);
     if (string.IsNullOrWhiteSpace(json))
     {
