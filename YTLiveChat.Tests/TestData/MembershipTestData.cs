@@ -323,6 +323,68 @@ internal static class MembershipTestData
             }
             """;
     }
+    // ── Synthetic upgrade test data ─────────────────────────────────────────────
+    // NOTE: No real InnerTube capture for tier-upgrade events exists yet.
+    // These fixtures are synthesized from the user report in https://github.com/Agash/YTLiveChat/issues/42
+    // (tier name "Rat Boss!", observed headerSubtext "Upgraded membership to Rat Boss!!") and from
+    // the analogous shape of existing New-member fixtures.  Replace with real captures when available.
+
+    /// <summary>
+    /// SYNTHETIC — simpleText shape: "Upgraded membership to Rat Boss!!" (tier name ends with "!").
+    /// Mirrors the simpleText new-member fixture (<see cref="NewMemberWithExclamationTier_RatBoss"/>).
+    /// </summary>
+    public static string SyntheticUpgrade_SimpleText_RatBoss()
+    {
+        long ts = GetTimestampUsec(131);
+        return $$"""
+            {
+              "id": "UPGRADE_SYNTHETIC_SIMPLE_ID",
+              "timestampUsec": "{{ts}}",
+              "authorExternalChannelId": "UC_CHANNEL_ID_UPGRADE_SIMPLE",
+              "headerSubtext": { "simpleText": "Upgraded membership to Rat Boss!!" },
+              "authorName": { "simpleText": "UpgradeUserSimple" },
+              "authorPhoto": { "thumbnails": [{ "url": "https://yt4.ggpht.com/placeholder_upgrade_s32.png" }] },
+              "authorBadges": [{
+                "liveChatAuthorBadgeRenderer": {
+                  "customThumbnail": { "thumbnails": [{ "url": "https://yt3.ggpht.com/placeholder_upgrade_badge_s16.png" }] },
+                  "tooltip": "Member (1 month)",
+                  "accessibility": { "accessibilityData": { "label": "Member (1 month)" } }
+                }
+              }]
+            }
+            """;
+    }
+
+    /// <summary>
+    /// SYNTHETIC — runs shape: ["Upgraded membership to ", "Rat Boss!", "!"] (tier name ends with "!").
+    /// Mirrors the runs new-member fixture (<see cref="NewMemberChickenMcNugget"/>).
+    /// </summary>
+    public static string SyntheticUpgrade_RunsShape_RatBoss()
+    {
+        long ts = GetTimestampUsec(132);
+        return $$"""
+            {
+              "id": "UPGRADE_SYNTHETIC_RUNS_ID",
+              "timestampUsec": "{{ts}}",
+              "authorExternalChannelId": "UC_CHANNEL_ID_UPGRADE_RUNS",
+              "headerSubtext": { "runs": [
+                { "text": "Upgraded membership to " },
+                { "text": "Rat Boss!" },
+                { "text": "!" }
+              ]},
+              "authorName": { "simpleText": "UpgradeUserRuns" },
+              "authorPhoto": { "thumbnails": [{ "url": "https://yt4.ggpht.com/placeholder_upgrade_runs_s32.png" }] },
+              "authorBadges": [{
+                "liveChatAuthorBadgeRenderer": {
+                  "customThumbnail": { "thumbnails": [{ "url": "https://yt3.ggpht.com/placeholder_upgrade_runs_badge_s16.png" }] },
+                  "tooltip": "Member (1 month)",
+                  "accessibility": { "accessibilityData": { "label": "Member (1 month)" } }
+                }
+              }]
+            }
+            """;
+    }
+
     public static string NewMemberWithExclamationTier_RatBoss()
     {
         long ts = GetTimestampUsec(130); // Unique offset

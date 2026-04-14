@@ -861,6 +861,7 @@ internal class ChatMonitorService : IHostedService, IDisposable
 
     private static void WriteMembershipTag(MembershipDetails membership)
     {
+#pragma warning disable CS0618 // MembershipEventType.Upgraded is intentionally marked experimental
         string text = membership.EventType switch
         {
             MembershipEventType.New =>
@@ -872,6 +873,10 @@ internal class ChatMonitorService : IHostedService, IDisposable
             MembershipEventType.GiftPurchase =>
                 membership.GiftCount is int n ? $"GIFT x{n}" : "GIFT",
             MembershipEventType.GiftRedemption => "GIFTED",
+            MembershipEventType.Upgraded =>
+                membership.LevelName is string upgLvl && upgLvl != "Member"
+                    ? $"UPGRADE {upgLvl}"
+                    : "UPGRADE",
             _ => "MEM",
         };
 
@@ -881,8 +886,10 @@ internal class ChatMonitorService : IHostedService, IDisposable
             MembershipEventType.Milestone => ConsoleColor.Cyan,
             MembershipEventType.GiftPurchase => ConsoleColor.Magenta,
             MembershipEventType.GiftRedemption => ConsoleColor.Blue,
+            MembershipEventType.Upgraded => ConsoleColor.DarkGreen,
             _ => ConsoleColor.DarkGray,
         };
+#pragma warning restore CS0618
 
         WriteTag(text, color);
 
@@ -959,14 +966,17 @@ internal class ChatMonitorService : IHostedService, IDisposable
         }
 
         MembershipDetails membership = item.MembershipDetails;
+#pragma warning disable CS0618 // MembershipEventType.Upgraded is intentionally marked experimental
         return membership.EventType switch
         {
             MembershipEventType.New => membership.HeaderSubtext ?? membership.HeaderPrimaryText,
             MembershipEventType.Milestone => membership.HeaderPrimaryText ?? membership.HeaderSubtext,
             MembershipEventType.GiftPurchase => membership.HeaderPrimaryText,
             MembershipEventType.GiftRedemption => membership.HeaderPrimaryText,
+            MembershipEventType.Upgraded => membership.HeaderSubtext ?? membership.HeaderPrimaryText,
             _ => membership.HeaderPrimaryText ?? membership.HeaderSubtext,
         };
+#pragma warning restore CS0618
     }
 
     private sealed class MonitorSession
