@@ -1064,6 +1064,39 @@ internal static partial class Parser
                     }
                 }
                 else if (
+                    membershipInfo.HeaderSubtext?.StartsWith(
+                        "Upgraded membership to",
+                        StringComparison.OrdinalIgnoreCase
+                    ) == true
+                )
+                {
+                    // EXPERIMENTAL: shape is based on a single user report and a synthesized payload.
+                    // See https://github.com/Agash/YTLiveChat/issues/42 for tracking.
+#pragma warning disable CS0618 // MembershipEventType.Upgraded is intentionally marked experimental
+                    membershipInfo.EventType = Contracts.Models.MembershipEventType.Upgraded;
+#pragma warning restore CS0618
+
+                    // Try runs first (e.g. ["Upgraded membership to ", "Rat Boss!", "!"])
+                    string? tierFromRuns = TryExtractTierNameFromHeaderSubtextRuns(
+                        membershipItem.HeaderSubtext?.Runs
+                    );
+                    if (!string.IsNullOrWhiteSpace(tierFromRuns))
+                    {
+                        membershipInfo.LevelName = tierFromRuns!;
+                    }
+                    else if (!string.IsNullOrEmpty(membershipInfo.HeaderSubtext))
+                    {
+                        // Regex fallback for simpleText shape: "Upgraded membership to {TierName}!"
+                        // The greedy .+ correctly captures tier names that themselves end with "!" (e.g. "Rat Boss!").
+                        Match upgradeMatch = UpgradedMemberLevelFromSubtextRegex()
+                            .Match(membershipInfo.HeaderSubtext);
+                        if (upgradeMatch.Success)
+                        {
+                            membershipInfo.LevelName = upgradeMatch.Groups[1].Value.Trim();
+                        }
+                    }
+                }
+                else if (
                     membershipInfo.HeaderPrimaryText?.IndexOf(
                         "member for",
                         StringComparison.OrdinalIgnoreCase
@@ -1827,6 +1860,10 @@ internal static partial class Parser
     [GeneratedRegex(@"^Welcome to (.+)!$", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex NewMemberLevelFromSubtextRegex();
 
+    // EXPERIMENTAL — see MembershipEventType.Upgraded and https://github.com/Agash/YTLiveChat/issues/42
+    [GeneratedRegex(@"^Upgraded membership to (.+)!$", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    private static partial Regex UpgradedMemberLevelFromSubtextRegex();
+
     // Regex to extract gifter name from redemption message like "GifterName gifted you..."
     [GeneratedRegex(@"^(.*?) gifted you", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex GiftRedemptionGifterRegex();
@@ -1985,6 +2022,14 @@ internal static partial class Parser
     );
 
     private static Regex NewMemberLevelFromSubtextRegex() => _newMemberLevelFromSubtextRegex;
+
+    // EXPERIMENTAL — see MembershipEventType.Upgraded and https://github.com/Agash/YTLiveChat/issues/42
+    private static readonly Regex _upgradedMemberLevelFromSubtextRegex = new(
+        @"^Upgraded membership to (.+)!$",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled
+    );
+
+    private static Regex UpgradedMemberLevelFromSubtextRegex() => _upgradedMemberLevelFromSubtextRegex;
 
     private static readonly Regex _giftRedemptionGifterRegex = new(
         @"^(.*?) gifted you",

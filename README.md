@@ -195,7 +195,15 @@ The file is written as a valid JSON array, so it is directly parseable by tools/
 ## Current Schema Coverage Gaps
 
 - Creator goals are not mapped yet (awaiting enough stable raw samples).
-- Membership tier upgrades are not mapped yet (observed in the wild but shape is not confirmed).
+
+## Experimental / Unverified Features
+
+These features are implemented but not yet confirmed against a real InnerTube payload.
+They are marked `[Obsolete]` to emit a compiler warning at every call site.
+
+- **`MembershipEventType.Upgraded`** — tier-upgrade membership events detected when `headerSubtext`
+  starts with `"Upgraded membership to"`. Based on a single user report and synthesized payloads only.
+  See [#42](https://github.com/Agash/YTLiveChat/issues/42) for tracking and to contribute a real capture.
 
 ## Contributing
 
