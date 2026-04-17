@@ -34,19 +34,10 @@ public enum MembershipEventType
 
     /// <summary>
     /// A user upgraded their existing membership to a higher tier.
-    /// Detected from <c>headerSubtext</c> starting with "Upgraded membership to".
-    /// <para>
-    /// <b>EXPERIMENTAL / UNVERIFIED:</b> This event type is based on a single user report
-    /// (Agash/YTLiveChat#42) and a synthesized payload. No raw InnerTube capture has been
-    /// confirmed yet. The shape (simpleText vs. runs, exact prefix wording) may differ from
-    /// what is implemented here. Treat <c>LevelName</c> with caution for this event type.
-    /// </para>
+    /// Detected from <c>headerSubtext</c> using the runs shape
+    /// <c>["Upgraded membership to ", "{TierName}", "!"]</c>.
+    /// <c>LevelName</c> carries the destination tier name.
     /// </summary>
-    [Obsolete(
-        "EXPERIMENTAL: MembershipEventType.Upgraded is unverified against a real InnerTube payload. "
-        + "The detection heuristic and tier-name extraction may be incorrect. "
-        + "See https://github.com/Agash/YTLiveChat/issues/42 for tracking."
-    )]
     Upgraded,
 }
 

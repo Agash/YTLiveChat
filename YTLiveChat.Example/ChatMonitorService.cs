@@ -861,7 +861,6 @@ internal class ChatMonitorService : IHostedService, IDisposable
 
     private static void WriteMembershipTag(MembershipDetails membership)
     {
-#pragma warning disable CS0618 // MembershipEventType.Upgraded is intentionally marked experimental
         string text = membership.EventType switch
         {
             MembershipEventType.New =>
@@ -889,7 +888,6 @@ internal class ChatMonitorService : IHostedService, IDisposable
             MembershipEventType.Upgraded => ConsoleColor.DarkGreen,
             _ => ConsoleColor.DarkGray,
         };
-#pragma warning restore CS0618
 
         WriteTag(text, color);
 
@@ -966,7 +964,6 @@ internal class ChatMonitorService : IHostedService, IDisposable
         }
 
         MembershipDetails membership = item.MembershipDetails;
-#pragma warning disable CS0618 // MembershipEventType.Upgraded is intentionally marked experimental
         return membership.EventType switch
         {
             MembershipEventType.New => membership.HeaderSubtext ?? membership.HeaderPrimaryText,
@@ -976,7 +973,6 @@ internal class ChatMonitorService : IHostedService, IDisposable
             MembershipEventType.Upgraded => membership.HeaderSubtext ?? membership.HeaderPrimaryText,
             _ => membership.HeaderPrimaryText ?? membership.HeaderSubtext,
         };
-#pragma warning restore CS0618
     }
 
     private sealed class MonitorSession

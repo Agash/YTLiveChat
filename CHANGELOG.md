@@ -10,14 +10,10 @@
   `LiveChatViewerEngagementMessageRenderer` record, enabling proper `Bold`/`Italics`/`IsDeemphasized`
   pass-through for poll result and other engagement messages.
 
-### Added (experimental — unverified)
-- `MembershipEventType.Upgraded` — new enum value for tier-upgrade membership events, detected when
-  `headerSubtext` starts with `"Upgraded membership to"`. Tier name is extracted via the same
-  runs-first / regex-fallback approach used for `New` events.
-  **EXPERIMENTAL:** Based on a single user report (#42) and synthesized payloads only; no raw
-  InnerTube capture has been confirmed. The enum value is marked `[Obsolete]` to emit a compiler
-  warning at every call site. The heuristic and tier-name extraction may be incorrect.
-  See [#42](https://github.com/Agash/YTLiveChat/issues/42) for tracking.
+### Added
+- `MembershipEventType.Upgraded` — tier-upgrade membership events; detected when `headerSubtext`
+  uses the runs shape `["Upgraded membership to ", "{TierName}", "!"]`. Tier name is extracted from
+  the second run (same mechanism as `New` events). Confirmed against a real InnerTube capture.
 
 ### Added (recent)
 - `Author.ChannelHandle` — the author's `@handle`, populated for ticker bar items where YouTube includes it directly in the outer ticker renderer (`liveChatTickerPaidMessageItemRenderer.authorUsername`). Parser also falls back to `authorPhoto.accessibility.accessibilityData.label` which carries the same value on all observed ticker paid-message items.

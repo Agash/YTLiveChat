@@ -391,21 +391,18 @@ public class ParserTests
         Assert.AreEqual("Welcome to Rat Boss!!", chatItem.MembershipDetails.HeaderSubtext);
     }
 
-    // ── Synthetic upgrade tests ────────────────────────────────────────────────
-    // IMPORTANT: These tests are based on a synthesized payload, not a real InnerTube capture.
+    // ── Tier-upgrade tests (real InnerTube capture) ────────────────────────────
+    // Real event captured 2026-04-15: @rembray upgraded to "Cardinal Archer".
     // See https://github.com/Agash/YTLiveChat/issues/42 for the tracking issue.
-    // Replace with fixture-backed tests once a real upgrade event has been captured.
 
     /// <summary>
     /// Regression guard: the "Upgraded membership to" prefix must NOT trigger the New-member
-    /// detection path. The two prefixes ("Welcome to" vs "Upgraded membership to") are distinct
-    /// and the parser must route them to different event types.
-    /// SYNTHETIC — no real capture available yet (see https://github.com/Agash/YTLiveChat/issues/42).
+    /// detection path. Verified with a real InnerTube capture.
     /// </summary>
     [TestMethod]
-    public void ToChatItem_SyntheticUpgrade_SimpleText_DoesNotClassifyAsNew()
+    public void ToChatItem_RealUpgrade_CardinalArcher_DoesNotClassifyAsNew()
     {
-        string rendererContentJson = MembershipTestData.SyntheticUpgrade_SimpleText_RatBoss();
+        string rendererContentJson = MembershipTestData.RealUpgrade_Runs_CardinalArcher();
         ChatItem? chatItem = ParseRendererContentToChatItem(
             rendererContentJson,
             "liveChatMembershipItemRenderer"
@@ -422,15 +419,13 @@ public class ParserTests
     }
 
     /// <summary>
-    /// Happy path: simpleText shape "Upgraded membership to Rat Boss!!" is classified as
-    /// Upgraded and the tier name "Rat Boss!" (with its trailing "!") is extracted correctly.
-    /// SYNTHETIC — no real capture available yet (see https://github.com/Agash/YTLiveChat/issues/42).
+    /// Happy path: real capture of runs shape ["Upgraded membership to ", "Cardinal Archer", "!"]
+    /// is classified as Upgraded and tier name "Cardinal Archer" is extracted from the second run.
     /// </summary>
     [TestMethod]
-#pragma warning disable CS0618 // MembershipEventType.Upgraded is intentionally marked experimental
-    public void ToChatItem_SyntheticUpgrade_SimpleText_ParsesUpgradedEventAndTierName()
+    public void ToChatItem_RealUpgrade_CardinalArcher_ParsesUpgradedEventAndTierName()
     {
-        string rendererContentJson = MembershipTestData.SyntheticUpgrade_SimpleText_RatBoss();
+        string rendererContentJson = MembershipTestData.RealUpgrade_Runs_CardinalArcher();
         ChatItem? chatItem = ParseRendererContentToChatItem(
             rendererContentJson,
             "liveChatMembershipItemRenderer"
@@ -444,45 +439,15 @@ public class ParserTests
             "EventType should be Upgraded for 'Upgraded membership to' headerSubtext."
         );
         Assert.AreEqual(
-            "Rat Boss!",
+            "Cardinal Archer",
             chatItem.MembershipDetails.LevelName,
-            "Tier name extracted via regex must preserve the trailing '!' from the tier name itself."
+            "Tier name should be extracted from the second run."
         );
-        Assert.AreEqual("Upgraded membership to Rat Boss!!", chatItem.MembershipDetails.HeaderSubtext);
+        Assert.AreEqual("Upgraded membership to Cardinal Archer!", chatItem.MembershipDetails.HeaderSubtext);
+        Assert.AreEqual("@rembray", chatItem.Author.Name);
+        Assert.AreEqual("UCdtey2zoNQ9HVgdK9oEA_RA", chatItem.Author.ChannelId);
         Assert.IsTrue(chatItem.IsMembership);
     }
-#pragma warning restore CS0618
-
-    /// <summary>
-    /// Happy path: runs shape ["Upgraded membership to ", "Rat Boss!", "!"] is classified as
-    /// Upgraded and the tier name is extracted from the second run (same mechanism as New-member runs).
-    /// SYNTHETIC — no real capture available yet (see https://github.com/Agash/YTLiveChat/issues/42).
-    /// </summary>
-    [TestMethod]
-#pragma warning disable CS0618 // MembershipEventType.Upgraded is intentionally marked experimental
-    public void ToChatItem_SyntheticUpgrade_RunsShape_ParsesUpgradedEventAndTierName()
-    {
-        string rendererContentJson = MembershipTestData.SyntheticUpgrade_RunsShape_RatBoss();
-        ChatItem? chatItem = ParseRendererContentToChatItem(
-            rendererContentJson,
-            "liveChatMembershipItemRenderer"
-        );
-
-        Assert.IsNotNull(chatItem);
-        Assert.IsNotNull(chatItem.MembershipDetails);
-        Assert.AreEqual(
-            MembershipEventType.Upgraded,
-            chatItem.MembershipDetails.EventType,
-            "EventType should be Upgraded for runs-shaped 'Upgraded membership to' headerSubtext."
-        );
-        Assert.AreEqual(
-            "Rat Boss!",
-            chatItem.MembershipDetails.LevelName,
-            "Tier name extracted via TryExtractTierNameFromHeaderSubtextRuns must preserve trailing '!'."
-        );
-        Assert.IsTrue(chatItem.IsMembership);
-    }
-#pragma warning restore CS0618
 
     [TestMethod]
     public void ToChatItem_NewMemberFromLatestLog_WithNewMemberBadge_ParsesCorrectly()

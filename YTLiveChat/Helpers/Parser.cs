@@ -1073,11 +1073,7 @@ internal static partial class Parser
                     ) == true
                 )
                 {
-                    // EXPERIMENTAL: shape is based on a single user report and a synthesized payload.
-                    // See https://github.com/Agash/YTLiveChat/issues/42 for tracking.
-#pragma warning disable CS0618 // MembershipEventType.Upgraded is intentionally marked experimental
                     membershipInfo.EventType = Contracts.Models.MembershipEventType.Upgraded;
-#pragma warning restore CS0618
 
                     // Try runs first (e.g. ["Upgraded membership to ", "Rat Boss!", "!"])
                     string? tierFromRuns = TryExtractTierNameFromHeaderSubtextRuns(
@@ -1849,7 +1845,6 @@ internal static partial class Parser
     [GeneratedRegex(@"^Welcome to (.+)!$", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex NewMemberLevelFromSubtextRegex();
 
-    // EXPERIMENTAL — see MembershipEventType.Upgraded and https://github.com/Agash/YTLiveChat/issues/42
     [GeneratedRegex(@"^Upgraded membership to (.+)!$", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex UpgradedMemberLevelFromSubtextRegex();
 
@@ -2012,7 +2007,6 @@ internal static partial class Parser
 
     private static Regex NewMemberLevelFromSubtextRegex() => _newMemberLevelFromSubtextRegex;
 
-    // EXPERIMENTAL — see MembershipEventType.Upgraded and https://github.com/Agash/YTLiveChat/issues/42
     private static readonly Regex _upgradedMemberLevelFromSubtextRegex = new(
         @"^Upgraded membership to (.+)!$",
         RegexOptions.IgnoreCase | RegexOptions.Compiled

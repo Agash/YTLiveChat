@@ -323,67 +323,52 @@ internal static class MembershipTestData
             }
             """;
     }
-    // ── Synthetic upgrade test data ─────────────────────────────────────────────
-    // NOTE: No real InnerTube capture for tier-upgrade events exists yet.
-    // These fixtures are synthesized from the user report in https://github.com/Agash/YTLiveChat/issues/42
-    // (tier name "Rat Boss!", observed headerSubtext "Upgraded membership to Rat Boss!!") and from
-    // the analogous shape of existing New-member fixtures.  Replace with real captures when available.
+    // ── Real upgrade event data ──────────────────────────────────────────────────
+    // Captured from a live stream (upgrade_events.json, 2026-04-15).
+    // Author @rembray upgraded to tier "Cardinal Archer". Badge shows "Member (1 year)".
+    // headerSubtext.runs shape: ["Upgraded membership to ", "Cardinal Archer", "!"]
 
     /// <summary>
-    /// SYNTHETIC — simpleText shape: "Upgraded membership to Rat Boss!!" (tier name ends with "!").
-    /// Mirrors the simpleText new-member fixture (<see cref="NewMemberWithExclamationTier_RatBoss"/>).
+    /// Real InnerTube capture of a membership tier-upgrade event.
+    /// Author @rembray upgraded to "Cardinal Archer"; badge tooltip "Member (1 year)".
+    /// headerSubtext uses the runs shape: ["Upgraded membership to ", "Cardinal Archer", "!"].
     /// </summary>
-    public static string SyntheticUpgrade_SimpleText_RatBoss()
-    {
-        long ts = GetTimestampUsec(131);
-        return $$"""
+    public static string RealUpgrade_Runs_CardinalArcher() => """
             {
-              "id": "UPGRADE_SYNTHETIC_SIMPLE_ID",
-              "timestampUsec": "{{ts}}",
-              "authorExternalChannelId": "UC_CHANNEL_ID_UPGRADE_SIMPLE",
-              "headerSubtext": { "simpleText": "Upgraded membership to Rat Boss!!" },
-              "authorName": { "simpleText": "UpgradeUserSimple" },
-              "authorPhoto": { "thumbnails": [{ "url": "https://yt4.ggpht.com/placeholder_upgrade_s32.png" }] },
-              "authorBadges": [{
-                "liveChatAuthorBadgeRenderer": {
-                  "customThumbnail": { "thumbnails": [{ "url": "https://yt3.ggpht.com/placeholder_upgrade_badge_s16.png" }] },
-                  "tooltip": "Member (1 month)",
-                  "accessibility": { "accessibilityData": { "label": "Member (1 month)" } }
+              "id": "ChwKGkNNU1ZtdGpJOEpNREZaaFlUQWdkdV9nc1F3",
+              "timestampUsec": "1776280547006206",
+              "authorExternalChannelId": "UCdtey2zoNQ9HVgdK9oEA_RA",
+              "headerSubtext": {
+                "runs": [
+                  { "text": "Upgraded membership to " },
+                  { "text": "Cardinal Archer" },
+                  { "text": "!" }
+                ]
+              },
+              "authorName": { "simpleText": "@rembray" },
+              "authorPhoto": {
+                "thumbnails": [
+                  { "url": "https://yt4.ggpht.com/mJB4A5YFOYgDsqZAZuUcpkS4tk2hcvkZebaeZFnmp9yDrYtgm81Yryi7yluiSzQFFWRNQFTkJO4=s32-c-k-c0x00ffffff-no-rj", "width": 32, "height": 32 },
+                  { "url": "https://yt4.ggpht.com/mJB4A5YFOYgDsqZAZuUcpkS4tk2hcvkZebaeZFnmp9yDrYtgm81Yryi7yluiSzQFFWRNQFTkJO4=s64-c-k-c0x00ffffff-no-rj", "width": 64, "height": 64 }
+                ]
+              },
+              "authorBadges": [
+                {
+                  "liveChatAuthorBadgeRenderer": {
+                    "customThumbnail": {
+                      "thumbnails": [
+                        { "url": "https://yt3.ggpht.com/tKIBMjzE8uZl9tG3YmpH23umrYpX8AAHKZTMy2pb11eVRC1nADLV6IngZL8FSuFE_knwO6j1Zw=s16-c-k", "width": 16, "height": 16 },
+                        { "url": "https://yt3.ggpht.com/tKIBMjzE8uZl9tG3YmpH23umrYpX8AAHKZTMy2pb11eVRC1nADLV6IngZL8FSuFE_knwO6j1Zw=s32-c-k", "width": 32, "height": 32 }
+                      ]
+                    },
+                    "tooltip": "Member (1 year)",
+                    "accessibility": { "accessibilityData": { "label": "Member (1 year)" } }
+                  }
                 }
-              }]
+              ],
+              "trackingParams": "CAUQ4P0GIhMI8KiF2cjwkwMV_MdJBx3nJxgC"
             }
             """;
-    }
-
-    /// <summary>
-    /// SYNTHETIC — runs shape: ["Upgraded membership to ", "Rat Boss!", "!"] (tier name ends with "!").
-    /// Mirrors the runs new-member fixture (<see cref="NewMemberChickenMcNugget"/>).
-    /// </summary>
-    public static string SyntheticUpgrade_RunsShape_RatBoss()
-    {
-        long ts = GetTimestampUsec(132);
-        return $$"""
-            {
-              "id": "UPGRADE_SYNTHETIC_RUNS_ID",
-              "timestampUsec": "{{ts}}",
-              "authorExternalChannelId": "UC_CHANNEL_ID_UPGRADE_RUNS",
-              "headerSubtext": { "runs": [
-                { "text": "Upgraded membership to " },
-                { "text": "Rat Boss!" },
-                { "text": "!" }
-              ]},
-              "authorName": { "simpleText": "UpgradeUserRuns" },
-              "authorPhoto": { "thumbnails": [{ "url": "https://yt4.ggpht.com/placeholder_upgrade_runs_s32.png" }] },
-              "authorBadges": [{
-                "liveChatAuthorBadgeRenderer": {
-                  "customThumbnail": { "thumbnails": [{ "url": "https://yt3.ggpht.com/placeholder_upgrade_runs_badge_s16.png" }] },
-                  "tooltip": "Member (1 month)",
-                  "accessibility": { "accessibilityData": { "label": "Member (1 month)" } }
-                }
-              }]
-            }
-            """;
-    }
 
     public static string NewMemberWithExclamationTier_RatBoss()
     {
