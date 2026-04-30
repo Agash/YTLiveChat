@@ -1005,10 +1005,6 @@ public record RemoveChatItemByAuthorAction
 
 /// <summary>
 /// ViewModel for a Super Chat goal ticker chip shown in the live-chat ticker bar.
-/// The chip signals that a creator has set a Super Chat goal for the stream.
-/// Only the fields useful for public consumption are modelled;
-/// the deep <c>onClickCommand</c> engagement panel is captured as a <see cref="JsonElement"/>
-/// so the parser can walk it for <c>progressCountA11yLabel</c>.
 /// </summary>
 public record LiveChatTickerCreatorGoalViewModel
 {
@@ -1032,11 +1028,11 @@ public record LiveChatTickerCreatorGoalViewModel
     public string? A11yLabel { get; init; }
 
     /// <summary>
-    /// Full engagement-panel command. The parser extracts
-    /// <c>creatorGoalProgressFlowViewModel.progressCountA11yLabel</c> from this blob.
+    /// Engagement-panel command containing goal progress information.
+    /// The parser navigates to <c>creatorGoalProgressFlowViewModel.progressCountA11yLabel</c>.
     /// </summary>
     [JsonPropertyName("onClickCommand")]
-    public JsonElement? OnClickCommand { get; init; }
+    public CreatorGoalOnClickCommand? OnClickCommand { get; init; }
 }
 
 public record CreatorGoalTickerChip
@@ -1049,6 +1045,81 @@ public record ShowCreatorGoalTickerChipCommand
 {
     [JsonPropertyName("creatorGoalTickerChip")]
     public CreatorGoalTickerChip? CreatorGoalTickerChip { get; init; }
+}
+
+// ── Creator Goal engagement-panel chain ──────────────────────────────────────────
+// Models the onClickCommand path down to progressCountA11yLabel.
+// Fields not modelled (header/dialog help text, progressFlowButton purchase CTA,
+// identifier routing, tracking params) are silently absorbed by the deserializer.
+
+public record CreatorGoalOnClickCommand
+{
+    [JsonPropertyName("innertubeCommand")]
+    public CreatorGoalInnertubeCommand? InnertubeCommand { get; init; }
+}
+
+public record CreatorGoalInnertubeCommand
+{
+    [JsonPropertyName("clickTrackingParams")]
+    public string? ClickTrackingParams { get; init; }
+
+    [JsonPropertyName("showEngagementPanelEndpoint")]
+    public CreatorGoalShowEngagementPanelEndpoint? ShowEngagementPanelEndpoint { get; init; }
+}
+
+public record CreatorGoalShowEngagementPanelEndpoint
+{
+    [JsonPropertyName("engagementPanel")]
+    public CreatorGoalEngagementPanel? EngagementPanel { get; init; }
+    // identifier, engagementPanelPresentationConfigs: UI routing — not surfaced
+}
+
+public record CreatorGoalEngagementPanel
+{
+    [JsonPropertyName("engagementPanelSectionListRenderer")]
+    public CreatorGoalEngagementPanelSectionListRenderer? EngagementPanelSectionListRenderer { get; init; }
+}
+
+public record CreatorGoalEngagementPanelSectionListRenderer
+{
+    // header (engagementPanelTitleHeaderRenderer → dialog help text): UI-only — not surfaced
+    [JsonPropertyName("content")]
+    public CreatorGoalSectionListContent? Content { get; init; }
+    // identifier, trackingParams: routing/tracking — not surfaced
+}
+
+public record CreatorGoalSectionListContent
+{
+    [JsonPropertyName("sectionListRenderer")]
+    public CreatorGoalInnerSectionList? SectionListRenderer { get; init; }
+}
+
+public record CreatorGoalInnerSectionList
+{
+    [JsonPropertyName("contents")]
+    public List<CreatorGoalContentItem>? Contents { get; init; }
+    // trackingParams: not surfaced
+}
+
+public record CreatorGoalContentItem
+{
+    [JsonPropertyName("creatorGoalProgressFlowViewModel")]
+    public CreatorGoalProgressFlowViewModel? CreatorGoalProgressFlowViewModel { get; init; }
+}
+
+public record CreatorGoalProgressFlowViewModel
+{
+    [JsonPropertyName("creatorGoalEntityKey")]
+    public string? CreatorGoalEntityKey { get; init; }
+
+    // progressFlowButton: "Continue to purchase Super Chat" CTA — UI-only, not surfaced
+
+    /// <summary>
+    /// Template label for goal progress, e.g. "Super Chat goal progress: $0 out of $1".
+    /// The <c>$0</c>/<c>$1</c> placeholders are filled client-side at display time.
+    /// </summary>
+    [JsonPropertyName("progressCountA11yLabel")]
+    public string? ProgressCountA11yLabel { get; init; }
 }
 
 // =============================================

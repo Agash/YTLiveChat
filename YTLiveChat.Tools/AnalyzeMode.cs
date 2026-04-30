@@ -432,12 +432,19 @@ internal static class AnalyzeMode
         "creatorGoalTickerChip", "liveChatTickerCreatorGoalViewModel",
         "initialTickerText", "creatorGoalEntityKey",
         "shouldShowCountIncrementAnimation", "a11yLabel",
-        // Deep engagement panel nesting (UI infrastructure — only progressCountA11yLabel is surfaced)
-        "onClickCommand", "engagementPanelSectionListRenderer", "engagementPanelTitleHeaderRenderer",
+        "onClickCommand",
+        // Engagement-panel chain (content path → progressCountA11yLabel)
+        "engagementPanel", "engagementPanelSectionListRenderer",
+        "sectionListRenderer",
+        "creatorGoalProgressFlowViewModel", "progressFlowButton", "progressCountA11yLabel",
+        "liveChatPurchaseMessageEndpoint", "titleFormatted",
+        // Header/dialog path (help text shown when viewer clicks "?") — UI-only, not surfaced
+        "engagementPanelTitleHeaderRenderer",
+        "commandExecutorCommand", "commands",
+        "liveChatDialogEndpoint", "liveChatDialogRenderer", "dialogMessages", "confirmButton",
+        // Panel routing and presentation config
         "engagementPanelPresentationConfigs", "engagementPanelPopupPresentationConfig",
         "hideEngagementPanelEndpoint",
-        "creatorGoalProgressFlowViewModel", "progressFlowButton", "progressCountA11yLabel",
-        "liveChatPurchaseMessageEndpoint", "titleFormatted", "BUTTON_VIEW_MODEL_STYLE_MONO",
 
         // ── Toast / notification action ───────────────────────────────────────
         "liveChatAddToToastAction",

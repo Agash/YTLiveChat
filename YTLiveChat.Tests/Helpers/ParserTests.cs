@@ -2281,6 +2281,32 @@ public class ParserTests
     }
 
     [TestMethod]
+    public void ToCreatorGoalItem_WithTrackingParams_ParsesAllFields()
+    {
+        Models.Response.Action? action = JsonSerializer.Deserialize<Models.Response.Action>(
+            ActionTestData.CreatorGoalTickerChipWithTrackingParams(),
+            s_jsonOptions
+        );
+        Assert.IsNotNull(action);
+
+        Contracts.Models.CreatorGoalItem? goal = Parser.ToCreatorGoalItem(action);
+        Assert.IsNotNull(goal, "ToCreatorGoalItem should return a CreatorGoalItem.");
+
+        Assert.AreEqual(
+            "ChwKGkNLZTRpdXJVazVRREZSNjRyZ1VkXzVrM0Rn",
+            goal.Id
+        );
+        Assert.AreEqual("EgtPQXFoN0tWLXIzSSD6AygB", goal.EntityKey);
+        Assert.AreEqual("See Super Chat goal", goal.AccessibilityLabel);
+        Assert.AreEqual("Super Chat Goal", goal.GoalType);
+        Assert.AreEqual(
+            "Super Chat goal progress: $0 out of $1",
+            goal.ProgressLabel,
+            "progressCountA11yLabel should be extracted even when clickTrackingParams are present at every level."
+        );
+    }
+
+    [TestMethod]
     public void ToCreatorGoalItem_UnrelatedAction_ReturnsNull()
     {
         Models.Response.Action? action = JsonSerializer.Deserialize<Models.Response.Action>(

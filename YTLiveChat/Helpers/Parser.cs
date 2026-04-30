@@ -2204,7 +2204,17 @@ internal static partial class Parser
                 .ToTitleCase(raw.ToString().ToLowerInvariant());
         }
 
-        string? progressLabel = ExtractCreatorGoalProgressLabel(vm.OnClickCommand);
+        string? progressLabel = vm.OnClickCommand
+            ?.InnertubeCommand
+            ?.ShowEngagementPanelEndpoint
+            ?.EngagementPanel
+            ?.EngagementPanelSectionListRenderer
+            ?.Content
+            ?.SectionListRenderer
+            ?.Contents
+            ?.FirstOrDefault()
+            ?.CreatorGoalProgressFlowViewModel
+            ?.ProgressCountA11yLabel;
 
         return new Contracts.Models.CreatorGoalItem
         {
@@ -2214,35 +2224,6 @@ internal static partial class Parser
             ProgressLabel = progressLabel,
             AccessibilityLabel = a11yLabel,
         };
-    }
-
-    /// <summary>
-    /// Walks the deep <c>onClickCommand</c> JsonElement blob to extract
-    /// <c>creatorGoalProgressFlowViewModel.progressCountA11yLabel</c>.
-    /// Returns null on any structural mismatch.
-    /// </summary>
-    private static string? ExtractCreatorGoalProgressLabel(JsonElement? onClickCommand)
-    {
-        if (onClickCommand is null)
-            return null;
-        try
-        {
-            return onClickCommand.Value
-                .GetProperty("innertubeCommand")
-                .GetProperty("showEngagementPanelEndpoint")
-                .GetProperty("engagementPanel")
-                .GetProperty("engagementPanelSectionListRenderer")
-                .GetProperty("content")
-                .GetProperty("sectionListRenderer")
-                .GetProperty("contents")[0]
-                .GetProperty("creatorGoalProgressFlowViewModel")
-                .GetProperty("progressCountA11yLabel")
-                .GetString();
-        }
-        catch
-        {
-            return null;
-        }
     }
 
     /// <summary>

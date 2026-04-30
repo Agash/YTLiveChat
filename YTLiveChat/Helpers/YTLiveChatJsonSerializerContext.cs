@@ -95,6 +95,15 @@ namespace YTLiveChat.Helpers;
 [JsonSerializable(typeof(ShowCreatorGoalTickerChipCommand))]
 [JsonSerializable(typeof(CreatorGoalTickerChip))]
 [JsonSerializable(typeof(LiveChatTickerCreatorGoalViewModel))]
+[JsonSerializable(typeof(CreatorGoalOnClickCommand))]
+[JsonSerializable(typeof(CreatorGoalInnertubeCommand))]
+[JsonSerializable(typeof(CreatorGoalShowEngagementPanelEndpoint))]
+[JsonSerializable(typeof(CreatorGoalEngagementPanel))]
+[JsonSerializable(typeof(CreatorGoalEngagementPanelSectionListRenderer))]
+[JsonSerializable(typeof(CreatorGoalSectionListContent))]
+[JsonSerializable(typeof(CreatorGoalInnerSectionList))]
+[JsonSerializable(typeof(CreatorGoalContentItem))]
+[JsonSerializable(typeof(CreatorGoalProgressFlowViewModel))]
 internal partial class YTLiveChatJsonSerializerContext : JsonSerializerContext
 {
 }
