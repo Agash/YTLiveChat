@@ -1369,14 +1369,32 @@ internal static partial class Parser
     public static Contracts.Models.ImagePart? ToImage(
         this List<Thumbnail>? thumbnails,
         string? alt = null
-    ) // Return contract type
+    )
     {
         Thumbnail? thumbnail = thumbnails?.LastOrDefault();
         return thumbnail == null || thumbnail.Url == null
             ? null
-            : new Contracts.Models.ImagePart // Use contract type
+            : new Contracts.Models.ImagePart
             {
                 Url = thumbnail.Url,
+                Alt = alt,
+            };
+    }
+
+    /// <summary>
+    /// Converts a list of URL sources (e.g. IconSource.Sources) to an ImagePart (contract model).
+    /// </summary>
+    public static Contracts.Models.ImagePart? ToImage(
+        this List<Source>? sources,
+        string? alt = null
+    )
+    {
+        Source? source = sources?.LastOrDefault();
+        return source == null || source.Url == null
+            ? null
+            : new Contracts.Models.ImagePart
+            {
+                Url = source.Url,
                 Alt = alt,
             };
     }
@@ -1575,6 +1593,24 @@ internal static partial class Parser
             };
         }
 
+        // ── Call-for-questions (Q&A) banner ──────────────────────────────────
+        LiveChatCallForQuestionsRenderer? qnaRenderer =
+            banner.Contents?.LiveChatCallForQuestionsRenderer;
+        if (qnaRenderer is not null)
+        {
+            return new Contracts.Models.CallForQuestionsBannerItem
+            {
+                ActionId = actionId!,
+                BannerType = Contracts.Models.BannerType.CallForQuestions,
+                QuestionMessage = qnaRenderer.QuestionMessage?.Runs?.ToMessageParts() ?? [],
+                CreatorHandle = qnaRenderer.CreatorAuthorName?.Text,
+                CreatorAvatar = qnaRenderer.CreatorAvatar?.Thumbnails?.ToImage(
+                    qnaRenderer.CreatorAuthorName?.Text
+                ),
+                FeatureLabel = qnaRenderer.FeatureLabel?.Text,
+            };
+        }
+
         // ── Redirect banner (LIVE_CHAT_BANNER_TYPE_CROSS_CHANNEL_REDIRECT) ──
         LiveChatBannerRedirectRenderer? redirectRenderer =
             banner.Contents?.LiveChatBannerRedirectRenderer;
@@ -1594,22 +1630,9 @@ internal static partial class Parser
                 }
             }
 
-            // Extract redirect video ID from inlineActionButton.buttonRenderer.command.watchEndpoint.videoId.
             // Null when the button is a "Learn more" link (urlEndpoint) rather than a "Go now" watchEndpoint.
-            string? redirectVideoId = null;
-            if (redirectRenderer.InlineActionButton.HasValue)
-            {
-                JsonElement btn = redirectRenderer.InlineActionButton.Value;
-                if (
-                    btn.TryGetProperty("buttonRenderer", out JsonElement btnRenderer)
-                    && btnRenderer.TryGetProperty("command", out JsonElement cmd)
-                    && cmd.TryGetProperty("watchEndpoint", out JsonElement watchEp)
-                    && watchEp.TryGetProperty("videoId", out JsonElement videoIdEl)
-                )
-                {
-                    redirectVideoId = videoIdEl.GetString();
-                }
-            }
+            string? redirectVideoId = redirectRenderer.InlineActionButton
+                ?.ButtonRenderer?.Command?.WatchEndpoint?.VideoId;
 
             Contracts.Models.MessagePart[] redirectMessage =
                 redirectRenderer.BannerMessage?.Runs?.ToMessageParts() ?? [];
@@ -2135,11 +2158,13 @@ internal static partial class Parser
         {
             Id = id!,
             AuthorHandle = authorHandle,
+            AuthorAvatar = vm.AuthorAvatar?.AvatarViewModel?.Image?.Sources?.ToImage(),
             Text = text,
             GiftItemName = giftItemName,
             JewelAmount = jewelAmount,
             GiftImageName = resource?.ImageName,
             GiftImageColor = resource?.ImageColor?.ToHex6Color(),
+            GiftImage = vm.GiftImage?.Sources?.ToImage(),
         };
     }
 

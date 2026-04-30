@@ -438,6 +438,66 @@ public record Sticker
     public Accessibility? Accessibility { get; init; }
 }
 
+/// <summary>
+/// Linear gradient applied to the sticker card background.
+/// Colors are ARGB values (32-bit unsigned packed into long).
+/// Stops are parallel arrays: <see cref="Colors"/>[i] at <see cref="Positions"/>[i].
+/// </summary>
+public record StickerBackgroundGradient
+{
+    [JsonPropertyName("colors")]
+    public List<long>? Colors { get; init; }
+
+    [JsonPropertyName("startX")]
+    public double StartX { get; init; }
+
+    [JsonPropertyName("startY")]
+    public double StartY { get; init; }
+
+    [JsonPropertyName("endX")]
+    public double EndX { get; init; }
+
+    [JsonPropertyName("endY")]
+    public double EndY { get; init; }
+
+    /// <summary>Stop offsets in [0,1], parallel to <see cref="Colors"/>.</summary>
+    [JsonPropertyName("positions")]
+    public List<double>? Positions { get; init; }
+}
+
+/// <summary>
+/// Educational celebration text and icon shown on 1st-purchase Super Stickers.
+/// Text example: "Let's celebrate their 1st Super on a live stream".
+/// Image is a client-side resource symbol (e.g. "CELEBRATION").
+/// </summary>
+public record BumperUserEduContentViewModel
+{
+    [JsonPropertyName("text")]
+    public ViewModelStyledText? Text { get; init; }
+
+    [JsonPropertyName("image")]
+    public ViewModelClientResourceImage? Image { get; init; }
+}
+
+public record BumperContent
+{
+    [JsonPropertyName("bumperUserEduContentViewModel")]
+    public BumperUserEduContentViewModel? BumperUserEduContentViewModel { get; init; }
+}
+
+public record LiveChatItemBumperViewModel
+{
+    [JsonPropertyName("content")]
+    public BumperContent? Content { get; init; }
+    // pdgPurchasedBumperLoggingDirectives is logging-only — not modelled
+}
+
+public record StickerLowerBumper
+{
+    [JsonPropertyName("liveChatItemBumperViewModel")]
+    public LiveChatItemBumperViewModel? LiveChatItemBumperViewModel { get; init; }
+}
+
 public record LiveChatPaidStickerRenderer : MessageRendererBase
 {
     [JsonPropertyName("sticker")]
@@ -476,17 +536,32 @@ public record LiveChatPaidStickerRenderer : MessageRendererBase
 
     /// <summary>
     /// Lower bumper shown on 1st-purchase Super Stickers ("Let's celebrate their 1st Super…").
-    /// Contains a <c>liveChatItemBumperViewModel</c> with educational text. Decorative only.
+    /// Contains educational celebration text and a client-side icon. Decorative only.
     /// </summary>
     [JsonPropertyName("lowerBumper")]
-    public JsonElement? LowerBumper { get; init; }
+    public StickerLowerBumper? LowerBumper { get; init; }
 
     /// <summary>
     /// Logging/tracking directives for the PDG novelty celebration feature.
     /// Present only when <see cref="HeaderOverlayImage"/> is set. Not used by the parser.
+    /// Intentionally left as opaque blob — structure is pure tracking infrastructure.
     /// </summary>
     [JsonPropertyName("pdgPurchasedNoveltyLoggingDirectives")]
     public JsonElement? PdgPurchasedNoveltyLoggingDirectives { get; init; }
+
+    /// <summary>
+    /// Pre-formatted description text for the sticker (e.g. "Sent [StickerName]").
+    /// Present on ~98% of paid stickers in ticker context.
+    /// </summary>
+    [JsonPropertyName("purchaseText")]
+    public Message? PurchaseText { get; init; }
+
+    /// <summary>
+    /// Linear gradient applied to the sticker card background.
+    /// Present on most paid stickers. Colours are ARGB; see <see cref="StickerBackgroundGradient"/>.
+    /// </summary>
+    [JsonPropertyName("backgroundGradient")]
+    public StickerBackgroundGradient? BackgroundGradient { get; init; }
 }
 
 public record LiveChatMembershipItemRenderer : MessageRendererBase
@@ -620,6 +695,20 @@ public record ViewModelClientResource
     public long? ImageColor { get; init; }
 }
 
+// avatarViewModel — used as giftMessageViewModel.authorAvatar.avatarViewModel
+public record AvatarViewModel
+{
+    [JsonPropertyName("image")]
+    public IconSource? Image { get; init; }
+    // avatarImageSize is a display hint ("AVATAR_SIZE_XS"), not needed
+}
+
+public record AvatarViewModelContainer
+{
+    [JsonPropertyName("avatarViewModel")]
+    public AvatarViewModel? AvatarViewModel { get; init; }
+}
+
 // giftMessageViewModel — virtual gift sent by a viewer using YouTube Jewels
 public record GiftMessageViewModel
 {
@@ -637,6 +726,23 @@ public record GiftMessageViewModel
 
     [JsonPropertyName("imageA11yLabel")]
     public string? ImageA11yLabel { get; init; }
+
+    /// <summary>
+    /// URL-based gift item image (~45% of gifts). Distinct from <see cref="Image"/>
+    /// which is a client-side resource symbol; this carries a real CDN thumbnail URL.
+    /// </summary>
+    [JsonPropertyName("giftImage")]
+    public IconSource? GiftImage { get; init; }
+
+    [JsonPropertyName("giftImageA11yLabel")]
+    public string? GiftImageA11yLabel { get; init; }
+
+    /// <summary>
+    /// Author avatar as an avatarViewModel container (~45% of gifts).
+    /// Access the URL via <c>AuthorAvatar?.AvatarViewModel?.Image?.Sources</c>.
+    /// </summary>
+    [JsonPropertyName("authorAvatar")]
+    public AvatarViewModelContainer? AuthorAvatar { get; init; }
 
     [JsonPropertyName("rendererContext")]
     public JsonElement? RendererContext { get; init; }
@@ -1015,6 +1121,50 @@ public record LiveChatBannerHeaderContainer
     public LiveChatBannerHeaderRenderer? LiveChatBannerHeaderRenderer { get; init; }
 }
 
+/// <summary>
+/// The command payload inside a <see cref="BannerInlineButtonRenderer"/>.
+/// Carries either a <c>watchEndpoint</c> ("Go now" → direct video link) or a
+/// <c>urlEndpoint</c> ("Learn more" → support page link).
+/// </summary>
+public record BannerButtonCommand
+{
+    [JsonPropertyName("commandMetadata")]
+    public CommandMetadata? CommandMetadata { get; init; }
+
+    [JsonPropertyName("watchEndpoint")]
+    public WatchEndpoint? WatchEndpoint { get; init; }
+
+    [JsonPropertyName("urlEndpoint")]
+    public UrlEndpoint? UrlEndpoint { get; init; }
+}
+
+public record BannerInlineButtonRenderer
+{
+    [JsonPropertyName("text")]
+    public Message? Text { get; init; }
+
+    [JsonPropertyName("command")]
+    public BannerButtonCommand? Command { get; init; }
+
+    [JsonPropertyName("style")]
+    public string? Style { get; init; }
+
+    [JsonPropertyName("size")]
+    public string? Size { get; init; }
+
+    [JsonPropertyName("isDisabled")]
+    public bool IsDisabled { get; init; }
+
+    [JsonPropertyName("accessibility")]
+    public Accessibility? Accessibility { get; init; }
+}
+
+public record InlineActionButtonContainer
+{
+    [JsonPropertyName("buttonRenderer")]
+    public BannerInlineButtonRenderer? ButtonRenderer { get; init; }
+}
+
 public record LiveChatBannerRedirectRenderer
 {
     [JsonPropertyName("bannerMessage")]
@@ -1024,7 +1174,7 @@ public record LiveChatBannerRedirectRenderer
     public ThumbnailList? AuthorPhoto { get; init; }
 
     [JsonPropertyName("inlineActionButton")]
-    public JsonElement? InlineActionButton { get; init; }
+    public InlineActionButtonContainer? InlineActionButton { get; init; }
 }
 
 /// <summary>
@@ -1038,6 +1188,28 @@ public record LiveChatBannerChatSummaryRenderer
 
     [JsonPropertyName("chatSummary")]
     public Message? ChatSummary { get; init; }
+
+    // UI-only interaction fields — not modelled, silently absorbed by deserializer
+    // collapsedStateEntityKey, dislikeFeedbackButton, likeFeedbackButton, icon
+}
+
+/// <summary>
+/// Pinned Q&amp;A question banner (<c>liveChatCallForQuestionsRenderer</c>).
+/// Shown when a streamer highlights a viewer's question for the audience.
+/// </summary>
+public record LiveChatCallForQuestionsRenderer
+{
+    [JsonPropertyName("questionMessage")]
+    public Message? QuestionMessage { get; init; }
+
+    [JsonPropertyName("creatorAuthorName")]
+    public SimpleText? CreatorAuthorName { get; init; }
+
+    [JsonPropertyName("creatorAvatar")]
+    public ThumbnailList? CreatorAvatar { get; init; }
+
+    [JsonPropertyName("featureLabel")]
+    public SimpleText? FeatureLabel { get; init; }
 }
 
 public record LiveChatBannerRendererContents
@@ -1050,6 +1222,9 @@ public record LiveChatBannerRendererContents
 
     [JsonPropertyName("liveChatBannerChatSummaryRenderer")]
     public LiveChatBannerChatSummaryRenderer? LiveChatBannerChatSummaryRenderer { get; init; }
+
+    [JsonPropertyName("liveChatCallForQuestionsRenderer")]
+    public LiveChatCallForQuestionsRenderer? LiveChatCallForQuestionsRenderer { get; init; }
 }
 
 /// <summary>Auto-collapse timer present on pinned-message banners.</summary>
@@ -1185,6 +1360,13 @@ public record Action
 
     [JsonPropertyName("removeBannerForLiveChatCommand")]
     public RemoveBannerForLiveChatCommand? RemoveBannerForLiveChatCommand { get; init; }
+
+    // Gift animation overlay widgets — companion to giftMessageViewModel, purely visual.
+    [JsonPropertyName("addInteractivityWidgetAction")]
+    public JsonElement? AddInteractivityWidgetAction { get; init; }
+
+    [JsonPropertyName("updateOrAddInteractivityWidgetAction")]
+    public JsonElement? UpdateOrAddInteractivityWidgetAction { get; init; }
 
     // Fallback for unhandled actions
     [JsonExtensionData]
@@ -1339,6 +1521,15 @@ public record LiveChatParticipantRenderer
 }
 
 // --- Navigation Endpoint ---
+public record WatchEndpoint
+{
+    [JsonPropertyName("videoId")]
+    public string? VideoId { get; init; }
+
+    [JsonPropertyName("nofollow")]
+    public bool Nofollow { get; init; }
+}
+
 public record NavigationEndpoint
 {
     [JsonPropertyName("clickTrackingParams")]
@@ -1349,7 +1540,9 @@ public record NavigationEndpoint
 
     [JsonPropertyName("urlEndpoint")]
     public UrlEndpoint? UrlEndpoint { get; init; }
-    // Add other endpoint types like browseEndpoint, watchEndpoint if needed
+
+    [JsonPropertyName("watchEndpoint")]
+    public WatchEndpoint? WatchEndpoint { get; init; }
 }
 
 public record UrlEndpoint

@@ -22,6 +22,11 @@ public class GiftItem
     public required string AuthorHandle { get; set; }
 
     /// <summary>
+    /// The sender's profile picture, when provided by YouTube (~45% of gifts).
+    /// </summary>
+    public ImagePart? AuthorAvatar { get; set; }
+
+    /// <summary>
     /// Pre-formatted description as supplied by YouTube,
     /// e.g. <c>"sent Gold coin for 10 Jewels"</c>.
     /// </summary>
@@ -54,4 +59,11 @@ public class GiftItem
     /// (e.g. <c>"FF0000"</c>), or <see langword="null"/> when absent.
     /// </summary>
     public string? GiftImageColor { get; set; }
+
+    /// <summary>
+    /// CDN image of the gift item from <c>giftMessageViewModel.giftImage</c>.
+    /// Present on ~45% of gifts. Distinct from <see cref="GiftImageName"/> which is a
+    /// client-side resource symbol identifier.
+    /// </summary>
+    public ImagePart? GiftImage { get; set; }
 }

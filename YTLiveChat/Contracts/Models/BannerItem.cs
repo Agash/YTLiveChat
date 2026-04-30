@@ -22,6 +22,12 @@ public enum BannerType
     /// Shown periodically during long streams as an experimental YouTube feature.
     /// </summary>
     ChatSummary = 3,
+
+    /// <summary>
+    /// A pinned Q&amp;A question banner (<c>liveChatCallForQuestionsRenderer</c>).
+    /// Shown when a streamer highlights a viewer's question for the audience.
+    /// </summary>
+    CallForQuestions = 4,
 }
 
 /// <summary>
@@ -114,6 +120,33 @@ public sealed class ChatSummaryBannerItem : BannerItem
     /// Concatenate <see cref="TextPart.Text"/> values for a plain-text summary.
     /// </summary>
     public required MessagePart[] Summary { get; set; }
+}
+
+/// <summary>
+/// A pinned Q&amp;A question banner (<c>liveChatCallForQuestionsRenderer</c>).
+/// Shown when a streamer highlights a viewer's question for the chat audience.
+/// </summary>
+public sealed class CallForQuestionsBannerItem : BannerItem
+{
+    /// <summary>
+    /// The question text as structured message parts (may include emoji).
+    /// </summary>
+    public required MessagePart[] QuestionMessage { get; set; }
+
+    /// <summary>
+    /// The streamer's @handle (e.g. <c>"@Alofokeradioshow"</c>), or null if absent.
+    /// </summary>
+    public string? CreatorHandle { get; set; }
+
+    /// <summary>
+    /// Thumbnail image of the streamer's profile photo.
+    /// </summary>
+    public ImagePart? CreatorAvatar { get; set; }
+
+    /// <summary>
+    /// Feature label text (typically <c>"Q&amp;A"</c>).
+    /// </summary>
+    public string? FeatureLabel { get; set; }
 }
 
 /// <summary>
