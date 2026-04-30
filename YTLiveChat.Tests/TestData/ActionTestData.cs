@@ -1467,4 +1467,133 @@ internal static class ActionTestData
               }
             }
             """;
+
+    /// <summary>
+    /// Creator Goal ticker chip action.
+    /// Real data from watch_20260428_192449.jsonl (first sample, no clickTrackingParams).
+    /// showCreatorGoalTickerChipCommand — Super Chat goal progress chip shown in the ticker.
+    /// Id: "ChwKGkNMYkttOWF4a3BRREZaMjRyZ1VkeXc4a2V3"
+    /// EntityKey: "EgtPQXFoN0tWLXIzSSD6AygB"
+    /// A11yLabel: "See Super Chat goal"
+    /// ProgressLabel: "Super Chat goal progress: $0 out of $1"
+    /// </summary>
+    public static string CreatorGoalTickerChip() => """
+            {
+              "showCreatorGoalTickerChipCommand": {
+                "creatorGoalTickerChip": {
+                  "liveChatTickerCreatorGoalViewModel": {
+                    "id": "ChwKGkNMYkttOWF4a3BRREZaMjRyZ1VkeXc4a2V3",
+                    "initialTickerText": {
+                      "content": "Goal",
+                      "styleRuns": [ { "startIndex": 0, "length": 4 } ]
+                    },
+                    "tickerIcon": {
+                      "sources": [ { "clientResource": { "imageName": "TARGET_ADD" } } ]
+                    },
+                    "creatorGoalEntityKey": "EgtPQXFoN0tWLXIzSSD6AygB",
+                    "shouldShowCountIncrementAnimation": true,
+                    "a11yLabel": "See Super Chat goal",
+                    "onClickCommand": {
+                      "innertubeCommand": {
+                        "showEngagementPanelEndpoint": {
+                          "engagementPanel": {
+                            "engagementPanelSectionListRenderer": {
+                              "header": {
+                                "engagementPanelTitleHeaderRenderer": {
+                                  "actionButton": {
+                                    "buttonRenderer": {
+                                      "icon": { "iconType": "QUESTION_CIRCLE" },
+                                      "command": {
+                                        "commandExecutorCommand": {
+                                          "commands": [
+                                            {
+                                              "liveChatDialogEndpoint": {
+                                                "content": {
+                                                  "liveChatDialogRenderer": {
+                                                    "title": {
+                                                      "runs": [ { "text": "Super Chat Goal" } ]
+                                                    },
+                                                    "confirmButton": {
+                                                      "buttonRenderer": {
+                                                        "style": "STYLE_MONO_FILLED",
+                                                        "size": "SIZE_DEFAULT",
+                                                        "isDisabled": false,
+                                                        "text": { "simpleText": "Got it" }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "hideEngagementPanelEndpoint": {
+                                                "identifier": {
+                                                  "surface": "ENGAGEMENT_PANEL_SURFACE_LIVE_CHAT",
+                                                  "tag": "creator_goal_progress_engagement_panel"
+                                                }
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "content": {
+                                "sectionListRenderer": {
+                                  "contents": [
+                                    {
+                                      "creatorGoalProgressFlowViewModel": {
+                                        "creatorGoalEntityKey": "EgtPQXFoN0tWLXIzSSD6AygB",
+                                        "progressFlowButton": {
+                                          "buttonViewModel": {
+                                            "onTap": {
+                                              "innertubeCommand": {
+                                                "commandMetadata": { "webCommandMetadata": { "ignoreNavigation": true } },
+                                                "liveChatPurchaseMessageEndpoint": {
+                                                  "params": "Q2lrcUp3b1lWVU4yUkhaQ1FVOTFTa2xJUzFkTE5UbGtkWFpOTUVwUkVndFBRWEZvTjB0V0xYSXpTUkFCSUFFNEFFSUNDQUUlM0Q="
+                                                }
+                                              }
+                                            },
+                                            "style": "BUTTON_VIEW_MODEL_STYLE_MONO",
+                                            "type": "BUTTON_VIEW_MODEL_TYPE_FILLED",
+                                            "titleFormatted": {
+                                              "content": "Continue",
+                                              "styleRuns": [ { "startIndex": 0, "length": 8 } ]
+                                            }
+                                          }
+                                        },
+                                        "progressCountA11yLabel": "Super Chat goal progress: $0 out of $1"
+                                      }
+                                    }
+                                  ]
+                                }
+                              },
+                              "identifier": {
+                                "surface": "ENGAGEMENT_PANEL_SURFACE_LIVE_CHAT",
+                                "tag": "creator_goal_progress_engagement_panel"
+                              }
+                            }
+                          },
+                          "identifier": {
+                            "surface": "ENGAGEMENT_PANEL_SURFACE_LIVE_CHAT",
+                            "tag": "creator_goal_progress_engagement_panel"
+                          },
+                          "engagementPanelPresentationConfigs": {
+                            "engagementPanelPopupPresentationConfig": {
+                              "popupType": "PANEL_POPUP_TYPE_DIALOG"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "loggingDirectives": {
+                      "visibility": { "types": "12" }
+                    }
+                  }
+                }
+              }
+            }
+            """;
 }

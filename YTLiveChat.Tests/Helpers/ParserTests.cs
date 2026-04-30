@@ -2251,4 +2251,44 @@ public class ParserTests
 
         Assert.IsNull(Parser.ToGiftItem(action));
     }
+
+    // ── Creator Goal ─────────────────────────────────────────────────────────────
+
+    [TestMethod]
+    public void ToCreatorGoalItem_ValidAction_ParsesAllFields()
+    {
+        Models.Response.Action? action = JsonSerializer.Deserialize<Models.Response.Action>(
+            ActionTestData.CreatorGoalTickerChip(),
+            s_jsonOptions
+        );
+        Assert.IsNotNull(action);
+
+        Contracts.Models.CreatorGoalItem? goal = Parser.ToCreatorGoalItem(action);
+        Assert.IsNotNull(goal, "ToCreatorGoalItem should return a CreatorGoalItem.");
+
+        Assert.AreEqual(
+            "ChwKGkNMYkttOWF4a3BRREZaMjRyZ1VkeXc4a2V3",
+            goal.Id
+        );
+        Assert.AreEqual("EgtPQXFoN0tWLXIzSSD6AygB", goal.EntityKey);
+        Assert.AreEqual("See Super Chat goal", goal.AccessibilityLabel);
+        Assert.AreEqual("Super Chat Goal", goal.GoalType);
+        Assert.AreEqual(
+            "Super Chat goal progress: $0 out of $1",
+            goal.ProgressLabel,
+            "progressCountA11yLabel should be extracted from the deep onClickCommand blob."
+        );
+    }
+
+    [TestMethod]
+    public void ToCreatorGoalItem_UnrelatedAction_ReturnsNull()
+    {
+        Models.Response.Action? action = JsonSerializer.Deserialize<Models.Response.Action>(
+            ActionTestData.RemoveChatItem(),
+            s_jsonOptions
+        );
+        Assert.IsNotNull(action);
+
+        Assert.IsNull(Parser.ToCreatorGoalItem(action));
+    }
 }

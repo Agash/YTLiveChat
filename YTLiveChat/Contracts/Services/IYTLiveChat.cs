@@ -151,6 +151,13 @@ public interface IYTLiveChat : IDisposable
     event EventHandler<GiftReceivedEventArgs>? GiftReceived;
 
     /// <summary>
+    /// Fires when the live-chat ticker bar shows or refreshes a Super Chat creator goal chip
+    /// (<c>showCreatorGoalTickerChipCommand</c>).
+    /// Multiple events for the same goal share <see cref="CreatorGoalItem.EntityKey"/>.
+    /// </summary>
+    event EventHandler<CreatorGoalReceivedEventArgs>? CreatorGoalReceived;
+
+    /// <summary>
     /// Fires on any error from backend or within service
     /// </summary>
     event EventHandler<ErrorOccurredEventArgs>? ErrorOccurred;
@@ -420,4 +427,15 @@ public class GiftReceivedEventArgs : EventArgs
     /// The virtual gift that was sent.
     /// </summary>
     public required GiftItem Gift { get; set; }
+}
+
+/// <summary>
+/// EventArgs for CreatorGoalReceived event.
+/// </summary>
+public class CreatorGoalReceivedEventArgs : EventArgs
+{
+    /// <summary>
+    /// The creator goal ticker chip that was received.
+    /// </summary>
+    public required CreatorGoalItem CreatorGoal { get; set; }
 }

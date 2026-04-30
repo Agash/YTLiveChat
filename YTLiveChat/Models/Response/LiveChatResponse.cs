@@ -1000,6 +1000,58 @@ public record RemoveChatItemByAuthorAction
 }
 
 // =============================================
+// Creator Goal ticker chip (showCreatorGoalTickerChipCommand)
+// =============================================
+
+/// <summary>
+/// ViewModel for a Super Chat goal ticker chip shown in the live-chat ticker bar.
+/// The chip signals that a creator has set a Super Chat goal for the stream.
+/// Only the fields useful for public consumption are modelled;
+/// the deep <c>onClickCommand</c> engagement panel is captured as a <see cref="JsonElement"/>
+/// so the parser can walk it for <c>progressCountA11yLabel</c>.
+/// </summary>
+public record LiveChatTickerCreatorGoalViewModel
+{
+    [JsonPropertyName("id")]
+    public string? Id { get; init; }
+
+    [JsonPropertyName("initialTickerText")]
+    public ViewModelStyledText? InitialTickerText { get; init; }
+
+    [JsonPropertyName("tickerIcon")]
+    public ViewModelClientResourceImage? TickerIcon { get; init; }
+
+    [JsonPropertyName("creatorGoalEntityKey")]
+    public string? CreatorGoalEntityKey { get; init; }
+
+    [JsonPropertyName("shouldShowCountIncrementAnimation")]
+    public bool ShouldShowCountIncrementAnimation { get; init; }
+
+    /// <summary>Screen-reader label, e.g. "See Super Chat goal".</summary>
+    [JsonPropertyName("a11yLabel")]
+    public string? A11yLabel { get; init; }
+
+    /// <summary>
+    /// Full engagement-panel command. The parser extracts
+    /// <c>creatorGoalProgressFlowViewModel.progressCountA11yLabel</c> from this blob.
+    /// </summary>
+    [JsonPropertyName("onClickCommand")]
+    public JsonElement? OnClickCommand { get; init; }
+}
+
+public record CreatorGoalTickerChip
+{
+    [JsonPropertyName("liveChatTickerCreatorGoalViewModel")]
+    public LiveChatTickerCreatorGoalViewModel? LiveChatTickerCreatorGoalViewModel { get; init; }
+}
+
+public record ShowCreatorGoalTickerChipCommand
+{
+    [JsonPropertyName("creatorGoalTickerChip")]
+    public CreatorGoalTickerChip? CreatorGoalTickerChip { get; init; }
+}
+
+// =============================================
 // Poll models (updateLiveChatPollAction, showLiveChatActionPanelAction)
 // =============================================
 
@@ -1367,6 +1419,9 @@ public record Action
 
     [JsonPropertyName("updateOrAddInteractivityWidgetAction")]
     public JsonElement? UpdateOrAddInteractivityWidgetAction { get; init; }
+
+    [JsonPropertyName("showCreatorGoalTickerChipCommand")]
+    public ShowCreatorGoalTickerChipCommand? ShowCreatorGoalTickerChipCommand { get; init; }
 
     // Fallback for unhandled actions
     [JsonExtensionData]

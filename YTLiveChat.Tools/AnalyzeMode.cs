@@ -217,6 +217,21 @@ internal static class AnalyzeMode
                 "durationSec",
                 "fullDurationSec",
             ],
+
+            // ── Creator Goal ticker chip ──────────────────────────────────────────
+            ["liveChatTickerCreatorGoalViewModel"] =
+            [
+                "id",
+                "initialTickerText",
+                "tickerIcon",
+                "creatorGoalEntityKey",
+                "shouldShowCountIncrementAnimation",
+                "a11yLabel",
+                "onClickCommand",
+                "loggingDirectives",
+                "clickTrackingParams",
+                "trackingParams",
+            ],
         };
 
     // ── Deep scan baselines ───────────────────────────────────────────────────
@@ -258,6 +273,8 @@ internal static class AnalyzeMode
         "showFanzoneTickerChipCommand",
         "removeFanzoneTickerChipCommand",
         "removeBannerForLiveChatCommand",
+        // Creator goal ticker chip — Super Chat goal progress chip
+        "showCreatorGoalTickerChipCommand",
         "liveChatReportModerationStateCommand",
         "signalAction",
         "changeEngagementPanelVisibilityAction",
@@ -410,6 +427,17 @@ internal static class AnalyzeMode
         "fanzoneTickerChip", "liveChatTickerFanzoneViewModel",
         "tickerIcon", "endTimestampMs",
         "hack",  // removeFanzoneTickerChipCommand payload
+
+        // ── Creator Goal ticker chip (showCreatorGoalTickerChipCommand) ──────────
+        "creatorGoalTickerChip", "liveChatTickerCreatorGoalViewModel",
+        "initialTickerText", "creatorGoalEntityKey",
+        "shouldShowCountIncrementAnimation", "a11yLabel",
+        // Deep engagement panel nesting (UI infrastructure — only progressCountA11yLabel is surfaced)
+        "onClickCommand", "engagementPanelSectionListRenderer", "engagementPanelTitleHeaderRenderer",
+        "engagementPanelPresentationConfigs", "engagementPanelPopupPresentationConfig",
+        "hideEngagementPanelEndpoint",
+        "creatorGoalProgressFlowViewModel", "progressFlowButton", "progressCountA11yLabel",
+        "liveChatPurchaseMessageEndpoint", "titleFormatted", "BUTTON_VIEW_MODEL_STYLE_MONO",
 
         // ── Toast / notification action ───────────────────────────────────────
         "liveChatAddToToastAction",

@@ -71,6 +71,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     public event EventHandler<GiftReceivedEventArgs>? GiftReceived;
 
     /// <inheritdoc />
+    public event EventHandler<CreatorGoalReceivedEventArgs>? CreatorGoalReceived;
+
+    /// <inheritdoc />
     public event EventHandler<ErrorOccurredEventArgs>? ErrorOccurred;
 
     private static readonly Random s_random = new();
@@ -1476,8 +1479,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         bool hasReplace = ChatItemReplaced != null;
         bool hasEngagement = EngagementMessageReceived != null;
         bool hasGift = GiftReceived != null;
+        bool hasCreatorGoal = CreatorGoalReceived != null;
 
-        if (!hasPoll && !hasPollClosed && !hasDelete && !hasDeleteByAuthor && !hasBannerAdd && !hasBannerRemove && !hasReplace && !hasEngagement && !hasGift)
+        if (!hasPoll && !hasPollClosed && !hasDelete && !hasDeleteByAuthor && !hasBannerAdd && !hasBannerRemove && !hasReplace && !hasEngagement && !hasGift && !hasCreatorGoal)
             return;
 
         foreach (Models.Response.Action action in actions)
@@ -1544,6 +1548,13 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 Contracts.Models.GiftItem? gift = action.ToGiftItem();
                 if (gift is not null)
                     OnGiftReceived(new() { Gift = gift });
+            }
+
+            if (hasCreatorGoal)
+            {
+                Contracts.Models.CreatorGoalItem? goal = action.ToCreatorGoalItem();
+                if (goal is not null)
+                    OnCreatorGoalReceived(new() { CreatorGoal = goal });
             }
         }
     }
@@ -1662,6 +1673,19 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error invoking GiftReceived event handler for gift {Id}.", e.Gift?.Id);
+        }
+    }
+
+    /// <summary>Invokes the CreatorGoalReceived event.</summary>
+    protected virtual void OnCreatorGoalReceived(CreatorGoalReceivedEventArgs e)
+    {
+        try
+        {
+            CreatorGoalReceived?.Invoke(this, e);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error invoking CreatorGoalReceived event handler for goal {Id}.", e.CreatorGoal?.Id);
         }
     }
 

@@ -92,6 +92,9 @@ namespace YTLiveChat.Helpers;
 [JsonSerializable(typeof(ButtonViewModel))]
 [JsonSerializable(typeof(BeforeContentButtonContainer))]
 [JsonSerializable(typeof(MessageRendererBase))]
+[JsonSerializable(typeof(ShowCreatorGoalTickerChipCommand))]
+[JsonSerializable(typeof(CreatorGoalTickerChip))]
+[JsonSerializable(typeof(LiveChatTickerCreatorGoalViewModel))]
 internal partial class YTLiveChatJsonSerializerContext : JsonSerializerContext
 {
 }

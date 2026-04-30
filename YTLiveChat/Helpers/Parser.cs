@@ -2169,6 +2169,83 @@ internal static partial class Parser
     }
 
     /// <summary>
+    /// Extracts a <see cref="Contracts.Models.CreatorGoalItem"/> from a
+    /// <c>showCreatorGoalTickerChipCommand</c> action.
+    /// Returns null for other action types or when required fields are absent.
+    /// </summary>
+    public static Contracts.Models.CreatorGoalItem? ToCreatorGoalItem(this Action action)
+    {
+        Models.Response.LiveChatTickerCreatorGoalViewModel? vm =
+            action.ShowCreatorGoalTickerChipCommand
+                ?.CreatorGoalTickerChip
+                ?.LiveChatTickerCreatorGoalViewModel;
+        if (vm is null)
+            return null;
+
+        string? id = vm.Id;
+        if (string.IsNullOrWhiteSpace(id))
+            return null;
+
+        string? entityKey = vm.CreatorGoalEntityKey;
+        if (string.IsNullOrWhiteSpace(entityKey))
+            return null;
+
+        string? a11yLabel = vm.A11yLabel;
+
+        // Derive GoalType from a11yLabel: "See Super Chat goal" → "Super Chat Goal"
+        string? goalType = null;
+        if (!string.IsNullOrWhiteSpace(a11yLabel))
+        {
+            ReadOnlySpan<char> raw = a11yLabel.AsSpan().Trim();
+            const string prefix = "See ";
+            if (raw.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                raw = raw.Slice(prefix.Length);
+            goalType = System.Globalization.CultureInfo.InvariantCulture.TextInfo
+                .ToTitleCase(raw.ToString().ToLowerInvariant());
+        }
+
+        string? progressLabel = ExtractCreatorGoalProgressLabel(vm.OnClickCommand);
+
+        return new Contracts.Models.CreatorGoalItem
+        {
+            Id = id!,
+            EntityKey = entityKey!,
+            GoalType = goalType,
+            ProgressLabel = progressLabel,
+            AccessibilityLabel = a11yLabel,
+        };
+    }
+
+    /// <summary>
+    /// Walks the deep <c>onClickCommand</c> JsonElement blob to extract
+    /// <c>creatorGoalProgressFlowViewModel.progressCountA11yLabel</c>.
+    /// Returns null on any structural mismatch.
+    /// </summary>
+    private static string? ExtractCreatorGoalProgressLabel(JsonElement? onClickCommand)
+    {
+        if (onClickCommand is null)
+            return null;
+        try
+        {
+            return onClickCommand.Value
+                .GetProperty("innertubeCommand")
+                .GetProperty("showEngagementPanelEndpoint")
+                .GetProperty("engagementPanel")
+                .GetProperty("engagementPanelSectionListRenderer")
+                .GetProperty("content")
+                .GetProperty("sectionListRenderer")
+                .GetProperty("contents")[0]
+                .GetProperty("creatorGoalProgressFlowViewModel")
+                .GetProperty("progressCountA11yLabel")
+                .GetString();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Converts raw streams page HTML into a list of <see cref="Contracts.Models.StreamInfo"/> objects.
     /// </summary>
     public static IReadOnlyList<Contracts.Models.StreamInfo> ExtractStreamsFromPage(string html)
