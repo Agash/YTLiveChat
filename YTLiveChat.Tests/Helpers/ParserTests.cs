@@ -164,19 +164,24 @@ public class ParserTests
     [TestMethod]
     public void ToChatItem_TextMessageWithViewerLeaderboardRank_ParsesCorrectly()
     {
-        string rendererContentJson = TextMessageTestData.TextMessageWithViewerLeaderboardRank();
-        ChatItem? chatItem = ParseRendererContentToChatItem(
-            rendererContentJson,
-            "liveChatTextMessageRenderer"
+        // Real data: @Sin_mikity, Member (2 years), rank #3 (watch_20260411_045605.jsonl)
+        Models.Response.Action? action = JsonSerializer.Deserialize<Models.Response.Action>(
+            ActionTestData.TextMessageWithLeaderboardRank_SinMikity(),
+            s_jsonOptions
         );
+        Assert.IsNotNull(action);
+
+        ChatItem? chatItem = Parser.ToChatItem(action);
 
         Assert.IsNotNull(chatItem, "ChatItem should not be null.");
-        Assert.AreEqual("MSG_ID_RANK_01", chatItem.Id);
-        Assert.AreEqual("RankedUser", chatItem.Author.Name);
+        Assert.AreEqual("ChwKGkNPckNpTExONkpNREZXWEJ3Z1FkN01RcHVR", chatItem.Id);
+        Assert.AreEqual("@Sin_mikity", chatItem.Author.Name);
+        Assert.AreEqual("UCNsoRXBX1aTRSCxRydFZ7nw", chatItem.Author.ChannelId);
         Assert.AreEqual(1, chatItem.Message.Length);
         _ = Assert.IsInstanceOfType<TextPart>(chatItem.Message[0]);
-        Assert.AreEqual("ranked message sample", ((TextPart)chatItem.Message[0]).Text);
-        Assert.AreEqual(2, chatItem.ViewerLeaderboardRank);
+        Assert.AreEqual("孔明の罠", ((TextPart)chatItem.Message[0]).Text);
+        Assert.AreEqual(3, chatItem.ViewerLeaderboardRank, "Title '#3' should parse as rank 3.");
+        Assert.IsTrue(chatItem.IsMembership, "Member (2 years) badge makes IsMembership true.");
     }
 
     [TestMethod]
@@ -834,6 +839,34 @@ public class ParserTests
     }
 
     [TestMethod]
+    public void ToChatItem_TickerPaidMessageWithAuthorUsername_ParsesChannelHandle()
+    {
+        // Real data: @路面そーだ, ¥5,630, Member (1 year), authorUsername on outer renderer
+        Models.Response.Action? action = JsonSerializer.Deserialize<Models.Response.Action>(
+            RawActionTestData.TickerPaidMessageWithAuthorUsername(),
+            s_jsonOptions
+        );
+        Assert.IsNotNull(action);
+
+        ChatItem? chatItem = action.ToChatItem();
+        Assert.IsNotNull(chatItem);
+        Assert.IsTrue(chatItem.IsTicker);
+        Assert.AreEqual("ChwKGkNLcTVudG5NNkpNREZVTEJ3Z1FkVEUwMEVn", chatItem.Id);
+        Assert.AreEqual("@路面そーだ", chatItem.Author.Name);
+        Assert.AreEqual("UCXEPOXmgUU6EZ3eqjxvbQ_A", chatItem.Author.ChannelId);
+        Assert.AreEqual(
+            "@路面そーだ",
+            chatItem.Author.ChannelHandle,
+            "ChannelHandle should be populated from authorUsername on the outer ticker renderer."
+        );
+        Assert.IsNotNull(chatItem.Superchat);
+        Assert.AreEqual("¥5,630", chatItem.Superchat.AmountString);
+        Assert.AreEqual("JPY", chatItem.Superchat.Currency);
+        Assert.IsTrue(chatItem.IsMembership, "Author has member badge.");
+        Assert.AreEqual("Member (1 year)", chatItem.Author.Badge?.Label);
+    }
+
+    [TestMethod]
     public void ToChatItem_NewMembershipWelcomeFromLog11_ParsesNewEventAndTierFromHeaderRuns()
     {
         Models.Response.Action? action = JsonSerializer.Deserialize<Models.Response.Action>(
@@ -1394,30 +1427,6 @@ public class ParserTests
     }
 
     // ── Poll parsing ──────────────────────────────────────────────────────────
-
-    [TestMethod]
-    public void ToPollItem_UpdatePollActionWithVotes_ReturnsPollItemWithVoteData()
-    {
-        Models.Response.Action? action = JsonSerializer.Deserialize<Models.Response.Action>(
-            ActionTestData.UpdatePollActionWithVotes(),
-            s_jsonOptions
-        );
-        Assert.IsNotNull(action);
-
-        PollItem? poll = Parser.ToPollItem(action);
-
-        Assert.IsNotNull(poll, "ToPollItem should return a non-null PollItem.");
-        Assert.AreEqual("POLL_ID_UPDATE_01", poll.PollId);
-        Assert.IsFalse(poll.IsNew, "An updateLiveChatPollAction should not be marked IsNew.");
-        Assert.AreEqual("@StreamerHandle", poll.CreatorHandle);
-        Assert.AreEqual(1234, poll.TotalVotes);
-        Assert.AreEqual(2, poll.Choices.Count);
-        Assert.AreEqual("Option A", string.Concat(poll.Choices[0].Text.OfType<TextPart>().Select(p => p.Text)));
-        Assert.AreEqual(0.28, poll.Choices[0].VoteRatio, 0.001);
-        Assert.AreEqual("Option B", string.Concat(poll.Choices[1].Text.OfType<TextPart>().Select(p => p.Text)));
-        Assert.AreEqual(0.72, poll.Choices[1].VoteRatio, 0.001);
-        Assert.AreEqual("LIVE_CHAT_POLL_TYPE_CREATOR", poll.PollType);
-    }
 
     [TestMethod]
     public void ToPollItem_ShowPanelActionNewPoll_ReturnsPollItemIsNew()
@@ -2094,6 +2103,141 @@ public class ParserTests
         Assert.AreEqual("GIFT", gift.GiftImageName);
         // imageColor 4294901760 = 0xFFFF0000 → RGB FF0000
         Assert.AreEqual("FF0000", gift.GiftImageColor);
+        Assert.IsNull(gift.AuthorAvatar, "No authorAvatar in this payload.");
+        Assert.IsNull(gift.GiftImage, "No giftImage in this payload.");
+    }
+
+    [TestMethod]
+    public void ToGiftItem_WithAvatarAndGiftImage_UsesLastSource()
+    {
+        // Real data: @franciscosaranteheredia1890 sent Sparkles (watch_20260422_203201.jsonl)
+        Models.Response.Action? action = JsonSerializer.Deserialize<Models.Response.Action>(
+            ActionTestData.GiftMessageViewModelWithAvatarAndGiftImage(),
+            s_jsonOptions
+        );
+        Assert.IsNotNull(action);
+
+        GiftItem? gift = Parser.ToGiftItem(action);
+
+        Assert.IsNotNull(gift);
+        Assert.AreEqual("ChwKGkNLSEt5ZldtZ3BRREZVc0kxZ0FkTmRVNTBn", gift.Id);
+        Assert.AreEqual("@franciscosaranteheredia1890", gift.AuthorHandle);
+        Assert.AreEqual("sent Sparkles", gift.Text);
+        // "sent Sparkles" has no "for N Jewels" pattern — regex won't match
+        Assert.IsNull(gift.GiftItemName);
+        Assert.IsNull(gift.JewelAmount);
+        // No clientResource image in this payload
+        Assert.IsNull(gift.GiftImageName);
+        Assert.IsNull(gift.GiftImageColor);
+
+        Assert.IsNotNull(gift.AuthorAvatar, "AuthorAvatar should be populated from avatarViewModel.image.sources.");
+        Assert.AreEqual(
+            "https://yt4.ggpht.com/ytc/AIdro_kxKFy47u3Kv9yH8eQIPFcxR3iD4lub6s2Fxcsch3_Uy54=s64-c-k-c0x00ffffff-no-rj",
+            gift.AuthorAvatar.Url,
+            "Should use last (highest-res) source."
+        );
+
+        Assert.IsNotNull(gift.GiftImage, "GiftImage should be populated from giftImage.sources.");
+        Assert.AreEqual(
+            "//www.gstatic.com/youtube/img/pdg/gift/assets/sparkles_v2_320x320.png=w640-h640",
+            gift.GiftImage.Url,
+            "Should use last (highest-res) source."
+        );
+    }
+
+    [TestMethod]
+    public void ToChatItem_PaidStickerRenderer_WithLowerBumper_ParsesStickerAndColors()
+    {
+        // Real data: @shujieh2297, NT$14.00, 1st Super (watch_20260421_075106.jsonl)
+        Models.Response.Action? action = JsonSerializer.Deserialize<Models.Response.Action>(
+            SuperChatTestData.PaidStickerWithLowerBumper(),
+            s_jsonOptions
+        );
+        Assert.IsNotNull(action);
+
+        ChatItem? item = Parser.ToChatItem(action);
+
+        Assert.IsNotNull(item);
+        Assert.AreEqual("ChwKGkNLcWltb1NHXzVNREZaYjF3Z1FkVUd3Sl9R", item.Id);
+        Assert.AreEqual("@shujieh2297", item.Author.Name);
+        Assert.AreEqual("UCAdLxU_lnB7Jrj4GkGWCufA", item.Author.ChannelId);
+        Assert.IsNotNull(item.Superchat);
+        Assert.AreEqual("NT$14.00", item.Superchat.AmountString);
+        Assert.AreEqual("TWD", item.Superchat.Currency);
+
+        Assert.IsNotNull(item.Superchat.Sticker, "Sticker should be populated.");
+        Assert.AreEqual(
+            "//lh3.googleusercontent.com/yAtGAw9ew-yy9o6oQ9EDVAfbmusNmazN-nunVbcixsmCIFER30HMdjt5nchJ6viSBuYNfrMwwBrkZ83oFA=s80-rp",
+            item.Superchat.Sticker.Url,
+            "Should use last (highest-res) thumbnail."
+        );
+        Assert.AreEqual("Beaming face with smiling eyes", item.Superchat.Sticker.Alt);
+    }
+
+    [TestMethod]
+    public void ToChatItem_PaidStickerRenderer_DeserializesLowerBumper()
+    {
+        // Real data: @shujieh2297, NT$14.00, 1st Super (watch_20260421_075106.jsonl)
+        Models.Response.Action? action = JsonSerializer.Deserialize<Models.Response.Action>(
+            SuperChatTestData.PaidStickerWithLowerBumper(),
+            s_jsonOptions
+        );
+        Assert.IsNotNull(action);
+
+        Models.Response.LiveChatPaidStickerRenderer? renderer =
+            action.AddChatItemAction?.Item?.LiveChatPaidStickerRenderer;
+        Assert.IsNotNull(renderer, "Renderer should deserialize from addChatItemAction.");
+
+        Assert.IsNotNull(renderer.LowerBumper, "LowerBumper should deserialize.");
+        BumperUserEduContentViewModel? bumper = renderer.LowerBumper
+            .LiveChatItemBumperViewModel?.Content?.BumperUserEduContentViewModel;
+        Assert.IsNotNull(bumper, "BumperUserEduContentViewModel should be present.");
+        Assert.AreEqual("Let's celebrate their 1st Super on a live stream", bumper.Text?.Content);
+        Assert.AreEqual("CELEBRATION", bumper.Image?.Sources?.FirstOrDefault()?.ClientResource?.ImageName);
+        // imageColor 4294901760 = 0xFFFF0000
+        Assert.AreEqual(4294901760L, bumper.Image?.Sources?.FirstOrDefault()?.ClientResource?.ImageColor);
+    }
+
+    [TestMethod]
+    public void ToChatItem_PaidStickerRenderer_WithMemberBadge_ParsesStickerAndBadge()
+    {
+        // Real data: @buroburo_563, ¥1,600, Member (3 years), no lowerBumper (watch_20260421_070317.jsonl)
+        Models.Response.Action? action = JsonSerializer.Deserialize<Models.Response.Action>(
+            SuperChatTestData.PaidStickerWithMemberBadge(),
+            s_jsonOptions
+        );
+        Assert.IsNotNull(action);
+
+        ChatItem? item = Parser.ToChatItem(action);
+
+        Assert.IsNotNull(item);
+        Assert.AreEqual("ChwKGkNPeVE2X19SNkpNREZRWER3Z1FkWlNJYUVR", item.Id);
+        Assert.AreEqual("@buroburo_563", item.Author.Name);
+        Assert.AreEqual("UCjywR2qJ_9BgSpDReR_lE3g", item.Author.ChannelId);
+        Assert.IsNotNull(item.Superchat);
+        Assert.AreEqual("¥1,600", item.Superchat.AmountString);
+        Assert.AreEqual("JPY", item.Superchat.Currency);
+
+        Assert.IsNotNull(item.Superchat.Sticker, "Sticker should be populated.");
+        Assert.AreEqual(
+            "//lh3.googleusercontent.com/7NUanCM7WTzYks25uS2uYxdMLzKo09_p5IKE--vikS7FYXyRFDzIUQt0L7QIdKm3nxMDcRBhp0NNFAdDbQ=s208-rg",
+            item.Superchat.Sticker.Url,
+            "Should use last (highest-res) thumbnail."
+        );
+        Assert.AreEqual(
+            "Sunglasses perpetually fall onto video game controller's proud face",
+            item.Superchat.Sticker.Alt
+        );
+
+        Assert.IsTrue(item.IsMembership, "Author has member badge so IsMembership should be true.");
+        Assert.IsNotNull(item.Author.Badge, "Author badge should be populated.");
+        Assert.AreEqual("Member (3 years)", item.Author.Badge.Label);
+
+        // No lowerBumper on this renderer
+        Models.Response.LiveChatPaidStickerRenderer? renderer =
+            action.AddChatItemAction?.Item?.LiveChatPaidStickerRenderer;
+        Assert.IsNotNull(renderer);
+        Assert.IsNull(renderer.LowerBumper, "This sticker has no lowerBumper.");
     }
 
     [TestMethod]

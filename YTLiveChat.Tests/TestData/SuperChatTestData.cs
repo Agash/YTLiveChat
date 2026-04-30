@@ -168,4 +168,252 @@ internal static class SuperChatTestData
             "₫20,000",
             364
         );
+
+    /// <summary>
+    /// Full addChatItemAction wrapping a liveChatPaidStickerRenderer with a membership author badge
+    /// and no lowerBumper. Real data from watch_20260421_070317.jsonl — @buroburo_563,
+    /// Member (3 years), ¥1,600, sticker "Sunglasses perpetually fall onto video game controller's proud face".
+    /// </summary>
+    public static string PaidStickerWithMemberBadge() => """
+            {
+              "clickTrackingParams": "CAEQl98BIhMI177AhdLokwMV4Ex6BR199Bc3ygEEW0e7Hw==",
+              "addChatItemAction": {
+                "item": {
+                  "liveChatPaidStickerRenderer": {
+                    "id": "ChwKGkNPeVE2X19SNkpNREZRWER3Z1FkWlNJYUVR",
+                    "contextMenuEndpoint": {
+                      "clickTrackingParams": "CAUQ77sEIhMI177AhdLokwMV4Ex6BR199Bc3ygEEW0e7Hw==",
+                      "commandMetadata": {
+                        "webCommandMetadata": {
+                          "ignoreNavigation": true
+                        }
+                      },
+                      "liveChatItemContextMenuEndpoint": {
+                        "params": "Q2g0S0hBb2FRMDk1VVRaZlgxSTJTazFFUmxGWVJIZG5VV1JhVTBsaFJWRWFLU29uQ2hoVlEyaEJibkZqWDBGWk5WOUpNMUI0TldScFp6TllNVkVTQzNOb01HbzRSbXd0ZDBkbklBRW9CRElhQ2hoVlEycDVkMUl5Y1VwZk9VSm5VM0JFVW1WU1gyeEZNMmM0QWtnQVVCUSUzRA=="
+                      }
+                    },
+                    "contextMenuAccessibility": {
+                      "accessibilityData": {
+                        "label": "Chat actions"
+                      }
+                    },
+                    "timestampUsec": "1776008178412469",
+                    "authorPhoto": {
+                      "thumbnails": [
+                        {
+                          "url": "https://yt4.ggpht.com/uQv4ZjqYBloLvPxN6JXtGnK5DBkh4PZ09jeAEeffDvOcB1ZN1zB7wbn3X7lyV-waihgsozt8=s32-c-k-c0x00ffffff-no-rj",
+                          "width": 32,
+                          "height": 32
+                        },
+                        {
+                          "url": "https://yt4.ggpht.com/uQv4ZjqYBloLvPxN6JXtGnK5DBkh4PZ09jeAEeffDvOcB1ZN1zB7wbn3X7lyV-waihgsozt8=s64-c-k-c0x00ffffff-no-rj",
+                          "width": 64,
+                          "height": 64
+                        }
+                      ]
+                    },
+                    "authorName": {
+                      "simpleText": "@buroburo_563"
+                    },
+                    "authorExternalChannelId": "UCjywR2qJ_9BgSpDReR_lE3g",
+                    "sticker": {
+                      "thumbnails": [
+                        {
+                          "url": "//lh3.googleusercontent.com/7NUanCM7WTzYks25uS2uYxdMLzKo09_p5IKE--vikS7FYXyRFDzIUQt0L7QIdKm3nxMDcRBhp0NNFAdDbQ=s104-rg",
+                          "width": 104,
+                          "height": 104
+                        },
+                        {
+                          "url": "//lh3.googleusercontent.com/7NUanCM7WTzYks25uS2uYxdMLzKo09_p5IKE--vikS7FYXyRFDzIUQt0L7QIdKm3nxMDcRBhp0NNFAdDbQ=s208-rg",
+                          "width": 208,
+                          "height": 208
+                        }
+                      ],
+                      "accessibility": {
+                        "accessibilityData": {
+                          "label": "Sunglasses perpetually fall onto video game controller's proud face"
+                        }
+                      }
+                    },
+                    "authorBadges": [
+                      {
+                        "liveChatAuthorBadgeRenderer": {
+                          "customThumbnail": {
+                            "thumbnails": [
+                              {
+                                "url": "https://yt3.ggpht.com/yocNS0Uw2yJ1Ph4gHS8o1q83HEEF-BBUSezHCQ56z80b_dSB9v80B3gYwneOhN_cLNCOZe9fDw=s16-c-k",
+                                "width": 16,
+                                "height": 16
+                              },
+                              {
+                                "url": "https://yt3.ggpht.com/yocNS0Uw2yJ1Ph4gHS8o1q83HEEF-BBUSezHCQ56z80b_dSB9v80B3gYwneOhN_cLNCOZe9fDw=s32-c-k",
+                                "width": 32,
+                                "height": 32
+                              }
+                            ]
+                          },
+                          "tooltip": "Member (3 years)",
+                          "accessibility": {
+                            "accessibilityData": {
+                              "label": "Member (3 years)"
+                            }
+                          }
+                        }
+                      }
+                    ],
+                    "moneyChipBackgroundColor": 4294953512,
+                    "moneyChipTextColor": 3741319168,
+                    "purchaseAmountText": {
+                      "simpleText": "¥1,600"
+                    },
+                    "stickerDisplayWidth": 104,
+                    "stickerDisplayHeight": 104,
+                    "backgroundColor": 4294953512,
+                    "authorNameTextColor": 2315255808,
+                    "trackingParams": "CAUQ77sEIhMI177AhdLokwMV4Ex6BR199Bc3",
+                    "isV2Style": true
+                  }
+                },
+                "clientId": "COyQ6__R6JMDFQXDwgQdZSIaEQ"
+              }
+            }
+            """;
+
+    /// <summary>
+    /// Full addChatItemAction wrapping a liveChatPaidStickerRenderer with lowerBumper.
+    /// Real data from watch_20260421_075106.jsonl — @shujieh2297, 1st Super, NT$14.00,
+    /// sticker "Beaming face with smiling eyes". Has two thumbnail sources (s40/s80)
+    /// to confirm LastOrDefault (highest-res) is used.
+    /// </summary>
+    public static string PaidStickerWithLowerBumper() => """
+            {
+              "clickTrackingParams": "CAEQl98BIhMIjLXdsob_kwMV98tPCB31Ww6TygEEdZ2q5A==",
+              "addChatItemAction": {
+                "item": {
+                  "liveChatPaidStickerRenderer": {
+                    "id": "ChwKGkNLcWltb1NHXzVNREZaYjF3Z1FkVUd3Sl9R",
+                    "contextMenuEndpoint": {
+                      "clickTrackingParams": "CAIQ77sEIhMIjLXdsob_kwMV98tPCB31Ww6TygEEdZ2q5A==",
+                      "commandMetadata": {
+                        "webCommandMetadata": {
+                          "ignoreNavigation": true
+                        }
+                      },
+                      "liveChatItemContextMenuEndpoint": {
+                        "params": "Q2g0S0hBb2FRMHR4YVcxdlUwZGZOVTFFUmxwaU1YZG5VV1JWUjNkS1gxRWFLU29uQ2hoVlF6QlVXR1ZmVEZsYU5ITmpZVmN5V0UxNWFUVmZhM2NTQzJKNVUyaGtSMW90ZDFGM0lBRW9CRElhQ2hoVlEwRmtUSGhWWDJ4dVFqZEtjbW8wUjJ0SFYwTjFaa0U0QWtnQVVCUSUzRA=="
+                      }
+                    },
+                    "contextMenuAccessibility": {
+                      "accessibilityData": {
+                        "label": "Chat actions"
+                      }
+                    },
+                    "timestampUsec": "1776778145964447",
+                    "authorPhoto": {
+                      "thumbnails": [
+                        {
+                          "url": "https://yt4.ggpht.com/ytc/AIdro_nlK0XZCHPihWVQ4ZXtf5b8YpsaViKGdlcNQOujPdbuOV75OJmCMvjy0UMhDlldDDfeTw=s32-c-k-c0x00ffffff-no-rj",
+                          "width": 32,
+                          "height": 32
+                        },
+                        {
+                          "url": "https://yt4.ggpht.com/ytc/AIdro_nlK0XZCHPihWVQ4ZXtf5b8YpsaViKGdlcNQOujPdbuOV75OJmCMvjy0UMhDlldDDfeTw=s64-c-k-c0x00ffffff-no-rj",
+                          "width": 64,
+                          "height": 64
+                        }
+                      ]
+                    },
+                    "authorName": {
+                      "simpleText": "@shujieh2297"
+                    },
+                    "authorExternalChannelId": "UCAdLxU_lnB7Jrj4GkGWCufA",
+                    "sticker": {
+                      "thumbnails": [
+                        {
+                          "url": "//lh3.googleusercontent.com/yAtGAw9ew-yy9o6oQ9EDVAfbmusNmazN-nunVbcixsmCIFER30HMdjt5nchJ6viSBuYNfrMwwBrkZ83oFA=s40-rp",
+                          "width": 40,
+                          "height": 40
+                        },
+                        {
+                          "url": "//lh3.googleusercontent.com/yAtGAw9ew-yy9o6oQ9EDVAfbmusNmazN-nunVbcixsmCIFER30HMdjt5nchJ6viSBuYNfrMwwBrkZ83oFA=s80-rp",
+                          "width": 80,
+                          "height": 80
+                        }
+                      ],
+                      "accessibility": {
+                        "accessibilityData": {
+                          "label": "Beaming face with smiling eyes"
+                        }
+                      }
+                    },
+                    "moneyChipBackgroundColor": 4280191205,
+                    "moneyChipTextColor": 4294967295,
+                    "purchaseAmountText": {
+                      "simpleText": "NT$14.00"
+                    },
+                    "stickerDisplayWidth": 40,
+                    "stickerDisplayHeight": 40,
+                    "backgroundColor": 4280191205,
+                    "authorNameTextColor": 3019898879,
+                    "trackingParams": "CAIQ77sEIhMIjLXdsob_kwMV98tPCB31Ww6T",
+                    "headerOverlayImage": {
+                      "thumbnails": [
+                        {
+                          "url": "https://www.gstatic.com/youtube/img/pdg/novelty/1st_purchase_celebration_novelty_animation/1st_Purchase_Celebration_Novelty_STK_IL_T1_v2.webp",
+                          "width": 68,
+                          "height": 48
+                        }
+                      ]
+                    },
+                    "isV2Style": true,
+                    "pdgPurchasedNoveltyLoggingDirectives": {
+                      "loggingDirectives": {
+                        "trackingParams": "CAUQ7s4LIhMIjLXdsob_kwMV98tPCB31Ww6T",
+                        "visibility": {
+                          "types": "4"
+                        }
+                      }
+                    },
+                    "lowerBumper": {
+                      "liveChatItemBumperViewModel": {
+                        "content": {
+                          "bumperUserEduContentViewModel": {
+                            "text": {
+                              "content": "Let's celebrate their 1st Super on a live stream",
+                              "styleRuns": [
+                                {
+                                  "startIndex": 0,
+                                  "length": 48
+                                }
+                              ]
+                            },
+                            "trackingParams": "CAQQk5YLIhMIjLXdsob_kwMV98tPCB31Ww6T",
+                            "image": {
+                              "sources": [
+                                {
+                                  "clientResource": {
+                                    "imageName": "CELEBRATION",
+                                    "imageColor": 4294901760
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "pdgPurchasedBumperLoggingDirectives": {
+                          "loggingDirectives": {
+                            "trackingParams": "CAMQ784LIhMIjLXdsob_kwMV98tPCB31Ww6T",
+                            "visibility": {
+                              "types": "4"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "clientId": "CKqimoSG_5MDFZb1wgQdUGwJ_Q"
+              }
+            }
+            """;
 }

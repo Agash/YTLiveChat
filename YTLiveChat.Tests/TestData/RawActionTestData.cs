@@ -119,6 +119,133 @@ internal static class RawActionTestData
         }
         """;
 
+    /// <summary>
+    /// Ticker paid-message with an <c>authorUsername</c> field on the outer renderer, providing
+    /// the channel handle as <c>@路面そーだ</c>. Real data from watch_20260411_045605.jsonl —
+    /// @路面そーだ, ¥5,630, Member (1 year), InugamiKorone stream.
+    /// Verifies that <see cref="YTLiveChat.Contracts.Models.Author.ChannelHandle"/> is populated.
+    /// </summary>
+    public static string TickerPaidMessageWithAuthorUsername() =>
+        """
+        {
+          "clickTrackingParams": "CAEQl98BIhMIypCM7czokwMVl2V6BR2dCSJ6ygEEI650eQ==",
+          "addLiveChatTickerItemAction": {
+            "item": {
+              "liveChatTickerPaidMessageItemRenderer": {
+                "id": "ChwKGkNLcTVudG5NNkpNREZVTEJ3Z1FkVEUwMEVn",
+                "amountTextColor": 4294967295,
+                "startBackgroundColor": 4293467747,
+                "endBackgroundColor": 4290910299,
+                "authorPhoto": {
+                  "thumbnails": [
+                    {
+                      "url": "https://yt4.ggpht.com/NVez22B4wWs5VVuQ91Rhumn6fg46Kccom4Lg1-pwXhwAtSfkqde6fLS1QqYJq9DGw6dbpJzu=s32-c-k-c0x00ffffff-no-rj",
+                      "width": 32,
+                      "height": 32
+                    },
+                    {
+                      "url": "https://yt4.ggpht.com/NVez22B4wWs5VVuQ91Rhumn6fg46Kccom4Lg1-pwXhwAtSfkqde6fLS1QqYJq9DGw6dbpJzu=s64-c-k-c0x00ffffff-no-rj",
+                      "width": 64,
+                      "height": 64
+                    }
+                  ],
+                  "accessibility": {
+                    "accessibilityData": {
+                      "label": "@路面そーだ"
+                    }
+                  }
+                },
+                "durationSec": 1774,
+                "showItemEndpoint": {
+                  "clickTrackingParams": "COwCELDIBCITCMqQjO3M6JMDFZdlegUdnQkiesoBBCOudHk=",
+                  "commandMetadata": {
+                    "webCommandMetadata": {
+                      "ignoreNavigation": true
+                    }
+                  },
+                  "showLiveChatItemEndpoint": {
+                    "renderer": {
+                      "liveChatPaidMessageRenderer": {
+                        "id": "ChwKGkNLcTVudG5NNkpNREZVTEJ3Z1FkVEUwMEVn",
+                        "timestampUsec": "1776006759909883",
+                        "authorName": {
+                          "simpleText": "@路面そーだ"
+                        },
+                        "authorPhoto": {
+                          "thumbnails": [
+                            {
+                              "url": "https://yt4.ggpht.com/NVez22B4wWs5VVuQ91Rhumn6fg46Kccom4Lg1-pwXhwAtSfkqde6fLS1QqYJq9DGw6dbpJzu=s32-c-k-c0x00ffffff-no-rj",
+                              "width": 32,
+                              "height": 32
+                            },
+                            {
+                              "url": "https://yt4.ggpht.com/NVez22B4wWs5VVuQ91Rhumn6fg46Kccom4Lg1-pwXhwAtSfkqde6fLS1QqYJq9DGw6dbpJzu=s64-c-k-c0x00ffffff-no-rj",
+                              "width": 64,
+                              "height": 64
+                            }
+                          ]
+                        },
+                        "purchaseAmountText": {
+                          "simpleText": "¥5,630"
+                        },
+                        "message": {
+                          "runs": [
+                            {
+                              "text": "ころさん7thおめでと～"
+                            }
+                          ]
+                        },
+                        "headerBackgroundColor": 4287349200,
+                        "headerTextColor": 4294967295,
+                        "bodyBackgroundColor": 4293467747,
+                        "bodyTextColor": 4278190080,
+                        "authorExternalChannelId": "UCXEPOXmgUU6EZ3eqjxvbQ_A",
+                        "authorNameTextColor": 2315255808,
+                        "authorBadges": [
+                          {
+                            "liveChatAuthorBadgeRenderer": {
+                              "customThumbnail": {
+                                "thumbnails": [
+                                  {
+                                    "url": "https://yt3.ggpht.com/oy3BYNMH3mfxkpZFbbf4Y0FkES5eT4HctXftzK_5nNen2eidnd_wJ_RiKSjTMVUeBSDs9QlTew=s16-c-k",
+                                    "width": 16,
+                                    "height": 16
+                                  },
+                                  {
+                                    "url": "https://yt3.ggpht.com/oy3BYNMH3mfxkpZFbbf4Y0FkES5eT4HctXftzK_5nNen2eidnd_wJ_RiKSjTMVUeBSDs9QlTew=s32-c-k",
+                                    "width": 32,
+                                    "height": 32
+                                  }
+                                ]
+                              },
+                              "tooltip": "Member (1 year)",
+                              "accessibility": {
+                                "accessibilityData": {
+                                  "label": "Member (1 year)"
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "isV2Style": true
+                      }
+                    },
+                    "trackingParams": "CO0CEI7RBiITCMqQjO3M6JMDFZdlegUdnQkieg=="
+                  }
+                },
+                "authorExternalChannelId": "UCXEPOXmgUU6EZ3eqjxvbQ_A",
+                "fullDurationSec": 1800,
+                "trackingParams": "COwCELDIBCITCMqQjO3M6JMDFZdlegUdnQkieg==",
+                "authorUsername": {
+                  "simpleText": "@路面そーだ"
+                }
+              }
+            },
+            "durationSec": "1774"
+          }
+        }
+        """;
+
     public static string TickerSponsorItemFromLog8() =>
         """
         {

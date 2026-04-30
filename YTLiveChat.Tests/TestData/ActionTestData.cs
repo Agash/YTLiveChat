@@ -671,6 +671,124 @@ internal static class ActionTestData
             }
             """;
 
+    /// <summary>
+    /// Full addChatItemAction containing a liveChatTextMessageRenderer with a leaderboard rank badge
+    /// (beforeContentButtons, iconName CROWN, title "#3").
+    /// Real data from watch_20260411_045605.jsonl — @Sin_mikity, Member (2 years), rank #3.
+    /// </summary>
+    public static string TextMessageWithLeaderboardRank_SinMikity() => """
+            {
+              "clickTrackingParams": "CAEQl98BIhMIv6rmss3okwMVoxQ6Ah22hCJsygEEZbNZxg==",
+              "addChatItemAction": {
+                "item": {
+                  "liveChatTextMessageRenderer": {
+                    "message": {
+                      "runs": [
+                        {
+                          "text": "孔明の罠"
+                        }
+                      ]
+                    },
+                    "authorName": {
+                      "simpleText": "@Sin_mikity"
+                    },
+                    "authorPhoto": {
+                      "thumbnails": [
+                        {
+                          "url": "https://yt4.ggpht.com/ytc/AIdro_nTIvXcfu5dzZ19et32rgwkkBvueVjeoW3TkRlCpnK1mo6JGfRO-K2-YkHSCDLndHsbOSzD=s32-c-k-c0x00ffffff-no-rj",
+                          "width": 32,
+                          "height": 32
+                        },
+                        {
+                          "url": "https://yt4.ggpht.com/ytc/AIdro_nTIvXcfu5dzZ19et32rgwkkBvueVjeoW3TkRlCpnK1mo6JGfRO-K2-YkHSCDLndHsbOSzD=s64-c-k-c0x00ffffff-no-rj",
+                          "width": 64,
+                          "height": 64
+                        }
+                      ]
+                    },
+                    "contextMenuEndpoint": {
+                      "clickTrackingParams": "CAEQl98BIhMIv6rmss3okwMVoxQ6Ah22hCJsygEEZbNZxg==",
+                      "commandMetadata": {
+                        "webCommandMetadata": {
+                          "ignoreNavigation": true
+                        }
+                      },
+                      "liveChatItemContextMenuEndpoint": {
+                        "params": "Q2g0S0hBb2FRMDl5UTJsTVRFNDJTazFFUmxkWVFuZG5VV1EzVFZGd2RWRWFLU29uQ2hoVlF6QlVXR1ZmVEZsYU5ITmpZVmN5V0UxNWFUVmZhM2NTQzNaSGNHWnpiRU5VVkdaVklBRW9CRElhQ2hoVlEwNXpiMUpZUWxneFlWUlNVME40VW5sa1JsbzNibmM0QWtnQVVBRSUzRA=="
+                      }
+                    },
+                    "id": "ChwKGkNPckNpTExONkpNREZXWEJ3Z1FkN01RcHVR",
+                    "timestampUsec": "1776006931294583",
+                    "authorBadges": [
+                      {
+                        "liveChatAuthorBadgeRenderer": {
+                          "customThumbnail": {
+                            "thumbnails": [
+                              {
+                                "url": "https://yt3.ggpht.com/rDBuKcXbuF7NW-l-OxhW1Pcx_iZeJtPx2ZCSd48vLzaHi9sATVlx-HRI35Ntz59ac6B-AiVciA=s16-c-k",
+                                "width": 16,
+                                "height": 16
+                              },
+                              {
+                                "url": "https://yt3.ggpht.com/rDBuKcXbuF7NW-l-OxhW1Pcx_iZeJtPx2ZCSd48vLzaHi9sATVlx-HRI35Ntz59ac6B-AiVciA=s32-c-k",
+                                "width": 32,
+                                "height": 32
+                              }
+                            ]
+                          },
+                          "tooltip": "Member (2 years)",
+                          "accessibility": {
+                            "accessibilityData": {
+                              "label": "Member (2 years)"
+                            }
+                          }
+                        }
+                      }
+                    ],
+                    "authorExternalChannelId": "UCNsoRXBX1aTRSCxRydFZ7nw",
+                    "contextMenuAccessibility": {
+                      "accessibilityData": {
+                        "label": "Chat actions"
+                      }
+                    },
+                    "trackingParams": "CAEQl98BIhMIv6rmss3okwMVoxQ6Ah22hCJs",
+                    "beforeContentButtons": [
+                      {
+                        "buttonViewModel": {
+                          "iconName": "CROWN",
+                          "title": "#3",
+                          "onTap": {
+                            "innertubeCommand": {
+                              "clickTrackingParams": "CB8Q8FsYayITCL-q5rLN6JMDFaMUOgIdtoQibMoBBGWzWcY=",
+                              "showEngagementPanelEndpoint": {
+                                "identifier": {
+                                  "surface": "ENGAGEMENT_PANEL_SURFACE_LIVE_CHAT",
+                                  "tag": "PAlive_viewer_leaderboard"
+                                },
+                                "globalConfiguration": {
+                                  "params": "wgovGAAiKSonChhVQzBUWGVfTFlaNHNjYVcyWE15aTVfa3cSC3ZHcGZzbENUVGZVMAE%3D"
+                                }
+                              }
+                            }
+                          },
+                          "accessibilityText": "#3",
+                          "style": "BUTTON_VIEW_MODEL_STYLE_CUSTOM",
+                          "trackingParams": "CB8Q8FsYayITCL-q5rLN6JMDFaMUOgIdtoQibA==",
+                          "isFullWidth": true,
+                          "type": "BUTTON_VIEW_MODEL_TYPE_FILLED",
+                          "buttonSize": "BUTTON_VIEW_MODEL_SIZE_XSMALL",
+                          "customBackgroundColor": 4293910271,
+                          "customFontColor": 4278190080
+                        }
+                      }
+                    ]
+                  }
+                },
+                "clientId": "COrCiLLN6JMDFWXBwgQd7MQpuQ"
+              }
+            }
+            """;
+
     public static string RemoveChatItem() => """
             {
               "removeChatItemAction": {
@@ -682,47 +800,6 @@ internal static class ActionTestData
     public static string ReportModerationStateEmpty() => """
             {
               "liveChatReportModerationStateCommand": {}
-            }
-            """;
-
-    public static string UpdatePollActionWithVotes() => """
-            {
-              "updateLiveChatPollAction": {
-                "pollToUpdate": {
-                  "pollRenderer": {
-                    "choices": [
-                      {
-                        "text": { "runs": [{ "text": "Option A" }] },
-                        "selected": false,
-                        "voteRatio": 0.28,
-                        "votePercentage": { "simpleText": "28%" }
-                      },
-                      {
-                        "text": { "runs": [{ "text": "Option B" }] },
-                        "selected": false,
-                        "voteRatio": 0.72,
-                        "votePercentage": { "simpleText": "72%" }
-                      }
-                    ],
-                    "liveChatPollId": "POLL_ID_UPDATE_01",
-                    "header": {
-                      "pollHeaderRenderer": {
-                        "pollQuestion": {},
-                        "metadataText": {
-                          "runs": [
-                            { "text": "@StreamerHandle" },
-                            { "text": " \u2022 " },
-                            { "text": "2 minutes ago" },
-                            { "text": " \u2022 " },
-                            { "text": "1,234 votes" }
-                          ]
-                        },
-                        "liveChatPollType": "LIVE_CHAT_POLL_TYPE_CREATOR"
-                      }
-                    }
-                  }
-                }
-              }
             }
             """;
 
@@ -1262,6 +1339,92 @@ internal static class ActionTestData
                     }
                   }
                 }
+              }
+            }
+            """;
+
+    /// <summary>
+    /// giftMessageViewModel with authorAvatar (avatarViewModel.image.sources) and giftImage (sources).
+    /// Real data from watch_20260422_203201.jsonl — @franciscosaranteheredia1890 sent Sparkles.
+    /// Verifies that multi-source ToImage uses the last (highest-resolution) source.
+    /// </summary>
+    public static string GiftMessageViewModelWithAvatarAndGiftImage() => """
+            {
+              "clickTrackingParams": "CAEQl98BIhMI--y79qaClAMVqot8Bh3mCRhiygEEw1TgWw==",
+              "addChatItemAction": {
+                "item": {
+                  "giftMessageViewModel": {
+                    "text": {
+                      "content": "sent Sparkles",
+                      "styleRuns": [
+                        {
+                          "startIndex": 0,
+                          "length": 13
+                        }
+                      ]
+                    },
+                    "authorName": {
+                      "content": "@franciscosaranteheredia1890 ",
+                      "styleRuns": [
+                        {
+                          "startIndex": 0,
+                          "length": 29
+                        }
+                      ]
+                    },
+                    "id": "ChwKGkNLSEt5ZldtZ3BRREZVc0kxZ0FkTmRVNTBn",
+                    "authorAvatar": {
+                      "avatarViewModel": {
+                        "image": {
+                          "sources": [
+                            {
+                              "url": "https://yt4.ggpht.com/ytc/AIdro_kxKFy47u3Kv9yH8eQIPFcxR3iD4lub6s2Fxcsch3_Uy54=s32-c-k-c0x00ffffff-no-rj",
+                              "width": 32,
+                              "height": 32
+                            },
+                            {
+                              "url": "https://yt4.ggpht.com/ytc/AIdro_kxKFy47u3Kv9yH8eQIPFcxR3iD4lub6s2Fxcsch3_Uy54=s64-c-k-c0x00ffffff-no-rj",
+                              "width": 64,
+                              "height": 64
+                            }
+                          ],
+                          "processor": {
+                            "borderImageProcessor": {
+                              "circular": true
+                            }
+                          }
+                        },
+                        "avatarImageSize": "AVATAR_SIZE_XS"
+                      }
+                    },
+                    "giftImage": {
+                      "sources": [
+                        {
+                          "url": "//www.gstatic.com/youtube/img/pdg/gift/assets/sparkles_v2_320x320.png=w480-h480",
+                          "width": 480,
+                          "height": 480
+                        },
+                        {
+                          "url": "//www.gstatic.com/youtube/img/pdg/gift/assets/sparkles_v2_320x320.png=w640-h640",
+                          "width": 640,
+                          "height": 640
+                        }
+                      ]
+                    },
+                    "giftImageA11yLabel": "@franciscosaranteheredia1890 sent a gift, Sparkles",
+                    "rendererContext": {
+                      "loggingContext": {
+                        "loggingDirectives": {
+                          "trackingParams": "CAIQ9p4PIhMI--y79qaClAMVqot8Bh3mCRhi",
+                          "visibility": {
+                            "types": "12"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "clientId": "CKHKyfWmgpQDFUsI1gAdNdU50g"
               }
             }
             """;
