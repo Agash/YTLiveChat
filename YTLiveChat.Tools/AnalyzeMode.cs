@@ -65,6 +65,11 @@ internal static class AnalyzeMode
                 "headerOverlayImage",
                 "lowerBumper",
                 "pdgPurchasedNoveltyLoggingDirectives",
+                // Present on ~98% of ticker stickers: purchase description + visual gradient
+                "purchaseText",
+                "backgroundGradient",
+                // UI-only interaction widget (same as on liveChatPaidMessageRenderer)
+                "creatorHeartButton",
             ],
             ["liveChatMembershipItemRenderer"] =
             [
@@ -114,6 +119,8 @@ internal static class AnalyzeMode
                 "actionId", "viewerIsCreator", "targetId",
                 "isStackable", "backgroundType", "bannerProperties", "bannerType",
                 "clickTrackingParams",
+                // UI-only collapse/expand commands (observed on pinned-message banners)
+                "onCollapseCommand", "onExpandCommand",
             ],
             ["liveChatBannerRedirectRenderer"] =
             [
@@ -122,6 +129,22 @@ internal static class AnalyzeMode
                 "clickTrackingParams",
                 // Logging/accessibility context — observed on ~12% of redirect banners
                 "rendererContext",
+            ],
+            ["liveChatBannerChatSummaryRenderer"] =
+            [
+                "liveChatSummaryId", "chatSummary",
+                // UI-only interaction fields: feedback buttons + icon
+                "collapsedStateEntityKey",
+                "dislikeFeedbackButton", "likeFeedbackButton",
+                "icon",
+                "trackingParams", "clickTrackingParams",
+            ],
+            ["liveChatCallForQuestionsRenderer"] =
+            [
+                "questionMessage", "creatorAuthorName", "creatorAvatar", "featureLabel",
+                "clickTrackingParams",
+                // UI-only: separator dot ("·") and overflow menu button
+                "contentSeparator", "overflowMenuButton",
             ],
 
             // ── Poll (showLiveChatActionPanelAction / updateLiveChatPollAction) ─
@@ -140,6 +163,8 @@ internal static class AnalyzeMode
             ["giftMessageViewModel"] =
             [
                 "id", "text", "authorName", "image", "imageA11yLabel", "rendererContext",
+                // Present on ~45% of gifts: URL-based gift image, its a11y label, and author avatar
+                "giftImage", "giftImageA11yLabel", "authorAvatar",
             ],
 
             // ── addLiveChatTickerItemAction outer item renderers ──────────────
@@ -204,6 +229,8 @@ internal static class AnalyzeMode
         "navigationEndpoint", "fontFace",
         // Per-run ARGB color tint (observed on liveChatBannerRedirectRenderer.bannerMessage runs)
         "textColor",
+        // De-emphasized styling (observed on liveChatBannerChatSummaryRenderer.chatSummary runs)
+        "deemphasize",
     };
 
     // Every JSON property name we have ever seen or modelled, at any nesting depth.
@@ -234,6 +261,9 @@ internal static class AnalyzeMode
         "liveChatReportModerationStateCommand",
         "signalAction",
         "changeEngagementPanelVisibilityAction",
+        // Gift animation overlay widgets — companion to giftMessageViewModel, purely visual
+        "addInteractivityWidgetAction",
+        "updateOrAddInteractivityWidgetAction",
 
         // ── Action payload fields ─────────────────────────────────────────────
         "item",
@@ -262,6 +292,8 @@ internal static class AnalyzeMode
         "liveChatBannerRenderer",
         "liveChatBannerHeaderRenderer",
         "liveChatBannerRedirectRenderer",
+        "liveChatBannerChatSummaryRenderer",
+        "liveChatCallForQuestionsRenderer",
         "liveChatActionPanelRenderer",
         "liveChatSponsorshipsHeaderRenderer",
         "liveChatItemContextMenuRenderer",
@@ -308,6 +340,8 @@ internal static class AnalyzeMode
         "moneyChipBackgroundColor", "moneyChipTextColor", "backgroundColor",
         "stickerDisplayWidth", "stickerDisplayHeight",
         "headerOverlayImage", "lowerBumper", "pdgPurchasedNoveltyLoggingDirectives",
+        // Present on ~98% of ticker stickers
+        "purchaseText", "backgroundGradient",
 
         // ── Membership ────────────────────────────────────────────────────────
         "headerPrimaryText", "headerSubtext",
@@ -334,6 +368,11 @@ internal static class AnalyzeMode
         "autoCollapseDelay", "seconds", "bannerCollapsedStateEntityKey",
         "inlineActionButton", "bannerActionButton", "contextMenuButton",
         "bannerMessage",
+        // Chat summary banner fields
+        "liveChatSummaryId", "chatSummary",
+        "collapsedStateEntityKey", "dislikeFeedbackButton", "likeFeedbackButton",
+        // Call-for-questions banner fields
+        "questionMessage", "creatorAuthorName", "creatorAvatar", "featureLabel",
 
         // ── Poll ──────────────────────────────────────────────────────────────
         "liveChatPollId", "choices", "selected",
@@ -381,6 +420,8 @@ internal static class AnalyzeMode
 
         // ── YouTube Jewels gift view model ────────────────────────────────────
         "imageA11yLabel",
+        // Present on ~45% of gifts: URL-based gift image + a11y label + author avatar
+        "giftImage", "giftImageA11yLabel", "authorAvatar",
 
         // ── Content + styleRuns (ViewModel text containers) ───────────────────
         "content", "styleRuns", "startIndex", "length",
@@ -409,7 +450,7 @@ internal static class AnalyzeMode
         "defaultButtonViewModel", "toggledButtonViewModel",
         "likeCountEntityKey", "likeIcon", "likedIcon",
         "likesEmptyStateText", "emptyStateText",
-        "buttonSize", "customBackgroundColor", "customFontColor", "type",
+        "buttonSize", "customBackgroundColor", "customFontColor", "type", "iconTrailing",
 
         // ── Ticker state animation ────────────────────────────────────────────
         "stateSlideDirection", "stateSlideDurationMs",
@@ -428,6 +469,48 @@ internal static class AnalyzeMode
         // ── Moderation / report state ─────────────────────────────────────────
         // (liveChatReportModerationStateCommand payload — opaque, not modelled)
         "moderationState",
+
+        // ── Banner UI controls ────────────────────────────────────────────────
+        // onCollapseCommand/onExpandCommand: fold animation on pinned-message banners
+        "onCollapseCommand", "onExpandCommand",
+        // contentSeparator: "·" separator dot in liveChatCallForQuestionsRenderer
+        // overflowMenuButton: "⋮" overflow menu in liveChatCallForQuestionsRenderer
+        "contentSeparator", "overflowMenuButton",
+
+        // ── Run text styling ──────────────────────────────────────────────────
+        // deemphasize: subdued style on summary banner runs (already in MessageText model)
+        "deemphasize",
+
+        // ── addInteractivityWidgetAction / updateOrAddInteractivityWidgetAction ─
+        // These two action types are already classified as silent (purely visual gift
+        // animations). All keys below live inside their payloads and are listed here
+        // to suppress false-positive "Unknown JSON Key" reports in the analyzer.
+        "interactivityWidgetRenderer", "widgetRenderer",
+        "elementRenderer", "compatibilityOptions",
+        "liveChatId", "liveChatAuthorExternalChannelId",
+        "enterAnimation", "exitAnimation",
+        "giftA11yLabel",
+        "giftAttributionItemViewModel", "attributionImage",
+        "giftOverlayItemViewModel", "overlayImage",
+        "imageDisplayHeight", "imageDisplayWidth",
+        "overlayImageDisplayHeight", "overlayImageDisplayWidth",
+        "overlayImageHeightPercentageOfWindow",
+        "shouldScaleOverlayImageDynamically",
+        "contentMode",
+        "companionWidgetRenderer",
+        "timeoutMs", "priority", "queueId", "preloadImages",
+        "position", "matrix", "layout", "rows", "columns", "packedData",
+        "specialPlacement",
+        "onWidgetShown",
+        "comboCount", "comboDecorationImage", "displayImmediately",
+        "entityUpdateCommand", "entityBatchUpdate", "mutations",
+        "booleanEntity", "entityKey", "key", "payload", "value",
+        "startX", "startY", "endX", "endY",
+        "colors", "positions",
+        "apiUrl", "sendPost",
+        "elementsCommand", "setEntityCommand", "entity",
+        "avatarViewModel", "avatarImageSize", "circular",
+        "multiSelectorThumbnailRow",
     };
 
     // ── Data structures ───────────────────────────────────────────────────────

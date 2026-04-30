@@ -362,6 +362,16 @@ static void TryDumpAction(
         return;
     }
 
+    if (options.DumpLimit.HasValue && dumpedActions.Count >= options.DumpLimit.Value)
+    {
+        return;
+    }
+
+    if (options.FilterHasField != null && !HasFieldAnywhere(action, options.FilterHasField))
+    {
+        return;
+    }
+
     dumpedActions.Add(action.Clone());
 }
 
@@ -382,6 +392,11 @@ static void TryDumpRenderer(
         return;
     }
 
+    if (options.DumpLimit.HasValue && dumpedRenderers.Count >= options.DumpLimit.Value)
+    {
+        return;
+    }
+
     if (options.FilterSubtext != null)
     {
         string? headerSubtext = LogReader.TryGetSimpleText(rendererValue, "headerSubtext")
@@ -398,7 +413,47 @@ static void TryDumpRenderer(
         }
     }
 
+    if (options.FilterHasField != null && !HasFieldAnywhere(rendererValue, options.FilterHasField))
+    {
+        return;
+    }
+
     dumpedRenderers.Add(rendererValue.Clone());
+}
+
+/// <summary>
+/// Returns true if <paramref name="element"/> contains a property named
+/// <paramref name="fieldName"/> at any nesting depth.
+/// </summary>
+static bool HasFieldAnywhere(JsonElement element, string fieldName)
+{
+    if (element.ValueKind == JsonValueKind.Object)
+    {
+        foreach (JsonProperty property in element.EnumerateObject())
+        {
+            if (property.Name.Equals(fieldName, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (HasFieldAnywhere(property.Value, fieldName))
+            {
+                return true;
+            }
+        }
+    }
+    else if (element.ValueKind == JsonValueKind.Array)
+    {
+        foreach (JsonElement item in element.EnumerateArray())
+        {
+            if (HasFieldAnywhere(item, fieldName))
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 static void AnalyzeRenderer(
@@ -460,6 +515,8 @@ static Options ParseOptions(string[] args)
     string? dumpRenderer = null;
     string? dumpAction = null;
     string? filterSubtext = null;
+    string? filterHasField = null;
+    int? dumpLimit = null;
     string? dumpOutput = null;
 
     foreach (string arg in args)
@@ -503,6 +560,25 @@ static Options ParseOptions(string[] args)
             continue;
         }
 
+        const string filterHasFieldPrefix = "--filter-has-field=";
+        if (arg.StartsWith(filterHasFieldPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            filterHasField = arg[filterHasFieldPrefix.Length..];
+            continue;
+        }
+
+        const string limitPrefix = "--limit=";
+        if (arg.StartsWith(limitPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            string rawValue = arg[limitPrefix.Length..];
+            if (int.TryParse(rawValue, out int parsed) && parsed > 0)
+            {
+                dumpLimit = parsed;
+            }
+
+            continue;
+        }
+
         const string dumpOutputPrefix = "--dump-output=";
         if (arg.StartsWith(dumpOutputPrefix, StringComparison.OrdinalIgnoreCase))
         {
@@ -521,7 +597,7 @@ static Options ParseOptions(string[] args)
 
     // Expand any directory paths to *.jsonl files within them
     List<string> expandedPaths = [.. LogReader.ExpandPaths(paths)];
-    return new(expandedPaths, enableVariants, maxVariantRows, dumpRenderer, dumpAction, filterSubtext, dumpOutput);
+    return new(expandedPaths, enableVariants, maxVariantRows, dumpRenderer, dumpAction, filterSubtext, filterHasField, dumpLimit, dumpOutput);
 }
 
 static Options PromptOptionsInteractive()
@@ -563,7 +639,7 @@ static Options PromptOptionsInteractive()
     }
 
     List<string> expandedInteractive = [.. LogReader.ExpandPaths(paths)];
-    return new(expandedInteractive, enableVariants, maxVariantRows, DumpRenderer: null, DumpAction: null, FilterSubtext: null, DumpOutput: null);
+    return new(expandedInteractive, enableVariants, maxVariantRows, DumpRenderer: null, DumpAction: null, FilterSubtext: null, FilterHasField: null, DumpLimit: null, DumpOutput: null);
 }
 
 static void PrintUsage()
@@ -593,6 +669,9 @@ static void PrintUsage()
     Console.WriteLine("    --dump-action=<name>        Extract full JSON for all matching top-level action types.");
     Console.WriteLine("                                Use for non-renderer actions: banners, polls, fanzone chips, etc.");
     Console.WriteLine("    --filter-subtext=<prefix>   With --dump-renderer: filter by headerSubtext/headerPrimaryText prefix.");
+    Console.WriteLine("    --filter-has-field=<name>   With --dump-renderer/--dump-action: only include results where the given");
+    Console.WriteLine("                                field name exists anywhere in the JSON (at any nesting depth).");
+    Console.WriteLine("    --limit=<n>                 Cap the number of dumped results. Useful for extracting one sample.");
     Console.WriteLine("    --dump-output=<path>        Write dumped JSON to a file instead of stdout.");
     Console.WriteLine();
     Console.WriteLine("  Examples:");
@@ -607,6 +686,12 @@ static void PrintUsage()
     Console.WriteLine();
     Console.WriteLine("    # Extract membership upgrades by prefix filter:");
     Console.WriteLine("    dotnet run --project YTLiveChat.Tools -- count --dump-renderer=liveChatMembershipItemRenderer --filter-subtext=\"Upgraded\" --dump-output=upgrades.json log.json");
+    Console.WriteLine();
+    Console.WriteLine("    # Find first gift message with an authorAvatar (for test data extraction):");
+    Console.WriteLine("    dotnet run --project YTLiveChat.Tools -- count --dump-renderer=giftMessageViewModel --filter-has-field=authorAvatar --limit=1 logs/");
+    Console.WriteLine();
+    Console.WriteLine("    # Find paid stickers with a lowerBumper:");
+    Console.WriteLine("    dotnet run --project YTLiveChat.Tools -- count --dump-renderer=liveChatPaidStickerRenderer --filter-has-field=lowerBumper --limit=3 --dump-output=stickers_bumper.json logs/");
     Console.WriteLine();
     Console.WriteLine("━━━ analyze ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     Console.WriteLine("  dotnet run --project YTLiveChat.Tools -- analyze [options] <logPath|dir> [...]");
@@ -878,5 +963,7 @@ internal sealed record Options(
     string? DumpRenderer,
     string? DumpAction,
     string? FilterSubtext,
+    string? FilterHasField,
+    int? DumpLimit,
     string? DumpOutput
 );

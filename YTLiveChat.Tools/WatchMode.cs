@@ -46,6 +46,9 @@ internal static class WatchMode
         // Fanzone ticker chip — members-only event UI chip, no parseable data content.
         "showFanzoneTickerChipCommand",
         "removeFanzoneTickerChipCommand",
+        // Gift animation overlays — companion to giftMessageViewModel, purely visual.
+        "addInteractivityWidgetAction",
+        "updateOrAddInteractivityWidgetAction",
     };
 
     // Combined set used to gate the default-mode "is this action unknown?" check.

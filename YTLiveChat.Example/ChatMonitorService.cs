@@ -42,6 +42,9 @@ internal class ChatMonitorService : IHostedService, IDisposable
         "liveChatReportModerationStateCommand",
         "showFanzoneTickerChipCommand",
         "removeFanzoneTickerChipCommand",
+        // Gift animation overlays — companion to giftMessageViewModel, purely visual.
+        "addInteractivityWidgetAction",
+        "updateOrAddInteractivityWidgetAction",
     };
 
     // addChatItemAction renderer types that the library handles (dedicated event or silent).
