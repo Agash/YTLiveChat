@@ -16,6 +16,7 @@
     <MinVerTagPrefix>v</MinVerTagPrefix>
     <Copyright>Copyright (c) Agash 2025</Copyright>
     <RepositoryUrl>https://github.com/Agash/YTLiveChat.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>

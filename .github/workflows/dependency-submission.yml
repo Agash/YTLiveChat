@@ -30,6 +30,12 @@ jobs:
             10.0.x
             11.0.x
 
+      - name: Restore
+        # component-detection reads obj/project.assets.json; on a bare checkout it finds nothing and
+        # submits an empty snapshot. Restore is what turns PackageReference into resolved versions
+        # and transitive dependencies, which is the whole reason to submit a graph by hand.
+        run: dotnet restore
+
       - name: Detect and submit dependencies
         uses: advanced-security/component-detection-dependency-submission-action@v0.1.4
         with:
