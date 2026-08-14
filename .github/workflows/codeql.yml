@@ -24,14 +24,14 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           submodules: recursive
 
       - name: Setup .NET SDK
         # Install both SDKs and let global.json pick: setup-dotnet resolving the pinned preview from
         # global.json alone left the runner on its preinstalled 10.0.x, which cannot target net11.0.
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: |
             10.0.x
