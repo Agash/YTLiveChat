@@ -1,0 +1,34 @@
+name: Dependabot auto-merge
+
+# Queues Dependabot's routine updates for merge instead of leaving them to be clicked through one at
+# a time. Nothing is merged early: branch protection still requires the build and the CodeQL analysis
+# to pass, and auto-merge only completes once they do.
+#
+# Major updates are deliberately excluded. They are the ones that change behaviour, and the grouping
+# in dependabot.yml already keeps each of them on its own pull request so it can be read.
+on: pull_request_target
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    name: Enable auto-merge
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    steps:
+      # pull_request_target runs with a writable token against the base repository, so nothing from
+      # the pull request's own code is checked out or executed here.
+      - name: Fetch update metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge
+        if: steps.metadata.outputs.update-type != 'version-update:semver-major'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

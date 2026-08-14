@@ -25,6 +25,12 @@ jobs:
   build_test_and_pack:
     name: Build, Test, and Pack NuGet Packages
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Signing the provenance statement for the packages this job produces. Stated explicitly
+      # because attestation needs more than the read-only default.
+      id-token: write
+      attestations: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v7
@@ -70,6 +76,13 @@ jobs:
       - name: List Packages Created
         run: Get-ChildItem "${{ env.NuGetDirectory }}" -Recurse -Include *.nupkg | Select-Object FullName, Length
 
+      - name: Attest build provenance
+        # Records, in a signed statement GitHub hosts, which workflow and which commit produced these
+        # exact package files. Anyone who downloads the package can verify it came from this repository
+        # rather than from someone who republished it under the same name.
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: ${{ env.NuGetDirectory }}/*.nupkg
       - name: Upload NuGet Packages Artifact
         uses: actions/upload-artifact@v7
         with:
