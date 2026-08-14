@@ -1,0 +1,28 @@
+name: Feature request
+description: Suggest a capability for YTLiveChat.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do that this library makes hard or impossible today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like instead
+      description: Sketch the API or behaviour if you have one in mind.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you have considered
+  - type: checkboxes
+    id: upstream
+    attributes:
+      label: Upstream support
+      options:
+        - label: The upstream API/service already supports this (link the docs above if so).

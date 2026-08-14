@@ -1,11 +1,53 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
-
 version: 2
+
+# Grouped so a weekly refresh lands as a few reviewable pull requests rather than one per package.
+# Groups are matched in order: a package claimed by an earlier group does not fall through to a later
+# one. Majors are deliberately left ungrouped so each arrives on its own and gets read properly.
 updates:
-  - package-ecosystem: "nuget" # See documentation for possible values
-    directory: "/" # Location of package manifests
+  - package-ecosystem: nuget
+    directory: "/"
     schedule:
-      interval: "weekly"
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      dotnet-platform:
+        patterns:
+          - "Microsoft.Extensions.*"
+          - "Microsoft.NETCore.*"
+          - "System.*"
+        update-types: ["minor", "patch"]
+      testing:
+        patterns:
+          - "MSTest*"
+          - "Microsoft.Testing.*"
+          - "Microsoft.NET.Test.Sdk"
+          - "coverlet*"
+          - "NSubstitute*"
+        update-types: ["minor", "patch"]
+      build-tooling:
+        patterns:
+          - "MinVer"
+          - "DotNet.ReproducibleBuilds"
+          - "Microsoft.SourceLink.*"
+        update-types: ["minor", "patch"]
+      nuget-minor-and-patch:
+        patterns:
+          - "*"
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: ci
+    groups:
+      github-actions:
+        patterns:
+          - "*"

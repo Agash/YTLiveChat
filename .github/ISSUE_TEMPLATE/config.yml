@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or usage help
+    url: ../../discussions
+    about: Ask about usage here rather than opening a bug report.
+  - name: Report a security vulnerability
+    url: ../../security/advisories/new
+    about: Please report security issues privately, never as a public issue.
