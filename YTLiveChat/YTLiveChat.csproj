@@ -1,5 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <!-- Reproducibility is delegated to DotNet.ReproducibleBuilds rather than restated here.
+         It sets DebugType to embedded (so the portable PDB with its Source Link map travels
+         inside the assembly and no symbol package is needed), turns on
+         ContinuousIntegrationBuild for every CI provider it recognises, and publishes the
+         repository URL, branch and commit into the nuspec. Source Link itself ships in the
+         SDK. Deterministic is already the SDK default. -->
     <Authors>Agash Thamo.</Authors>
     <Description>InnerTube API for YouTube LiveChat to get Live Chat messages without API restrictions. Mainly intended for use in application for the streamer.</Description>
     <PackageProjectUrl>https://github.com/Agash/YTLiveChat/</PackageProjectUrl>
@@ -18,7 +24,6 @@
     <RepositoryUrl>https://github.com/Agash/YTLiveChat.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>

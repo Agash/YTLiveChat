@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Authors>Agash Thamo.</Authors>
     <Description>Dependency Injection extensions for Agash.YTLiveChat library.</Description>
@@ -21,10 +21,7 @@
     <RepositoryUrl>https://github.com/Agash/YTLiveChat.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <ItemGroup>
