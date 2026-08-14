@@ -1,0 +1,21 @@
+# Groups the auto-generated release notes by Conventional Commit type, so the generated notes read
+# like a changelog instead of a flat list of merged pull requests.
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+  categories:
+    - title: Breaking changes
+      labels: ["breaking-change", "breaking"]
+    - title: Features
+      labels: ["enhancement", "feature"]
+    - title: Fixes
+      labels: ["bug", "fix"]
+    - title: Performance
+      labels: ["performance"]
+    - title: Documentation
+      labels: ["documentation"]
+    - title: Dependencies
+      labels: ["dependencies"]
+    - title: Other changes
+      labels: ["*"]

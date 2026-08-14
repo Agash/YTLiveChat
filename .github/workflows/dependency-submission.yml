@@ -1,0 +1,36 @@
+name: Dependency submission
+
+# Populates GitHub's dependency graph for this repo. NuGet manifests are not parsed automatically
+# when versions come from Directory.Packages.props or transitive restore, so without this the graph
+# is empty: Dependabot has less to work with, the Insights > Dependencies tab is blank, and this
+# repo never shows up in the "Used by"/dependents view of the packages it consumes.
+on:
+  push:
+    branches: [master]
+  schedule:
+    # Weekly, so the graph does not drift when a dependency changes without a push.
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  submit:
+    name: Submit dependency graph
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            10.0.x
+            11.0.x
+
+      - name: Detect and submit dependencies
+        uses: advanced-security/component-detection-dependency-submission-action@v0.1.4
+        with:
+          filePath: .
