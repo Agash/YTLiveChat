@@ -20,7 +20,9 @@ internal class ChatMonitorService : IHostedService, IDisposable
     private readonly CancellationTokenSource _stoppingCts = new();
 
     private readonly List<MonitorSession> _sessions = [];
-    private readonly object _sessionLock = new();
+    // System.Threading.Lock rather than a bare object: the compiler binds `lock` to its own
+    // Enter/Exit instead of Monitor, which is cheaper and makes the field's purpose explicit.
+    private readonly Lock _sessionLock = new();
 
     private static readonly object s_consoleLock = new();
 
