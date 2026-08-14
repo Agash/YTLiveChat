@@ -50,7 +50,7 @@ jobs:
         run: dotnet test --project YTLiveChat.Tests/YTLiveChat.Tests.csproj --configuration Release --framework net10.0 --no-build --report-trx --report-trx-filename test-results-net10.trx
 
       - name: Run Tests for .NET 8.0
-        run: dotnet test --project YTLiveChat.Tests/YTLiveChat.Tests.csproj --configuration Release --framework net8.0 --no-build --report-trx --report-trx-filename test-results-net8.trx
+        run: dotnet test --project YTLiveChat.Tests/YTLiveChat.Tests.csproj --configuration Release --framework net9.0 --no-build --report-trx --report-trx-filename test-results-net9.trx
       
       # Optional: Add a step to publish test results if you want them as artifacts or for PR checks
       - name: Upload Test Results

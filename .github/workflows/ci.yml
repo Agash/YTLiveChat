@@ -31,8 +31,58 @@ jobs:
       - name: Build
         run: dotnet build YTLiveChat.sln -c Release --no-restore
 
-      - name: Test (net8.0)
-        run: dotnet test --project YTLiveChat.Tests/YTLiveChat.Tests.csproj -c Release --framework net8.0 --no-build
+      - name: Test (net9.0)
+        run: dotnet test --project YTLiveChat.Tests/YTLiveChat.Tests.csproj -c Release --framework net9.0 --no-build
 
       - name: Test (net10.0)
-        run: dotnet test --project YTLiveChat.Tests/YTLiveChat.Tests.csproj -c Release --framework net10.0 --no-build
+        run: dotnet test --project YTLiveChat.Tests/YTLiveChat.Tests.csproj -c Release --framework net10.0 --no-build -- --coverage --coverage-settings coverage.settings.xml --coverage-output-format cobertura --coverage-output coverage.cobertura.xml
+
+      - name: Summarize coverage
+        # Renders the cobertura totals into the run summary. Uploading the raw XML alone means nobody
+        # ever looks at it; this puts the numbers on the run page itself.
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import glob, xml.etree.ElementTree as ET
+
+          files = sorted(glob.glob('**/coverage.cobertura.xml', recursive=True))
+          if not files:
+              print('### Coverage\n\nNo coverage report was produced.')
+              raise SystemExit(0)
+
+          # Multi-targeted runs emit one report per TFM; they cover the same code, so report the first
+          # and note how many were produced rather than double-counting.
+          root = ET.parse(files[0]).getroot()
+
+          def pct(attr):
+              return float(root.get(attr) or 0) * 100
+
+          print('### Coverage\n')
+          print('| Metric | Covered | Total | Rate |')
+          print('| --- | ---: | ---: | ---: |')
+          print(f"| Lines | {root.get('lines-covered')} | {root.get('lines-valid')} | {pct('line-rate'):.1f}% |")
+          print(f"| Branches | {root.get('branches-covered')} | {root.get('branches-valid')} | {pct('branch-rate'):.1f}% |")
+
+          packages = root.findall('.//package')
+          if packages:
+              print('\n<details><summary>Per assembly</summary>\n')
+              print('| Assembly | Lines | Branches |')
+              print('| --- | ---: | ---: |')
+              for p in sorted(packages, key=lambda p: p.get('name') or ''):
+                  lr = float(p.get('line-rate') or 0) * 100
+                  br = float(p.get('branch-rate') or 0) * 100
+                  print(f"| {p.get('name')} | {lr:.1f}% | {br:.1f}% |")
+              print('\n</details>')
+
+          if len(files) > 1:
+              print(f"\n_{len(files)} reports produced (one per target framework); totals shown for `{files[0]}`._")
+          PY
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage
+          if-no-files-found: warn
+          path: '**/coverage.cobertura.xml'

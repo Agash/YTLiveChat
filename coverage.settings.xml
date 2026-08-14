@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Coverage scope. Keeps the report to the hand-written library code: the test assembly itself and
+  anything a generator emitted are excluded, so the headline figure reflects code someone maintains.
+-->
+<Configuration>
+  <CodeCoverage>
+    <ModulePaths>
+      <Exclude>
+        <ModulePath>.*\.Generated\.dll$</ModulePath>
+        <ModulePath>.*\.Tests\.dll$</ModulePath>
+      </Exclude>
+    </ModulePaths>
+    <Attributes>
+      <Exclude>
+        <Attribute>^System\.Diagnostics\.CodeAnalysis\.ExcludeFromCodeCoverageAttribute$</Attribute>
+        <Attribute>^System\.CodeDom\.Compiler\.GeneratedCodeAttribute$</Attribute>
+      </Exclude>
+    </Attributes>
+  </CodeCoverage>
+</Configuration>

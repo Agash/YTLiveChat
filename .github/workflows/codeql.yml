@@ -29,9 +29,13 @@ jobs:
           submodules: recursive
 
       - name: Setup .NET SDK
+        # Install both SDKs and let global.json pick: setup-dotnet resolving the pinned preview from
+        # global.json alone left the runner on its preinstalled 10.0.x, which cannot target net11.0.
         uses: actions/setup-dotnet@v5
         with:
-          global-json-file: global.json
+          dotnet-version: |
+            10.0.x
+            11.0.x
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
