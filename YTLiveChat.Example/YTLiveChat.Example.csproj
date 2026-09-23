@@ -8,14 +8,16 @@
   </ItemGroup>
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
     <TargetFrameworks>net11.0;net10.0</TargetFrameworks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PublishAot>true</PublishAot>
     <!-- PublishAot puts the runtime pack in the dependency graph, where the SDK baseline resolves to
          an unpatched 10.0.x. Pin the patched one so security scanning sees what actually ships. -->
     <RuntimeFrameworkVersion Condition="'$(TargetFramework)' == 'net10.0'"
-      >10.0.11</RuntimeFrameworkVersion>
+      >10.0.12</RuntimeFrameworkVersion>
     <OptimizationPreference>speed</OptimizationPreference>
   </PropertyGroup>
 </Project>
