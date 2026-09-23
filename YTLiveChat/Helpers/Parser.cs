@@ -1,5 +1,5 @@
-using System.Text.RegularExpressions;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using YTLiveChat.Contracts.Models; // Use the contract namespace
 using YTLiveChat.Models; // Internal models namespace
 using YTLiveChat.Models.Response; // Internal response models namespace
@@ -105,12 +105,13 @@ internal static partial class Parser
     /// <summary>
     /// Extracts stream candidates from a channel streams page.
     /// </summary>
-    public static IReadOnlyList<StreamPageCandidate> ExtractStreamCandidatesFromStreamsPage(string raw)
+    public static IReadOnlyList<StreamPageCandidate> ExtractStreamCandidatesFromStreamsPage(
+        string raw
+    )
     {
         // Prefer structured JSON traversal when available; regex extraction remains as fallback.
-        IReadOnlyList<StreamPageCandidate> jsonCandidates = ExtractStreamCandidatesFromStreamsPageJson(
-            raw
-        );
+        IReadOnlyList<StreamPageCandidate> jsonCandidates =
+            ExtractStreamCandidatesFromStreamsPageJson(raw);
         if (jsonCandidates.Count > 0)
         {
             return jsonCandidates;
@@ -148,7 +149,8 @@ internal static partial class Parser
             }
 
             string viewCount = viewCountText ?? string.Empty;
-            bool isLive = string.Equals(overlayStyle, "LIVE", StringComparison.OrdinalIgnoreCase)
+            bool isLive =
+                string.Equals(overlayStyle, "LIVE", StringComparison.OrdinalIgnoreCase)
                 || viewCount.IndexOf("watching", StringComparison.OrdinalIgnoreCase) >= 0;
 
             bool isUpcoming =
@@ -283,11 +285,11 @@ internal static partial class Parser
         string? viewCountText = ExtractViewCountText(videoRenderer);
         long? upcomingStartTime = ExtractUpcomingStartTime(videoRenderer);
 
-        bool isLive = string.Equals(overlayStyle, "LIVE", StringComparison.OrdinalIgnoreCase)
-            || (
-                viewCountText?.IndexOf("watching", StringComparison.OrdinalIgnoreCase) >= 0
-            );
-        bool isUpcoming = string.Equals(overlayStyle, "UPCOMING", StringComparison.OrdinalIgnoreCase)
+        bool isLive =
+            string.Equals(overlayStyle, "LIVE", StringComparison.OrdinalIgnoreCase)
+            || (viewCountText?.IndexOf("watching", StringComparison.OrdinalIgnoreCase) >= 0);
+        bool isUpcoming =
+            string.Equals(overlayStyle, "UPCOMING", StringComparison.OrdinalIgnoreCase)
             || upcomingStartTime.HasValue
             || (viewCountText?.IndexOf("waiting", StringComparison.OrdinalIgnoreCase) >= 0);
 
@@ -298,10 +300,12 @@ internal static partial class Parser
 
         // Extract best thumbnail (last entry = highest resolution)
         string? thumbnailUrl = null;
-        if (videoRenderer.TryGetProperty("thumbnail", out JsonElement thumbContainer)
+        if (
+            videoRenderer.TryGetProperty("thumbnail", out JsonElement thumbContainer)
             && thumbContainer.TryGetProperty("thumbnails", out JsonElement thumbs)
             && thumbs.ValueKind == JsonValueKind.Array
-            && thumbs.GetArrayLength() > 0)
+            && thumbs.GetArrayLength() > 0
+        )
         {
             JsonElement lastThumb = thumbs[thumbs.GetArrayLength() - 1];
             if (lastThumb.TryGetProperty("url", out JsonElement urlEl))
@@ -391,12 +395,14 @@ internal static partial class Parser
         }
 
         bool hasUnplayableStatus =
-            raw.IndexOf("\"playabilityStatus\":{\"status\":\"UNPLAYABLE\"", StringComparison.Ordinal)
-            >= 0
+            raw.IndexOf(
+                "\"playabilityStatus\":{\"status\":\"UNPLAYABLE\"",
+                StringComparison.Ordinal
+            ) >= 0
             || raw.IndexOf("\"status\":\"UNPLAYABLE\"", StringComparison.Ordinal) >= 0;
         bool hasMembersOnlyMarker =
             raw.IndexOf("playerLegacyDesktopYpcOfferRenderer", StringComparison.OrdinalIgnoreCase)
-            >= 0
+                >= 0
             || raw.IndexOf("BADGE_STYLE_TYPE_MEMBERS_ONLY", StringComparison.OrdinalIgnoreCase) >= 0
             || raw.IndexOf("SPONSORSHIP_STAR", StringComparison.OrdinalIgnoreCase) >= 0;
         if (hasUnplayableStatus && hasMembersOnlyMarker)
@@ -432,7 +438,8 @@ internal static partial class Parser
             return shortText;
         }
 
-        return videoRenderer.TryGetProperty("viewCountText", out JsonElement viewCount)
+        return
+            videoRenderer.TryGetProperty("viewCountText", out JsonElement viewCount)
             && TryReadTextFromRunsOrSimple(viewCount, out string? viewText)
             ? viewText
             : null;
@@ -833,7 +840,12 @@ internal static partial class Parser
         // carries the same @handle as a secondary path (observed on all ticker paid-message outer items).
         string? tickerChannelHandle =
             tickerOuterItem?.LiveChatTickerPaidMessageItemRenderer?.AuthorUsername?.Text
-            ?? tickerOuterItem?.LiveChatTickerPaidMessageItemRenderer?.AuthorPhoto?.Accessibility?.AccessibilityData?.Label;
+            ?? tickerOuterItem
+                ?.LiveChatTickerPaidMessageItemRenderer
+                ?.AuthorPhoto
+                ?.Accessibility
+                ?.AccessibilityData
+                ?.Label;
         string? tickerChannelId =
             tickerOuterItem?.LiveChatTickerPaidMessageItemRenderer?.AuthorExternalChannelId
             ?? tickerOuterItem?.LiveChatTickerSponsorItemRenderer?.AuthorExternalChannelId
@@ -846,10 +858,7 @@ internal static partial class Parser
         Contracts.Models.Author author = new() // Use contract type
         {
             Name = baseRenderer.AuthorName?.Text ?? "Unknown Author",
-            ChannelId =
-                baseRenderer.AuthorExternalChannelId
-                ?? tickerChannelId
-                ?? string.Empty,
+            ChannelId = baseRenderer.AuthorExternalChannelId ?? tickerChannelId ?? string.Empty,
             Thumbnail =
                 baseRenderer.AuthorPhoto?.Thumbnails?.ToImage(baseRenderer.AuthorName?.Text)
                 ?? tickerThumbnailList?.Thumbnails?.ToImage(baseRenderer.AuthorName?.Text),
@@ -937,7 +946,10 @@ internal static partial class Parser
         // This is a direct rank string, present on ~5% of super chats.
         if (viewerLeaderboardRank == null)
         {
-            string? badgeTitle = item.LiveChatPaidMessageRenderer?.LeaderboardBadge?.ButtonViewModel?.Title;
+            string? badgeTitle = item.LiveChatPaidMessageRenderer
+                ?.LeaderboardBadge
+                ?.ButtonViewModel
+                ?.Title;
             if (
                 badgeTitle is not null
                 && badgeTitle.StartsWith("#", StringComparison.Ordinal)
@@ -1374,11 +1386,7 @@ internal static partial class Parser
         Thumbnail? thumbnail = thumbnails?.LastOrDefault();
         return thumbnail == null || thumbnail.Url == null
             ? null
-            : new Contracts.Models.ImagePart
-            {
-                Url = thumbnail.Url,
-                Alt = alt,
-            };
+            : new Contracts.Models.ImagePart { Url = thumbnail.Url, Alt = alt };
     }
 
     /// <summary>
@@ -1392,11 +1400,7 @@ internal static partial class Parser
         Source? source = sources?.LastOrDefault();
         return source == null || source.Url == null
             ? null
-            : new Contracts.Models.ImagePart
-            {
-                Url = source.Url,
-                Alt = alt,
-            };
+            : new Contracts.Models.ImagePart { Url = source.Url, Alt = alt };
     }
 
     /// <summary>
@@ -1462,7 +1466,8 @@ internal static partial class Parser
         bool isNew = action.ShowLiveChatActionPanelAction != null;
         PollRenderer? pollRenderer =
             action.UpdateLiveChatPollAction?.PollToUpdate?.PollRenderer
-            ?? action.ShowLiveChatActionPanelAction
+            ?? action
+                .ShowLiveChatActionPanelAction
                 ?.PanelToShow
                 ?.LiveChatActionPanelRenderer
                 ?.Contents
@@ -1509,8 +1514,11 @@ internal static partial class Parser
 
         // Extract poll question (frequently empty in the wild)
         Contracts.Models.MessagePart[]? question = null;
-        List<MessageRun>? questionRuns =
-            pollRenderer.Header?.PollHeaderRenderer?.PollQuestion?.Runs;
+        List<MessageRun>? questionRuns = pollRenderer
+            .Header
+            ?.PollHeaderRenderer
+            ?.PollQuestion
+            ?.Runs;
         if (questionRuns is { Count: > 0 })
         {
             Contracts.Models.MessagePart[] parts = questionRuns.ToMessageParts();
@@ -1558,8 +1566,10 @@ internal static partial class Parser
     /// </summary>
     public static Contracts.Models.BannerItem? ToBannerItem(this Action action)
     {
-        LiveChatBannerRenderer? banner =
-            action.AddBannerToLiveChatCommand?.BannerRenderer?.LiveChatBannerRenderer;
+        LiveChatBannerRenderer? banner = action
+            .AddBannerToLiveChatCommand
+            ?.BannerRenderer
+            ?.LiveChatBannerRenderer;
         if (banner is null)
             return null;
 
@@ -1573,15 +1583,17 @@ internal static partial class Parser
         if (headerText?.Runs is not null)
         {
             pinnedBy = string.Concat(
-                headerText.Runs.OfType<MessageText>().Select(r => r.Text ?? string.Empty)
-            ).Trim();
+                    headerText.Runs.OfType<MessageText>().Select(r => r.Text ?? string.Empty)
+                )
+                .Trim();
             if (string.IsNullOrEmpty(pinnedBy))
                 pinnedBy = null;
         }
 
         // ── Chat summary banner (LIVE_CHAT_BANNER_TYPE_CHAT_SUMMARY) ──
-        LiveChatBannerChatSummaryRenderer? summaryRenderer =
-            banner.Contents?.LiveChatBannerChatSummaryRenderer;
+        LiveChatBannerChatSummaryRenderer? summaryRenderer = banner
+            .Contents
+            ?.LiveChatBannerChatSummaryRenderer;
         if (summaryRenderer is not null)
         {
             return new Contracts.Models.ChatSummaryBannerItem
@@ -1594,8 +1606,9 @@ internal static partial class Parser
         }
 
         // ── Call-for-questions (Q&A) banner ──────────────────────────────────
-        LiveChatCallForQuestionsRenderer? qnaRenderer =
-            banner.Contents?.LiveChatCallForQuestionsRenderer;
+        LiveChatCallForQuestionsRenderer? qnaRenderer = banner
+            .Contents
+            ?.LiveChatCallForQuestionsRenderer;
         if (qnaRenderer is not null)
         {
             return new Contracts.Models.CallForQuestionsBannerItem
@@ -1612,8 +1625,9 @@ internal static partial class Parser
         }
 
         // ── Redirect banner (LIVE_CHAT_BANNER_TYPE_CROSS_CHANNEL_REDIRECT) ──
-        LiveChatBannerRedirectRenderer? redirectRenderer =
-            banner.Contents?.LiveChatBannerRedirectRenderer;
+        LiveChatBannerRedirectRenderer? redirectRenderer = banner
+            .Contents
+            ?.LiveChatBannerRedirectRenderer;
         if (redirectRenderer is not null)
         {
             // Extract the bold run as the redirect-target channel @handle.
@@ -1622,7 +1636,10 @@ internal static partial class Parser
             {
                 foreach (MessageRun run in redirectRenderer.BannerMessage.Runs)
                 {
-                    if (run is MessageText { Bold: true } boldRun && !string.IsNullOrEmpty(boldRun.Text))
+                    if (
+                        run is MessageText { Bold: true } boldRun
+                        && !string.IsNullOrEmpty(boldRun.Text)
+                    )
                     {
                         redirectHandle = boldRun.Text;
                         break;
@@ -1631,8 +1648,12 @@ internal static partial class Parser
             }
 
             // Null when the button is a "Learn more" link (urlEndpoint) rather than a "Go now" watchEndpoint.
-            string? redirectVideoId = redirectRenderer.InlineActionButton
-                ?.ButtonRenderer?.Command?.WatchEndpoint?.VideoId;
+            string? redirectVideoId = redirectRenderer
+                .InlineActionButton
+                ?.ButtonRenderer
+                ?.Command
+                ?.WatchEndpoint
+                ?.VideoId;
 
             Contracts.Models.MessagePart[] redirectMessage =
                 redirectRenderer.BannerMessage?.Runs?.ToMessageParts() ?? [];
@@ -1662,7 +1683,9 @@ internal static partial class Parser
         {
             Name = textRenderer.AuthorName?.Text ?? "Unknown",
             ChannelId = textRenderer.AuthorExternalChannelId ?? string.Empty,
-            Thumbnail = textRenderer.AuthorPhoto?.Thumbnails?.ToImage(textRenderer.AuthorName?.Text),
+            Thumbnail = textRenderer.AuthorPhoto?.Thumbnails?.ToImage(
+                textRenderer.AuthorName?.Text
+            ),
         };
 
         bool isVerified = false;
@@ -1684,9 +1707,18 @@ internal static partial class Parser
                             ?? "Member",
                     };
                 }
-                else if (badge?.Icon?.IconType == "VERIFIED") { isVerified = true; }
-                else if (badge?.Icon?.IconType == "MODERATOR") { isModerator = true; }
-                else if (badge?.Icon?.IconType == "OWNER") { isOwner = true; }
+                else if (badge?.Icon?.IconType == "VERIFIED")
+                {
+                    isVerified = true;
+                }
+                else if (badge?.Icon?.IconType == "MODERATOR")
+                {
+                    isModerator = true;
+                }
+                else if (badge?.Icon?.IconType == "OWNER")
+                {
+                    isOwner = true;
+                }
             }
         }
 
@@ -1742,7 +1774,8 @@ internal static partial class Parser
                 Item = new AddChatItemActionItem
                 {
                     LiveChatTextMessageRenderer = replacementItem.LiveChatTextMessageRenderer,
-                    LiveChatPlaceholderItemRenderer = replacementItem.LiveChatPlaceholderItemRenderer,
+                    LiveChatPlaceholderItemRenderer =
+                        replacementItem.LiveChatPlaceholderItemRenderer,
                 },
             },
         };
@@ -1762,8 +1795,10 @@ internal static partial class Parser
     /// </summary>
     public static Contracts.Models.EngagementItem? ToEngagementItem(this Action action)
     {
-        Models.Response.LiveChatViewerEngagementMessageRenderer? renderer =
-            action.AddChatItemAction?.Item?.LiveChatViewerEngagementMessageRenderer;
+        Models.Response.LiveChatViewerEngagementMessageRenderer? renderer = action
+            .AddChatItemAction
+            ?.Item
+            ?.LiveChatViewerEngagementMessageRenderer;
         if (renderer is null)
             return null;
 
@@ -1776,15 +1811,22 @@ internal static partial class Parser
             timestamp = DateTimeOffset.FromUnixTimeMilliseconds(usec / 1000);
 
         string? iconType = renderer.Icon?.IconType;
-        string? learnMoreUrl = renderer.ActionButton?.ButtonRenderer?.NavigationEndpoint?.UrlEndpoint?.Url;
+        string? learnMoreUrl = renderer
+            .ActionButton
+            ?.ButtonRenderer
+            ?.NavigationEndpoint
+            ?.UrlEndpoint
+            ?.Url;
 
         Contracts.Models.EngagementMessageType msgType = iconType switch
         {
             "POLL" => Contracts.Models.EngagementMessageType.PollResult,
-            "YOUTUBE_ROUND" when learnMoreUrl?.Contains("subs_only_chat_viewer") == true
-                => Contracts.Models.EngagementMessageType.SubscribersOnly,
-            "YOUTUBE_ROUND" when learnMoreUrl?.Contains("2853856") == true
-                => Contracts.Models.EngagementMessageType.CommunityGuidelines,
+            "YOUTUBE_ROUND" when learnMoreUrl?.Contains("subs_only_chat_viewer") == true =>
+                Contracts.Models.EngagementMessageType.SubscribersOnly,
+            "YOUTUBE_ROUND" when learnMoreUrl?.Contains("2853856") == true => Contracts
+                .Models
+                .EngagementMessageType
+                .CommunityGuidelines,
             _ => Contracts.Models.EngagementMessageType.Unknown,
         };
 
@@ -1873,16 +1915,10 @@ internal static partial class Parser
     [GeneratedRegex("\"upcomingEventData\":\\{\"startTime\":\"(\\d+)\"", RegexOptions.Compiled)]
     private static partial Regex StreamsUpcomingStartTimeRegex();
 
-    [GeneratedRegex(
-        "\"shortViewCountText\":\\{\"simpleText\":\"([^\"]+)\"",
-        RegexOptions.Compiled
-    )]
+    [GeneratedRegex("\"shortViewCountText\":\\{\"simpleText\":\"([^\"]+)\"", RegexOptions.Compiled)]
     private static partial Regex StreamsShortViewCountSimpleTextRegex();
 
-    [GeneratedRegex(
-        "\"viewCountText\":\\{\"simpleText\":\"([^\"]+)\"",
-        RegexOptions.Compiled
-    )]
+    [GeneratedRegex("\"viewCountText\":\\{\"simpleText\":\"([^\"]+)\"", RegexOptions.Compiled)]
     private static partial Regex StreamsViewCountSimpleTextRegex();
 
     [GeneratedRegex(
@@ -1915,7 +1951,10 @@ internal static partial class Parser
     [GeneratedRegex(@"^Welcome to (.+)!$", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex NewMemberLevelFromSubtextRegex();
 
-    [GeneratedRegex(@"^Upgraded membership to (.+)!$", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    [GeneratedRegex(
+        @"^Upgraded membership to (.+)!$",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled
+    )]
     private static partial Regex UpgradedMemberLevelFromSubtextRegex();
 
     // Regex to extract gifter name from redemption message like "GifterName gifted you..."
@@ -1923,7 +1962,10 @@ internal static partial class Parser
     private static partial Regex GiftRedemptionGifterRegex();
 
     // Regex to extract gift item name and Jewel amount from "sent {item} for {n} Jewels"
-    [GeneratedRegex(@"^sent (.+) for (\d+) Jewels?$", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    [GeneratedRegex(
+        @"^sent (.+) for (\d+) Jewels?$",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled
+    )]
     private static partial Regex JewelsGiftTextRegex();
 #else
     // Fallback for .NET Standard 2.1
@@ -2030,7 +2072,8 @@ internal static partial class Parser
         RegexOptions.Compiled
     );
 
-    private static Regex StreamsShortViewCountSimpleTextRegex() => _streamsShortViewCountSimpleTextRegex;
+    private static Regex StreamsShortViewCountSimpleTextRegex() =>
+        _streamsShortViewCountSimpleTextRegex;
 
     private static readonly Regex _streamsViewCountSimpleTextRegex = new(
         "\"viewCountText\":\\{\"simpleText\":\"([^\"]+)\"",
@@ -2086,7 +2129,8 @@ internal static partial class Parser
         RegexOptions.IgnoreCase | RegexOptions.Compiled
     );
 
-    private static Regex UpgradedMemberLevelFromSubtextRegex() => _upgradedMemberLevelFromSubtextRegex;
+    private static Regex UpgradedMemberLevelFromSubtextRegex() =>
+        _upgradedMemberLevelFromSubtextRegex;
 
     private static readonly Regex _giftRedemptionGifterRegex = new(
         @"^(.*?) gifted you",
@@ -2129,8 +2173,10 @@ internal static partial class Parser
     /// </summary>
     public static Contracts.Models.GiftItem? ToGiftItem(this Action action)
     {
-        Models.Response.GiftMessageViewModel? vm =
-            action.AddChatItemAction?.Item?.GiftMessageViewModel;
+        Models.Response.GiftMessageViewModel? vm = action
+            .AddChatItemAction
+            ?.Item
+            ?.GiftMessageViewModel;
         if (vm is null)
             return null;
 
@@ -2151,8 +2197,9 @@ internal static partial class Parser
                 jewelAmount = parsed;
         }
 
-        Models.Response.ViewModelClientResource? resource =
-            vm.Image?.Sources?.FirstOrDefault()?.ClientResource;
+        Models.Response.ViewModelClientResource? resource = vm
+            .Image?.Sources?.FirstOrDefault()
+            ?.ClientResource;
 
         return new Contracts.Models.GiftItem
         {
@@ -2175,10 +2222,10 @@ internal static partial class Parser
     /// </summary>
     public static Contracts.Models.CreatorGoalItem? ToCreatorGoalItem(this Action action)
     {
-        Models.Response.LiveChatTickerCreatorGoalViewModel? vm =
-            action.ShowCreatorGoalTickerChipCommand
-                ?.CreatorGoalTickerChip
-                ?.LiveChatTickerCreatorGoalViewModel;
+        Models.Response.LiveChatTickerCreatorGoalViewModel? vm = action
+            .ShowCreatorGoalTickerChipCommand
+            ?.CreatorGoalTickerChip
+            ?.LiveChatTickerCreatorGoalViewModel;
         if (vm is null)
             return null;
 
@@ -2200,21 +2247,14 @@ internal static partial class Parser
             const string prefix = "See ";
             if (raw.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 raw = raw.Slice(prefix.Length);
-            goalType = System.Globalization.CultureInfo.InvariantCulture.TextInfo
-                .ToTitleCase(raw.ToString().ToLowerInvariant());
+            goalType = System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(
+                raw.ToString().ToLowerInvariant()
+            );
         }
 
-        string? progressLabel = vm.OnClickCommand
-            ?.InnertubeCommand
-            ?.ShowEngagementPanelEndpoint
-            ?.EngagementPanel
-            ?.EngagementPanelSectionListRenderer
-            ?.Content
-            ?.SectionListRenderer
-            ?.Contents
-            ?.FirstOrDefault()
-            ?.CreatorGoalProgressFlowViewModel
-            ?.ProgressCountA11yLabel;
+        string? progressLabel = vm
+            .OnClickCommand?.InnertubeCommand?.ShowEngagementPanelEndpoint?.EngagementPanel?.EngagementPanelSectionListRenderer?.Content?.SectionListRenderer?.Contents?.FirstOrDefault()
+            ?.CreatorGoalProgressFlowViewModel?.ProgressCountA11yLabel;
 
         return new Contracts.Models.CreatorGoalItem
         {
@@ -2231,7 +2271,9 @@ internal static partial class Parser
     /// </summary>
     public static IReadOnlyList<Contracts.Models.StreamInfo> ExtractStreamsFromPage(string html)
     {
-        IReadOnlyList<StreamPageCandidate> candidates = ExtractStreamCandidatesFromStreamsPage(html);
+        IReadOnlyList<StreamPageCandidate> candidates = ExtractStreamCandidatesFromStreamsPage(
+            html
+        );
         List<Contracts.Models.StreamInfo> result = new(candidates.Count);
         foreach (StreamPageCandidate c in candidates)
             result.Add(ToStreamInfo(c));
@@ -2241,20 +2283,27 @@ internal static partial class Parser
     private static Contracts.Models.StreamInfo ToStreamInfo(StreamPageCandidate c)
     {
         Contracts.Models.StreamStatus status =
-            c.IsLive ? Contracts.Models.StreamStatus.Live :
-            c.IsUpcoming ? Contracts.Models.StreamStatus.Upcoming :
-            Contracts.Models.StreamStatus.Past;
+            c.IsLive ? Contracts.Models.StreamStatus.Live
+            : c.IsUpcoming ? Contracts.Models.StreamStatus.Upcoming
+            : Contracts.Models.StreamStatus.Past;
 
         int? viewerCount = null;
         long? viewCount = null;
         if (!string.IsNullOrWhiteSpace(c.ViewCountText))
         {
-            string numericPart = new string(c.ViewCountText.TakeWhile(ch => char.IsDigit(ch) || ch == ',' || ch == '.').ToArray()).Replace(",", "").Replace(".", "");
+            string numericPart = new string(
+                c.ViewCountText.TakeWhile(ch => char.IsDigit(ch) || ch == ',' || ch == '.')
+                    .ToArray()
+            )
+                .Replace(",", "")
+                .Replace(".", "");
             if (long.TryParse(numericPart, out long parsed))
             {
                 bool isPast = status == Contracts.Models.StreamStatus.Past;
-                if (isPast) viewCount = parsed;
-                else viewerCount = (int)Math.Min(parsed, int.MaxValue);
+                if (isPast)
+                    viewCount = parsed;
+                else
+                    viewerCount = (int)Math.Min(parsed, int.MaxValue);
             }
         }
 
@@ -2263,7 +2312,10 @@ internal static partial class Parser
             : null;
 
         TimeSpan? duration = null;
-        if (!string.IsNullOrWhiteSpace(c.LengthText) && TryParseDuration(c.LengthText!, out TimeSpan d))
+        if (
+            !string.IsNullOrWhiteSpace(c.LengthText)
+            && TryParseDuration(c.LengthText!, out TimeSpan d)
+        )
             duration = d;
 
         return new Contracts.Models.StreamInfo
@@ -2284,10 +2336,25 @@ internal static partial class Parser
     {
         result = TimeSpan.Zero;
         string[] parts = text.Split(':');
-        if (parts.Length == 2 && int.TryParse(parts[0], out int m) && int.TryParse(parts[1], out int s))
-        { result = new TimeSpan(0, m, s); return true; }
-        if (parts.Length == 3 && int.TryParse(parts[0], out int h) && int.TryParse(parts[1], out int mm) && int.TryParse(parts[2], out int ss))
-        { result = new TimeSpan(h, mm, ss); return true; }
+        if (
+            parts.Length == 2
+            && int.TryParse(parts[0], out int m)
+            && int.TryParse(parts[1], out int s)
+        )
+        {
+            result = new TimeSpan(0, m, s);
+            return true;
+        }
+        if (
+            parts.Length == 3
+            && int.TryParse(parts[0], out int h)
+            && int.TryParse(parts[1], out int mm)
+            && int.TryParse(parts[2], out int ss)
+        )
+        {
+            result = new TimeSpan(h, mm, ss);
+            return true;
+        }
         return false;
     }
 }

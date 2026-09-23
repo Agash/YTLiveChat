@@ -1,5 +1,4 @@
 using System.Text.Json.Serialization;
-
 using YTLiveChat.Models;
 using YTLiveChat.Models.Response;
 
@@ -104,6 +103,4 @@ namespace YTLiveChat.Helpers;
 [JsonSerializable(typeof(CreatorGoalInnerSectionList))]
 [JsonSerializable(typeof(CreatorGoalContentItem))]
 [JsonSerializable(typeof(CreatorGoalProgressFlowViewModel))]
-internal partial class YTLiveChatJsonSerializerContext : JsonSerializerContext
-{
-}
+internal partial class YTLiveChatJsonSerializerContext : JsonSerializerContext { }

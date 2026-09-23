@@ -5,8 +5,10 @@ public enum StreamStatus
 {
     /// <summary>Currently broadcasting.</summary>
     Live,
+
     /// <summary>Scheduled for a future date.</summary>
     Upcoming,
+
     /// <summary>Finished broadcast (replay available).</summary>
     Past,
 }

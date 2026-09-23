@@ -2,10 +2,8 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
-
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-
 using YTLiveChat.Contracts;
 using YTLiveChat.Contracts.Models;
 using YTLiveChat.Contracts.Services;
@@ -324,8 +322,10 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                         );
                     }
 
-                    await Task
-                        .Delay(TimeSpan.FromMilliseconds(LiveCheckFrequencySetting), cancellationToken)
+                    await Task.Delay(
+                            TimeSpan.FromMilliseconds(LiveCheckFrequencySetting),
+                            cancellationToken
+                        )
                         .ConfigureAwait(false);
                     continue;
                 }
@@ -439,14 +439,13 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                         "No acceptable livestream candidate found for the provided target."
                     )
                 : options.LiveId is null
-                ? throw new InvalidOperationException(
-                    "Failed to retrieve valid initial FetchOptions (LiveId is missing)."
-                )
-                : options;
+                    ? throw new InvalidOperationException(
+                        "Failed to retrieve valid initial FetchOptions (LiveId is missing)."
+                    )
+                    : options;
         }
-        catch (InvalidOperationException ex) when (
-            _continuousMonitorEnabledForSession && IsLikelyInaccessibleLiveError(ex)
-        )
+        catch (InvalidOperationException ex)
+            when (_continuousMonitorEnabledForSession && IsLikelyInaccessibleLiveError(ex))
         {
             if (!string.IsNullOrWhiteSpace(resolvedLiveId))
             {
@@ -457,9 +456,8 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             NotifyInaccessibleLivestreamCandidate(resolvedLiveId, ex.Message);
             return null;
         }
-        catch (InvalidOperationException ex) when (
-            _continuousMonitorEnabledForSession && IsLikelyNoActiveLiveError(ex)
-        )
+        catch (InvalidOperationException ex)
+            when (_continuousMonitorEnabledForSession && IsLikelyNoActiveLiveError(ex))
         {
             _logger.LogDebug(
                 "No active livestream found for monitored target yet. Rechecking in {DelayMs} ms.",
@@ -476,7 +474,10 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             || message.Contains("Live Stream ID not found", StringComparison.Ordinal)
             || message.Contains("Initial Continuation token not found", StringComparison.Ordinal)
             || message.Contains("is finished live", StringComparison.Ordinal)
-            || message.Contains("No acceptable livestream candidate found", StringComparison.Ordinal);
+            || message.Contains(
+                "No acceptable livestream candidate found",
+                StringComparison.Ordinal
+            );
     }
 
     private static bool IsLikelyInaccessibleLiveError(InvalidOperationException ex)
@@ -513,11 +514,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             reason
         );
         OnLivestreamInaccessible(
-            new LivestreamInaccessibleEventArgs
-            {
-                LiveId = liveId!,
-                Reason = reason,
-            }
+            new LivestreamInaccessibleEventArgs { LiveId = liveId!, Reason = reason }
         );
     }
 
@@ -539,13 +536,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         string endedLiveId = _activeLiveId!;
         _activeLiveId = null;
         _fetchOptionsInternal = null;
-        OnLivestreamEnded(
-            new()
-            {
-                LiveId = endedLiveId,
-                Reason = reason,
-            }
-        );
+        OnLivestreamEnded(new() { LiveId = endedLiveId, Reason = reason });
     }
 
     private void EndActiveLivestreamAndStopChat(string reason)
@@ -621,7 +612,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                             EndActiveLivestream("Stream ended or continuation lost");
                             if (!_continuousMonitorEnabledForSession)
                             {
-                                OnChatStopped(new() { Reason = "Stream ended or continuation lost" });
+                                OnChatStopped(
+                                    new() { Reason = "Stream ended or continuation lost" }
+                                );
                             }
 
                             break; // Exit loop normally
@@ -763,7 +756,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                             EndActiveLivestream("Stream ended or continuation lost");
                             if (!_continuousMonitorEnabledForSession)
                             {
-                                OnChatStopped(new() { Reason = "Stream ended or continuation lost" });
+                                OnChatStopped(
+                                    new() { Reason = "Stream ended or continuation lost" }
+                                );
                             }
 
                             break; // Exit loop normally
@@ -857,10 +852,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
 
         if (!shouldEmitRawActions)
         {
-            (
-                List<ChatItem> items,
-                string? continuationToken
-            ) = Parser.ParseLiveChatResponse(response);
+            (List<ChatItem> items, string? continuationToken) = Parser.ParseLiveChatResponse(
+                response
+            );
             foreach (ChatItem chatItem in items)
             {
                 OnChatReceived(new() { ChatItem = chatItem });
@@ -869,10 +863,8 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             return continuationToken;
         }
 
-        (
-            List<(ChatItem Item, int ActionIndex)> indexedItems,
-            string? continuation
-        ) = Parser.ParseLiveChatResponseWithActionIndex(response);
+        (List<(ChatItem Item, int ActionIndex)> indexedItems, string? continuation) =
+            Parser.ParseLiveChatResponseWithActionIndex(response);
 
         Dictionary<int, ChatItem> parsedByActionIndex = new(indexedItems.Count);
         foreach ((ChatItem item, int actionIndex) in indexedItems)
@@ -894,11 +886,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         {
             _ = parsedByActionIndex.TryGetValue(i, out ChatItem? parsedChatItem);
             OnRawActionReceived(
-                new()
-                {
-                    RawAction = rawActions[i],
-                    ParsedChatItem = parsedChatItem,
-                }
+                new() { RawAction = rawActions[i], ParsedChatItem = parsedChatItem }
             );
         }
 
@@ -1028,15 +1016,14 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         }
         catch (Exception ex)
         {
-            _logger.LogError(
-                ex,
-                "Error preparing debug log file '{FilePath}'.",
-                _debugLogFilePath
-            );
+            _logger.LogError(ex, "Error preparing debug log file '{FilePath}'.", _debugLogFilePath);
         }
     }
 
-    private async Task AppendJsonArrayEntryAsync(string entryJson, CancellationToken cancellationToken)
+    private async Task AppendJsonArrayEntryAsync(
+        string entryJson,
+        CancellationToken cancellationToken
+    )
     {
         using FileStream fs = new(
             _debugLogFilePath,
@@ -1051,7 +1038,8 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
 
         if (_debugLogHasEntries)
         {
-            await WriteBytesAsync(fs, s_debugLogEntrySeparator, cancellationToken).ConfigureAwait(false);
+            await WriteBytesAsync(fs, s_debugLogEntrySeparator, cancellationToken)
+                .ConfigureAwait(false);
         }
 
         byte[] entryBytes = Encoding.UTF8.GetBytes(entryJson);
@@ -1061,7 +1049,10 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         _debugLogHasEntries = true;
     }
 
-    private async Task PrepareJsonArrayStreamAsync(FileStream fs, CancellationToken cancellationToken)
+    private async Task PrepareJsonArrayStreamAsync(
+        FileStream fs,
+        CancellationToken cancellationToken
+    )
     {
         if (_debugLogArrayClosed)
         {
@@ -1080,7 +1071,8 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
 
         if (fs.Length == 0)
         {
-            await WriteBytesAsync(fs, s_debugLogArrayStart, cancellationToken).ConfigureAwait(false);
+            await WriteBytesAsync(fs, s_debugLogArrayStart, cancellationToken)
+                .ConfigureAwait(false);
             _debugLogArrayStarted = true;
             _debugLogHasEntries = false;
             return;
@@ -1091,7 +1083,10 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         _debugLogHasEntries = fs.Length > s_debugLogArrayStart.Length;
     }
 
-    private static async Task TrimTrailingClosingBracketAsync(FileStream fs, CancellationToken cancellationToken)
+    private static async Task TrimTrailingClosingBracketAsync(
+        FileStream fs,
+        CancellationToken cancellationToken
+    )
     {
         byte[] buffer = new byte[1];
         long position = fs.Length;
@@ -1099,7 +1094,8 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         {
             position--;
             _ = fs.Seek(position, SeekOrigin.Begin);
-            int bytesRead = await ReadByteAsync(fs, buffer, cancellationToken).ConfigureAwait(false);
+            int bytesRead = await ReadByteAsync(fs, buffer, cancellationToken)
+                .ConfigureAwait(false);
             if (bytesRead == 0)
                 break;
 
@@ -1129,7 +1125,6 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         await fs.WriteAsync(buffer.AsMemory(), cancellationToken).ConfigureAwait(false);
 #endif
 
-
     private static async Task<int> ReadByteAsync(
         FileStream fs,
         byte[] buffer,
@@ -1140,7 +1135,6 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
 #else
         await fs.ReadAsync(buffer.AsMemory(0, 1), cancellationToken).ConfigureAwait(false);
 #endif
-
 
     private static char? GetFirstNonWhitespaceChar(FileStream fs)
     {
@@ -1241,19 +1235,19 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             }
         );
 
-        void HandleChatReceived(object? _, ChatReceivedEventArgs e) => _ = channel
-            .Writer.TryWrite(e.ChatItem);
+        void HandleChatReceived(object? _, ChatReceivedEventArgs e) =>
+            _ = channel.Writer.TryWrite(e.ChatItem);
         void HandleChatStopped(object? _, ChatStoppedEventArgs e) => channel.Writer.TryComplete();
-        void HandleErrorOccurred(object? _, ErrorOccurredEventArgs e) => channel.Writer.TryComplete(
-            e.GetException()
-        );
+        void HandleErrorOccurred(object? _, ErrorOccurredEventArgs e) =>
+            channel.Writer.TryComplete(e.GetException());
 
         ChatReceived += HandleChatReceived;
         ChatStopped += HandleChatStopped;
         ErrorOccurred += HandleErrorOccurred;
 
-        using CancellationTokenRegistration cancellationRegistration = cancellationToken.Register(() =>
-            channel.Writer.TryComplete()
+        using CancellationTokenRegistration cancellationRegistration = cancellationToken.Register(
+            () =>
+                channel.Writer.TryComplete()
         );
 
         try
@@ -1261,7 +1255,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             Start(handle, channelId, liveId, overwrite);
 
             await foreach (
-                ChatItem item in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false)
+                ChatItem item in channel
+                    .Reader.ReadAllAsync(cancellationToken)
+                    .ConfigureAwait(false)
             )
             {
                 yield return item;
@@ -1286,30 +1282,29 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         [EnumeratorCancellation] CancellationToken cancellationToken = default
     )
     {
-        Channel<RawActionReceivedEventArgs> channel = Channel.CreateUnbounded<
-            RawActionReceivedEventArgs
-        >(
-            new UnboundedChannelOptions
-            {
-                SingleReader = true,
-                SingleWriter = false,
-                AllowSynchronousContinuations = false,
-            }
-        );
+        Channel<RawActionReceivedEventArgs> channel =
+            Channel.CreateUnbounded<RawActionReceivedEventArgs>(
+                new UnboundedChannelOptions
+                {
+                    SingleReader = true,
+                    SingleWriter = false,
+                    AllowSynchronousContinuations = false,
+                }
+            );
 
-        void HandleRawActionReceived(object? _, RawActionReceivedEventArgs e) => _ = channel
-            .Writer.TryWrite(e);
+        void HandleRawActionReceived(object? _, RawActionReceivedEventArgs e) =>
+            _ = channel.Writer.TryWrite(e);
         void HandleChatStopped(object? _, ChatStoppedEventArgs e) => channel.Writer.TryComplete();
-        void HandleErrorOccurred(object? _, ErrorOccurredEventArgs e) => channel.Writer.TryComplete(
-            e.GetException()
-        );
+        void HandleErrorOccurred(object? _, ErrorOccurredEventArgs e) =>
+            channel.Writer.TryComplete(e.GetException());
 
         RawActionReceived += HandleRawActionReceived;
         ChatStopped += HandleChatStopped;
         ErrorOccurred += HandleErrorOccurred;
 
-        using CancellationTokenRegistration cancellationRegistration = cancellationToken.Register(() =>
-            channel.Writer.TryComplete()
+        using CancellationTokenRegistration cancellationRegistration = cancellationToken.Register(
+            () =>
+                channel.Writer.TryComplete()
         );
 
         try
@@ -1481,7 +1476,18 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         bool hasGift = GiftReceived != null;
         bool hasCreatorGoal = CreatorGoalReceived != null;
 
-        if (!hasPoll && !hasPollClosed && !hasDelete && !hasDeleteByAuthor && !hasBannerAdd && !hasBannerRemove && !hasReplace && !hasEngagement && !hasGift && !hasCreatorGoal)
+        if (
+            !hasPoll
+            && !hasPollClosed
+            && !hasDelete
+            && !hasDeleteByAuthor
+            && !hasBannerAdd
+            && !hasBannerRemove
+            && !hasReplace
+            && !hasEngagement
+            && !hasGift
+            && !hasCreatorGoal
+        )
             return;
 
         foreach (Models.Response.Action action in actions)
@@ -1533,7 +1539,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 (string? targetItemId, Contracts.Models.ChatItem? replacement) =
                     action.ToReplacedChatItem();
                 if (targetItemId is not null)
-                    OnChatItemReplaced(new() { TargetItemId = targetItemId, Replacement = replacement });
+                    OnChatItemReplaced(
+                        new() { TargetItemId = targetItemId, Replacement = replacement }
+                    );
             }
 
             if (hasEngagement)
@@ -1568,7 +1576,11 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error invoking PollUpdated event handler for poll {PollId}.", e.Poll?.PollId);
+            _logger.LogError(
+                ex,
+                "Error invoking PollUpdated event handler for poll {PollId}.",
+                e.Poll?.PollId
+            );
         }
     }
 
@@ -1581,7 +1593,11 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error invoking PollClosed event handler for poll {PollId}.", e.PollId);
+            _logger.LogError(
+                ex,
+                "Error invoking PollClosed event handler for poll {PollId}.",
+                e.PollId
+            );
         }
     }
 
@@ -1594,7 +1610,11 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error invoking ChatItemDeleted event handler for target {TargetId}.", e.TargetId);
+            _logger.LogError(
+                ex,
+                "Error invoking ChatItemDeleted event handler for target {TargetId}.",
+                e.TargetId
+            );
         }
     }
 
@@ -1607,7 +1627,11 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error invoking ChatItemsDeletedByAuthor event handler for channel {ChannelId}.", e.ChannelId);
+            _logger.LogError(
+                ex,
+                "Error invoking ChatItemsDeletedByAuthor event handler for channel {ChannelId}.",
+                e.ChannelId
+            );
         }
     }
 
@@ -1620,7 +1644,11 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error invoking BannerAdded event handler for action {ActionId}.", e.Banner?.ActionId);
+            _logger.LogError(
+                ex,
+                "Error invoking BannerAdded event handler for action {ActionId}.",
+                e.Banner?.ActionId
+            );
         }
     }
 
@@ -1633,7 +1661,11 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error invoking BannerRemoved event handler for target {TargetActionId}.", e.TargetActionId);
+            _logger.LogError(
+                ex,
+                "Error invoking BannerRemoved event handler for target {TargetActionId}.",
+                e.TargetActionId
+            );
         }
     }
 
@@ -1646,7 +1678,11 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error invoking ChatItemReplaced event handler for target {TargetItemId}.", e.TargetItemId);
+            _logger.LogError(
+                ex,
+                "Error invoking ChatItemReplaced event handler for target {TargetItemId}.",
+                e.TargetItemId
+            );
         }
     }
 
@@ -1659,7 +1695,11 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error invoking EngagementMessageReceived event handler for engagement {Id}.", e.Engagement?.Id);
+            _logger.LogError(
+                ex,
+                "Error invoking EngagementMessageReceived event handler for engagement {Id}.",
+                e.Engagement?.Id
+            );
         }
     }
 
@@ -1672,7 +1712,11 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error invoking GiftReceived event handler for gift {Id}.", e.Gift?.Id);
+            _logger.LogError(
+                ex,
+                "Error invoking GiftReceived event handler for gift {Id}.",
+                e.Gift?.Id
+            );
         }
     }
 
@@ -1685,7 +1729,11 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error invoking CreatorGoalReceived event handler for goal {Id}.", e.CreatorGoal?.Id);
+            _logger.LogError(
+                ex,
+                "Error invoking CreatorGoalReceived event handler for goal {Id}.",
+                e.CreatorGoal?.Id
+            );
         }
     }
 
@@ -1766,10 +1814,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 string? inaccessibleKind = pageHtml is null
                     ? null
                     : Parser.DetectInaccessibleLiveReason(pageHtml);
-                string inaccessibleReason =
-                    inaccessibleKind is null
-                        ? string.Empty
-                        : $"Live stream is inaccessible ({inaccessibleKind}).";
+                string inaccessibleReason = inaccessibleKind is null
+                    ? string.Empty
+                    : $"Live stream is inaccessible ({inaccessibleKind}).";
                 if (
                     string.IsNullOrEmpty(inaccessibleReason)
                     && ex is InvalidOperationException ioe
@@ -1828,7 +1875,8 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         IReadOnlyList<Contracts.Models.StreamInfo> streams = Parser.ExtractStreamsFromPage(html);
         _logger.LogInformation(
             "GetStreamsAsync [{Target}]: found {Count} stream(s)",
-            handle ?? channelId, streams.Count
+            handle ?? channelId,
+            streams.Count
         );
         return streams;
     }
@@ -1857,9 +1905,8 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             string streamsHtml = await _ytHttpClient
                 .GetStreamsPageAsync(handle, channelId, cancellationToken)
                 .ConfigureAwait(false);
-            IReadOnlyList<StreamPageCandidate> candidates = Parser.ExtractStreamCandidatesFromStreamsPage(
-                streamsHtml
-            );
+            IReadOnlyList<StreamPageCandidate> candidates =
+                Parser.ExtractStreamCandidatesFromStreamsPage(streamsHtml);
             if (candidates.Count == 0)
             {
                 int rawVideoIdMentions = CountOccurrences(
@@ -1877,10 +1924,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                     "ytInitialData",
                     StringComparison.Ordinal
                 );
-                bool isConsentInterstitial = streamsHtml.IndexOf(
-                    "consent.youtube.com",
-                    StringComparison.OrdinalIgnoreCase
-                ) >= 0;
+                bool isConsentInterstitial =
+                    streamsHtml.IndexOf("consent.youtube.com", StringComparison.OrdinalIgnoreCase)
+                    >= 0;
                 _logger.LogInformation(
                     "Streams page parsing found 0 candidates for monitor target. Raw page contains {VideoIdMentions} '\"videoId\"' mentions, {EscapedVideoIdMentions} escaped mentions, ytInitialData mentions: {InitialDataMentions}, consent interstitial: {IsConsentInterstitial}.",
                     rawVideoIdMentions,
@@ -1947,7 +1993,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             }
 
             StreamPageCandidate? upcomingCandidate = null;
-            foreach (StreamPageCandidate candidate in filteredCandidateList.Where(c => c.IsUpcoming))
+            foreach (
+                StreamPageCandidate candidate in filteredCandidateList.Where(c => c.IsUpcoming)
+            )
             {
                 if (
                     !upcomingCandidate.HasValue
@@ -2082,7 +2130,12 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
 
     private bool IsTemporarilyInaccessibleCandidate(string liveId)
     {
-        if (!_temporaryInaccessibleAutoDetectedLiveIds.TryGetValue(liveId, out DateTimeOffset retryAt))
+        if (
+            !_temporaryInaccessibleAutoDetectedLiveIds.TryGetValue(
+                liveId,
+                out DateTimeOffset retryAt
+            )
+        )
         {
             return false;
         }
@@ -2105,7 +2158,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
 
         DateTimeOffset now = DateTimeOffset.UtcNow;
         List<string> expiredKeys = [];
-        foreach (KeyValuePair<string, DateTimeOffset> entry in _temporaryInaccessibleAutoDetectedLiveIds)
+        foreach (
+            KeyValuePair<string, DateTimeOffset> entry in _temporaryInaccessibleAutoDetectedLiveIds
+        )
         {
             string key = entry.Key;
             DateTimeOffset retryAt = entry.Value;
@@ -2121,4 +2176,3 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         }
     }
 }
-

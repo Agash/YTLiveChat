@@ -21,7 +21,6 @@ public class PollChoice
     /// Multiply by 100 to get the percentage.
     /// </summary>
     public double VoteRatio { get; set; }
-
 }
 
 /// <summary>

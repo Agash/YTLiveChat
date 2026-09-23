@@ -1,8 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-
 using YTLiveChat.Models.Response;
-
 using static YTLiveChat.Helpers.YTLiveChatJsonSerializerContext;
 
 namespace YTLiveChat.Helpers;

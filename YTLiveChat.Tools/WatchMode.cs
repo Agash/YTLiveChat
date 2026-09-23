@@ -1,8 +1,6 @@
 using System.Text;
 using System.Text.Json;
-
 using Microsoft.Extensions.Logging.Abstractions;
-
 using YTLiveChat.Contracts;
 using YTLiveChat.Contracts.Models;
 using YTLiveChat.Contracts.Services;
@@ -20,20 +18,22 @@ internal static class WatchMode
     // but which do NOT produce a ChatItem. These are NOT unknown.
     // In default capture mode they are silently skipped (no capture).
     // In --all-events mode they are captured and labeled "parsed".
-    private static readonly HashSet<string> s_parsedDedicatedEventActionTypes = new(StringComparer.Ordinal)
+    private static readonly HashSet<string> s_parsedDedicatedEventActionTypes = new(
+        StringComparer.Ordinal
+    )
     {
-        "removeChatItemAction",                  // → ChatItemDeleted
-        "replaceChatItemAction",                 // → ChatItemReplaced
-        "removeChatItemByAuthorAction",          // → ChatItemsDeletedByAuthor
-        "markChatItemsByAuthorAsDeletedAction",  // → ChatItemsDeletedByAuthor
+        "removeChatItemAction", // → ChatItemDeleted
+        "replaceChatItemAction", // → ChatItemReplaced
+        "removeChatItemByAuthorAction", // → ChatItemsDeletedByAuthor
+        "markChatItemsByAuthorAsDeletedAction", // → ChatItemsDeletedByAuthor
         "changeEngagementPanelVisibilityAction", // → EngagementMessageReceived
         // Poll lifecycle
-        "showLiveChatActionPanelAction",         // → PollUpdated (new poll)
-        "updateLiveChatPollAction",              // → PollUpdated (vote update)
-        "closeLiveChatActionPanelAction",        // → PollClosed
+        "showLiveChatActionPanelAction", // → PollUpdated (new poll)
+        "updateLiveChatPollAction", // → PollUpdated (vote update)
+        "closeLiveChatActionPanelAction", // → PollClosed
         // Banner lifecycle
-        "addBannerToLiveChatCommand",            // → BannerAdded
-        "removeBannerForLiveChatCommand",        // → BannerRemoved
+        "addBannerToLiveChatCommand", // → BannerAdded
+        "removeBannerForLiveChatCommand", // → BannerRemoved
     };
 
     // Action types the library recognizes but intentionally discards with no public event.
@@ -52,12 +52,16 @@ internal static class WatchMode
     };
 
     // Combined set used to gate the default-mode "is this action unknown?" check.
-    private static readonly HashSet<string> s_knownSkippedActionTypes =
-        new(s_parsedDedicatedEventActionTypes.Concat(s_silentActionTypes), StringComparer.Ordinal);
+    private static readonly HashSet<string> s_knownSkippedActionTypes = new(
+        s_parsedDedicatedEventActionTypes.Concat(s_silentActionTypes),
+        StringComparer.Ordinal
+    );
 
     // addChatItemAction item renderers that are fully parsed and fire a dedicated public event
     // but do NOT produce a ChatItem. NOT unknown. Labeled "parsed" in --all-events mode.
-    private static readonly HashSet<string> s_parsedDedicatedEventRendererTypes = new(StringComparer.Ordinal)
+    private static readonly HashSet<string> s_parsedDedicatedEventRendererTypes = new(
+        StringComparer.Ordinal
+    )
     {
         // Fires EngagementMessageReceived (CommunityGuidelines, SubscribersOnly, PollResult).
         "liveChatViewerEngagementMessageRenderer",
@@ -76,12 +80,16 @@ internal static class WatchMode
     };
 
     // Combined set for the "is this renderer known?" gate in default capture mode.
-    private static readonly HashSet<string> s_knownSkippedRendererTypes =
-        new(s_parsedDedicatedEventRendererTypes.Concat(s_silentRendererTypes), StringComparer.Ordinal);
+    private static readonly HashSet<string> s_knownSkippedRendererTypes = new(
+        s_parsedDedicatedEventRendererTypes.Concat(s_silentRendererTypes),
+        StringComparer.Ordinal
+    );
 
     // For --all-events: high-volume renderers that add no analytical value. Everything
     // NOT in this list (and not tracking-only) is captured.
-    private static readonly HashSet<string> s_allEventsRendererBlacklist = new(StringComparer.Ordinal)
+    private static readonly HashSet<string> s_allEventsRendererBlacklist = new(
+        StringComparer.Ordinal
+    )
     {
         "liveChatTextMessageRenderer",
         "liveChatPlaceholderItemRenderer",
@@ -105,17 +113,18 @@ internal static class WatchMode
         }
 
         Console.WriteLine($"Watch mode — output: {outputPath}");
-        Console.WriteLine($"Targets ({options.Targets.Count}): {string.Join(", ", options.Targets.Select(t => t.Tag))}");
+        Console.WriteLine(
+            $"Targets ({options.Targets.Count}): {string.Join(", ", options.Targets.Select(t => t.Tag))}"
+        );
         if (options.SkippedLiveIds.Count > 0)
         {
             Console.WriteLine($"Skipping live IDs: {string.Join(", ", options.SkippedLiveIds)}");
         }
 
-        string captureDesc = options.AllEvents
-            ? "all events (except regular chat and placeholders)"
-            : options.AllMembership
-                ? "all membership events + unknowns"
-                : "unknown actions + unknown membership types";
+        string captureDesc =
+            options.AllEvents ? "all events (except regular chat and placeholders)"
+            : options.AllMembership ? "all membership events + unknowns"
+            : "unknown actions + unknown membership types";
         Console.WriteLine($"Capturing: {captureDesc}");
         Console.WriteLine("Press Ctrl+C to stop.");
         Console.WriteLine();
@@ -130,7 +139,14 @@ internal static class WatchMode
         // AutoFlush = true causes StreamWriter to flush its internal buffer to the underlying
         // FileStream after every write, which in turn flushes to the OS file cache.
         // Each captured event is visible on disk immediately — no batching until stop.
-        using StreamWriter writer = new(outputPath, append: false, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)) { AutoFlush = true };
+        using StreamWriter writer = new(
+            outputPath,
+            append: false,
+            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)
+        )
+        {
+            AutoFlush = true,
+        };
         int[] capturedCount = [0];
         object fileLock = new();
         object consoleLock = new();
@@ -243,12 +259,23 @@ internal static class WatchMode
                 }
 
                 reason =
-                    !hasItem && (s_parsedDedicatedEventActionTypes.Contains(actionType) || s_parsedDedicatedEventRendererTypes.Contains(rendererKey))
-                    ? "parsed"   // fires a dedicated public event (ChatItemDeleted, BannerAdded, PollUpdated, EngagementMessage, etc.)
-                    : !hasItem && (s_silentActionTypes.Contains(actionType) || s_silentRendererTypes.Contains(rendererKey))
-                    ? "known"    // recognized, intentionally discarded with no public event
-                    : hasMembership ? isUnknownMembership ? "unknown-membership" : "membership"
-                    : hasItem ? "parsed" : "unknown";
+                    !hasItem
+                    && (
+                        s_parsedDedicatedEventActionTypes.Contains(actionType)
+                        || s_parsedDedicatedEventRendererTypes.Contains(rendererKey)
+                    )
+                        ? "parsed" // fires a dedicated public event (ChatItemDeleted, BannerAdded, PollUpdated, EngagementMessage, etc.)
+                    : !hasItem
+                    && (
+                        s_silentActionTypes.Contains(actionType)
+                        || s_silentRendererTypes.Contains(rendererKey)
+                    )
+                        ? "known" // recognized, intentionally discarded with no public event
+                    : hasMembership
+                        ? isUnknownMembership ? "unknown-membership"
+                            : "membership"
+                    : hasItem ? "parsed"
+                    : "unknown";
             }
             else
             {
@@ -314,13 +341,25 @@ internal static class WatchMode
         };
 
 #pragma warning disable CS0618
-        chat.InitialPageLoaded += (_, e) => WriteStatus(consoleLock, target.Tag, "LIVE", ConsoleColor.Green, e.LiveId);
-        chat.LivestreamStarted += (_, e) => WriteStatus(consoleLock, target.Tag, "STREAM START", ConsoleColor.Green, e.LiveId);
-        chat.LivestreamEnded += (_, e) => WriteStatus(consoleLock, target.Tag, "STREAM END", ConsoleColor.DarkYellow, e.LiveId);
-        chat.LivestreamInaccessible += (_, e) => WriteStatus(consoleLock, target.Tag, "BLOCKED", ConsoleColor.DarkYellow, e.LiveId);
+        chat.InitialPageLoaded += (_, e) =>
+            WriteStatus(consoleLock, target.Tag, "LIVE", ConsoleColor.Green, e.LiveId);
+        chat.LivestreamStarted += (_, e) =>
+            WriteStatus(consoleLock, target.Tag, "STREAM START", ConsoleColor.Green, e.LiveId);
+        chat.LivestreamEnded += (_, e) =>
+            WriteStatus(consoleLock, target.Tag, "STREAM END", ConsoleColor.DarkYellow, e.LiveId);
+        chat.LivestreamInaccessible += (_, e) =>
+            WriteStatus(consoleLock, target.Tag, "BLOCKED", ConsoleColor.DarkYellow, e.LiveId);
 #pragma warning restore CS0618
-        chat.ChatStopped += (_, e) => WriteStatus(consoleLock, target.Tag, "STOPPED", ConsoleColor.Red, e.Reason);
-        chat.ErrorOccurred += (_, e) => WriteStatus(consoleLock, target.Tag, "ERROR", ConsoleColor.Red, e.GetException().Message);
+        chat.ChatStopped += (_, e) =>
+            WriteStatus(consoleLock, target.Tag, "STOPPED", ConsoleColor.Red, e.Reason);
+        chat.ErrorOccurred += (_, e) =>
+            WriteStatus(
+                consoleLock,
+                target.Tag,
+                "ERROR",
+                ConsoleColor.Red,
+                e.GetException().Message
+            );
     }
 
     private static void StartChat(WatchTarget target, IYTLiveChat chat)
@@ -339,7 +378,13 @@ internal static class WatchMode
         }
     }
 
-    private static void WriteStatus(object consoleLock, string tag, string label, ConsoleColor color, string? detail)
+    private static void WriteStatus(
+        object consoleLock,
+        string tag,
+        string label,
+        ConsoleColor color,
+        string? detail
+    )
     {
         lock (consoleLock)
         {
@@ -512,16 +557,42 @@ internal static class WatchMode
             targets.Add(ParseTarget(arg));
         }
 
-        return new WatchOptions(targets, skippedLiveIds, checkIntervalMs, includeScheduled, allMembership, allEvents, outputPath);
+        return new WatchOptions(
+            targets,
+            skippedLiveIds,
+            checkIntervalMs,
+            includeScheduled,
+            allMembership,
+            allEvents,
+            outputPath
+        );
     }
 
     private static WatchTarget ParseTarget(string identifier)
     {
         return identifier.StartsWith("@", StringComparison.Ordinal)
-            ? new WatchTarget(identifier, Handle: identifier, ChannelId: null, LiveId: null, IsHandleOrChannel: true)
+                ? new WatchTarget(
+                    identifier,
+                    Handle: identifier,
+                    ChannelId: null,
+                    LiveId: null,
+                    IsHandleOrChannel: true
+                )
             : identifier.StartsWith("UC", StringComparison.OrdinalIgnoreCase)
-            ? new WatchTarget(identifier, Handle: null, ChannelId: identifier, LiveId: null, IsHandleOrChannel: true)
-            : new WatchTarget(identifier, Handle: null, ChannelId: null, LiveId: identifier, IsHandleOrChannel: false);
+                ? new WatchTarget(
+                    identifier,
+                    Handle: null,
+                    ChannelId: identifier,
+                    LiveId: null,
+                    IsHandleOrChannel: true
+                )
+            : new WatchTarget(
+                identifier,
+                Handle: null,
+                ChannelId: null,
+                LiveId: identifier,
+                IsHandleOrChannel: false
+            );
     }
 
     private static void PrintWatchUsage()
@@ -570,18 +641,30 @@ internal static class WatchMode
         Console.WriteLine(
             "  - With --all-events: everything except regular chat (liveChatTextMessageRenderer)"
         );
-        Console.WriteLine(
-            "    and placeholder items (liveChatPlaceholderItemRenderer)."
-        );
+        Console.WriteLine("    and placeholder items (liveChatPlaceholderItemRenderer).");
         Console.WriteLine();
         Console.WriteLine("Reason labels in console output:");
-        Console.WriteLine("  unknown-action     Unrecognized action or renderer — new event type, investigate.");
-        Console.WriteLine("  unknown-membership Membership event with EventType=Unknown — unrecognized subtype.");
-        Console.WriteLine("  membership         Known membership event (with --all-membership or --all-events).");
-        Console.WriteLine("  parsed             Fully parsed: fires a ChatItem or a dedicated public event");
-        Console.WriteLine("                     (superchats, deletions, replacements, polls, banners, etc.).");
-        Console.WriteLine("  known              Recognized but intentionally silent: no public event emitted");
-        Console.WriteLine("                     (signalAction, liveChatReportModerationStateCommand).");
+        Console.WriteLine(
+            "  unknown-action     Unrecognized action or renderer — new event type, investigate."
+        );
+        Console.WriteLine(
+            "  unknown-membership Membership event with EventType=Unknown — unrecognized subtype."
+        );
+        Console.WriteLine(
+            "  membership         Known membership event (with --all-membership or --all-events)."
+        );
+        Console.WriteLine(
+            "  parsed             Fully parsed: fires a ChatItem or a dedicated public event"
+        );
+        Console.WriteLine(
+            "                     (superchats, deletions, replacements, polls, banners, etc.)."
+        );
+        Console.WriteLine(
+            "  known              Recognized but intentionally silent: no public event emitted"
+        );
+        Console.WriteLine(
+            "                     (signalAction, liveChatReportModerationStateCommand)."
+        );
         Console.WriteLine();
         Console.WriteLine("Output is a JSONL file (one raw action JSON per line) compatible with");
         Console.WriteLine("the log-analysis commands (--dump-renderer, --variants, etc.).");

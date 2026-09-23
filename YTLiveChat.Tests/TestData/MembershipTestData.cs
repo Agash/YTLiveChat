@@ -74,7 +74,8 @@ internal static class MembershipTestData
             """; // Corresponds to liveChatMembershipItemRenderer
     }
 
-    public static string NewMemberFromLatestLogWithNewMemberBadge() => """
+    public static string NewMemberFromLatestLogWithNewMemberBadge() =>
+        """
             {
               "id": "ChwKGkNMUEltT1BRM1pJREZTX0J3Z1FkNUljbU1n",
               "timestampUsec": "1771231835991083",
@@ -152,7 +153,8 @@ internal static class MembershipTestData
             """;
     }
 
-    public static string NewMemberFromLog6WithMemberTenureBadge() => """
+    public static string NewMemberFromLog6WithMemberTenureBadge() =>
+        """
             {
               "id": "ChwKGkNOSExsNVhoM1pJREZiN0t3Z1Fkc3N3VFlR",
               "timestampUsec": "1771236235800174",
@@ -323,6 +325,7 @@ internal static class MembershipTestData
             }
             """;
     }
+
     // ── Real upgrade event data ──────────────────────────────────────────────────
     // Captured from a live stream (upgrade_events.json, 2026-04-15).
     // Author @rembray upgraded to tier "Cardinal Archer". Badge shows "Member (1 year)".
@@ -333,7 +336,8 @@ internal static class MembershipTestData
     /// Author @rembray upgraded to "Cardinal Archer"; badge tooltip "Member (1 year)".
     /// headerSubtext uses the runs shape: ["Upgraded membership to ", "Cardinal Archer", "!"].
     /// </summary>
-    public static string RealUpgrade_Runs_CardinalArcher() => """
+    public static string RealUpgrade_Runs_CardinalArcher() =>
+        """
             {
               "id": "ChwKGkNNU1ZtdGpJOEpNREZaaFlUQWdkdV9nc1F3",
               "timestampUsec": "1776280547006206",

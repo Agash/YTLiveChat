@@ -1,7 +1,5 @@
 using System.Text;
-
 using Microsoft.Extensions.Logging.Abstractions;
-
 using YTLiveChat.Services;
 
 /// <summary>
@@ -26,23 +24,33 @@ internal static class SnapshotMode
         string? handle = options.Target.StartsWith("@", StringComparison.Ordinal)
             ? options.Target
             : null;
-        string? channelId = !options.Target.StartsWith("@", StringComparison.Ordinal)
+        string? channelId =
+            !options.Target.StartsWith("@", StringComparison.Ordinal)
             && options.Target.StartsWith("UC", StringComparison.OrdinalIgnoreCase)
-            ? options.Target
-            : null;
+                ? options.Target
+                : null;
         string? liveId = handle is null && channelId is null ? options.Target : null;
 
-        string outputDir = options.OutputDir
-            ?? Path.GetFullPath(Path.Combine(
-                AppContext.BaseDirectory,
-                "..", "..", "..", "..",
-                "YTLiveChat.Tests", "TestData", "WebSnapshots"
-            ));
+        string outputDir =
+            options.OutputDir
+            ?? Path.GetFullPath(
+                Path.Combine(
+                    AppContext.BaseDirectory,
+                    "..",
+                    "..",
+                    "..",
+                    "..",
+                    "YTLiveChat.Tests",
+                    "TestData",
+                    "WebSnapshots"
+                )
+            );
         Directory.CreateDirectory(outputDir);
 
         string date = DateTimeOffset.UtcNow.ToString("yyyy-MM-dd");
-        string safeTag = string.Concat((options.Target ?? "unknown").Select(c =>
-            char.IsLetterOrDigit(c) ? c : '_'));
+        string safeTag = string.Concat(
+            (options.Target ?? "unknown").Select(c => char.IsLetterOrDigit(c) ? c : '_')
+        );
 
         using HttpClient httpClient = new() { BaseAddress = new Uri("https://www.youtube.com") };
         YTHttpClient ytHttpClient = new(httpClient, NullLogger<YTHttpClient>.Instance);
@@ -60,13 +68,20 @@ internal static class SnapshotMode
             {
                 string html = page switch
                 {
-                    "home" => await ytHttpClient.GetChannelPageAsync(handle, channelId).ConfigureAwait(false),
-                    "streams" => await ytHttpClient.GetStreamsPageAsync(handle, channelId).ConfigureAwait(false),
-                    "live" => await ytHttpClient.GetOptionsAsync(handle, channelId, liveId).ConfigureAwait(false),
-                    _ => throw new ArgumentException($"Unknown page type: {page}")
+                    "home" => await ytHttpClient
+                        .GetChannelPageAsync(handle, channelId)
+                        .ConfigureAwait(false),
+                    "streams" => await ytHttpClient
+                        .GetStreamsPageAsync(handle, channelId)
+                        .ConfigureAwait(false),
+                    "live" => await ytHttpClient
+                        .GetOptionsAsync(handle, channelId, liveId)
+                        .ConfigureAwait(false),
+                    _ => throw new ArgumentException($"Unknown page type: {page}"),
                 };
 
-                await File.WriteAllTextAsync(filePath, html, new UTF8Encoding(false)).ConfigureAwait(false);
+                await File.WriteAllTextAsync(filePath, html, new UTF8Encoding(false))
+                    .ConfigureAwait(false);
 
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.Write($"OK ({html.Length:N0} chars)");
@@ -91,11 +106,7 @@ internal static class SnapshotMode
 
     private static void DiagnoseHtml(string html, string page)
     {
-        string[] keys =
-        [
-            "INNERTUBE_API_KEY",
-            "ytInitialData",
-        ];
+        string[] keys = ["INNERTUBE_API_KEY", "ytInitialData"];
 
         bool anyFound = false;
         foreach (string key in keys)
@@ -147,7 +158,10 @@ internal static class SnapshotMode
             const string pagesPrefix = "--pages=";
             if (arg.StartsWith(pagesPrefix, StringComparison.OrdinalIgnoreCase))
             {
-                foreach (string p in arg[pagesPrefix.Length..].Split(',', StringSplitOptions.RemoveEmptyEntries))
+                foreach (
+                    string p in arg[pagesPrefix.Length..]
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                )
                 {
                     pages.Add(p.Trim().ToLowerInvariant());
                 }
@@ -169,21 +183,39 @@ internal static class SnapshotMode
 
     public static void PrintSnapshotUsage()
     {
-        Console.WriteLine("━━━ snapshot ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        Console.WriteLine("  dotnet run --project YTLiveChat.Tools -- snapshot <@handle|UCxxx|liveId> [options]");
+        Console.WriteLine(
+            "━━━ snapshot ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        );
+        Console.WriteLine(
+            "  dotnet run --project YTLiveChat.Tools -- snapshot <@handle|UCxxx|liveId> [options]"
+        );
         Console.WriteLine();
-        Console.WriteLine("  Fetches YouTube channel/video pages and saves HTML snapshots as test fixtures.");
-        Console.WriteLine("  Uses the library's own HTTP client with consent-interstitial handling.");
+        Console.WriteLine(
+            "  Fetches YouTube channel/video pages and saves HTML snapshots as test fixtures."
+        );
+        Console.WriteLine(
+            "  Uses the library's own HTTP client with consent-interstitial handling."
+        );
         Console.WriteLine();
         Console.WriteLine("  Options:");
-        Console.WriteLine("    --pages=<list>         Comma-separated pages to fetch. Default: all.");
+        Console.WriteLine(
+            "    --pages=<list>         Comma-separated pages to fetch. Default: all."
+        );
         Console.WriteLine("                           Values: home, streams, live");
-        Console.WriteLine("    --output-dir=<path>    Output directory. Default: YTLiveChat.Tests/TestData/WebSnapshots/");
-        Console.WriteLine("    --diagnose             After saving, print which keys are present in the HTML.");
+        Console.WriteLine(
+            "    --output-dir=<path>    Output directory. Default: YTLiveChat.Tests/TestData/WebSnapshots/"
+        );
+        Console.WriteLine(
+            "    --diagnose             After saving, print which keys are present in the HTML."
+        );
         Console.WriteLine();
         Console.WriteLine("  Examples:");
-        Console.WriteLine("    dotnet run --project YTLiveChat.Tools -- snapshot @HakosBaelz --diagnose");
-        Console.WriteLine("    dotnet run --project YTLiveChat.Tools -- snapshot @AkiRosenthal --pages=live");
+        Console.WriteLine(
+            "    dotnet run --project YTLiveChat.Tools -- snapshot @HakosBaelz --diagnose"
+        );
+        Console.WriteLine(
+            "    dotnet run --project YTLiveChat.Tools -- snapshot @AkiRosenthal --pages=live"
+        );
     }
 
     private sealed record SnapshotOptions(

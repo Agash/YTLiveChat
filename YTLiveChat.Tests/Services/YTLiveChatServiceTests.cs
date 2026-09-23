@@ -1,9 +1,6 @@
 ﻿using System.Text.Json;
-
 using Microsoft.Extensions.Logging;
-
 using Moq;
-
 using YTLiveChat.Contracts;
 using YTLiveChat.Contracts.Models;
 using YTLiveChat.Contracts.Services;
@@ -366,7 +363,11 @@ public class YTLiveChatServiceTests
         Assert.AreEqual(expected: expectedLiveId, actual: startedArgs.LiveId);
 
         _mockYtHttpClient.Verify(
-            c => c.GetLiveChatAsync(It.Is<FetchOptions>(fo => fo.LiveId == scheduledLiveId), It.IsAny<CancellationToken>()),
+            c =>
+                c.GetLiveChatAsync(
+                    It.Is<FetchOptions>(fo => fo.LiveId == scheduledLiveId),
+                    It.IsAny<CancellationToken>()
+                ),
             Times.Never
         );
 
@@ -388,15 +389,16 @@ public class YTLiveChatServiceTests
         string clientVersion = "cv_streams_01";
         string continuation = "cont_streams_01";
 
-        string streamsHtml =
-            """
+        string streamsHtml = """
             <html><body><script>
             {"videoRenderer":{"videoId":"__SCHEDULED__","thumbnailOverlayTimeStatusRenderer":{"style":"UPCOMING"},"upcomingEventData":{"startTime":"1771405200"},"shortViewCountText":{"simpleText":"29 waiting"}}}
             {"videoRenderer":{"videoId":"__LIVE__","thumbnailOverlayTimeStatusRenderer":{"style":"LIVE"},"shortViewCountText":{"simpleText":"10K watching"}}}
             </script></body></html>
-            """
-            .Replace("__SCHEDULED__", scheduledCandidate, StringComparison.Ordinal)
-            .Replace("__LIVE__", liveCandidate, StringComparison.Ordinal);
+            """.Replace("__SCHEDULED__", scheduledCandidate, StringComparison.Ordinal).Replace(
+            "__LIVE__",
+            liveCandidate,
+            StringComparison.Ordinal
+        );
 
         string livePageHtml = UtilityTestData.GetSampleLivePageHtml(
             liveCandidate,
@@ -445,8 +447,7 @@ public class YTLiveChatServiceTests
         Assert.AreEqual(expected: liveCandidate, actual: startedArgs.LiveId);
 
         _mockYtHttpClient.Verify(
-            c =>
-                c.GetOptionsAsync(null, null, scheduledCandidate, It.IsAny<CancellationToken>()),
+            c => c.GetOptionsAsync(null, null, scheduledCandidate, It.IsAny<CancellationToken>()),
             Times.Never
         );
         _service.Stop();
@@ -468,7 +469,9 @@ public class YTLiveChatServiceTests
             .ReturnsAsync(WebSnapshotTestData.StreamsPageSnapshotFragments());
 
         _ = _mockYtHttpClient
-            .Setup(c => c.GetOptionsAsync(null, null, expectedLiveId, It.IsAny<CancellationToken>()))
+            .Setup(c =>
+                c.GetOptionsAsync(null, null, expectedLiveId, It.IsAny<CancellationToken>())
+            )
             .ReturnsAsync(WebSnapshotTestData.BijouLivePageSnapshot());
 
         string itemObjectJson =
@@ -576,7 +579,9 @@ public class YTLiveChatServiceTests
             .Setup(c => c.GetStreamsPageAsync("monitorTarget", null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(streamsHtml);
         _ = _mockYtHttpClient
-            .Setup(c => c.GetOptionsAsync("monitorTarget", null, null, It.IsAny<CancellationToken>()))
+            .Setup(c =>
+                c.GetOptionsAsync("monitorTarget", null, null, It.IsAny<CancellationToken>())
+            )
             .ReturnsAsync(liveHtml);
 
         bool started = false;
@@ -585,7 +590,10 @@ public class YTLiveChatServiceTests
         _service.Start(handle: "monitorTarget");
         await Task.Delay(300);
 
-        Assert.IsFalse(started, "Active-only monitor should not start for upcoming-only snapshots.");
+        Assert.IsFalse(
+            started,
+            "Active-only monitor should not start for upcoming-only snapshots."
+        );
         _mockYtHttpClient.Verify(
             c => c.GetLiveChatAsync(It.IsAny<FetchOptions>(), It.IsAny<CancellationToken>()),
             Times.Never
@@ -614,7 +622,9 @@ public class YTLiveChatServiceTests
             .Setup(c => c.GetStreamsPageAsync("monitorTarget", null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(streamsHtml);
         _ = _mockYtHttpClient
-            .Setup(c => c.GetOptionsAsync("monitorTarget", null, null, It.IsAny<CancellationToken>()))
+            .Setup(c =>
+                c.GetOptionsAsync("monitorTarget", null, null, It.IsAny<CancellationToken>())
+            )
             .ReturnsAsync(liveHtml);
 
         bool started = false;
@@ -623,7 +633,10 @@ public class YTLiveChatServiceTests
         _service.Start(handle: "monitorTarget");
         await Task.Delay(300);
 
-        Assert.IsFalse(started, "Active-only monitor should not start for upcoming-only snapshots.");
+        Assert.IsFalse(
+            started,
+            "Active-only monitor should not start for upcoming-only snapshots."
+        );
         _mockYtHttpClient.Verify(
             c => c.GetLiveChatAsync(It.IsAny<FetchOptions>(), It.IsAny<CancellationToken>()),
             Times.Never
@@ -661,7 +674,9 @@ public class YTLiveChatServiceTests
             )
             .ReturnsAsync(inaccessibleWatchHtml);
         _ = _mockYtHttpClient
-            .Setup(c => c.GetOptionsAsync("monitorTarget", null, null, It.IsAny<CancellationToken>()))
+            .Setup(c =>
+                c.GetOptionsAsync("monitorTarget", null, null, It.IsAny<CancellationToken>())
+            )
             .ReturnsAsync(fallbackLiveHtml);
 
         TaskCompletionSource<LivestreamInaccessibleEventArgs> inaccessibleTcs = new(
@@ -778,7 +793,11 @@ public class YTLiveChatServiceTests
         Assert.AreEqual(expected: selectedLiveId, actual: startedArgs.LiveId);
 
         _mockYtHttpClient.Verify(
-            c => c.GetLiveChatAsync(It.Is<FetchOptions>(fo => fo.LiveId == ignoredLiveId), It.IsAny<CancellationToken>()),
+            c =>
+                c.GetLiveChatAsync(
+                    It.Is<FetchOptions>(fo => fo.LiveId == ignoredLiveId),
+                    It.IsAny<CancellationToken>()
+                ),
             Times.Never
         );
 
@@ -1276,7 +1295,9 @@ public class YTLiveChatServiceTests
         string textItemJson =
             $$"""{ "liveChatTextMessageRenderer": {{TextMessageTestData.SimpleTextMessage1()}} }""";
         string responseJson = UtilityTestData.WrapItemsInLiveChatResponse([textItemJson], nextCont);
-        LiveChatResponse? liveChatResponse = JsonSerializer.Deserialize<LiveChatResponse>(responseJson);
+        LiveChatResponse? liveChatResponse = JsonSerializer.Deserialize<LiveChatResponse>(
+            responseJson
+        );
         Assert.IsNotNull(liveChatResponse);
 
         _ = _mockYtHttpClient
@@ -1290,11 +1311,15 @@ public class YTLiveChatServiceTests
             )
             .ReturnsAsync((liveChatResponse, responseJson));
 
-        using CancellationTokenSource streamCts = new(TimeSpan.FromSeconds(DefaultTestTimeoutSeconds));
+        using CancellationTokenSource streamCts = new(
+            TimeSpan.FromSeconds(DefaultTestTimeoutSeconds)
+        );
         List<ChatItem> streamedItems = [];
         await foreach (
-            ChatItem item in _service
-                .StreamChatItemsAsync(liveId: liveId, cancellationToken: streamCts.Token)
+            ChatItem item in _service.StreamChatItemsAsync(
+                liveId: liveId,
+                cancellationToken: streamCts.Token
+            )
         )
         {
             streamedItems.Add(item);
@@ -1338,7 +1363,9 @@ public class YTLiveChatServiceTests
             [addTextActionJson, removeActionJson],
             nextCont
         );
-        LiveChatResponse? liveChatResponse = JsonSerializer.Deserialize<LiveChatResponse>(responseJson);
+        LiveChatResponse? liveChatResponse = JsonSerializer.Deserialize<LiveChatResponse>(
+            responseJson
+        );
         Assert.IsNotNull(liveChatResponse);
 
         _ = _mockYtHttpClient
@@ -1352,11 +1379,15 @@ public class YTLiveChatServiceTests
             )
             .ReturnsAsync((liveChatResponse, responseJson));
 
-        using CancellationTokenSource streamCts = new(TimeSpan.FromSeconds(DefaultTestTimeoutSeconds));
+        using CancellationTokenSource streamCts = new(
+            TimeSpan.FromSeconds(DefaultTestTimeoutSeconds)
+        );
         List<RawActionReceivedEventArgs> streamedActions = [];
         await foreach (
-            RawActionReceivedEventArgs action in _service
-                .StreamRawActionsAsync(liveId: liveId, cancellationToken: streamCts.Token)
+            RawActionReceivedEventArgs action in _service.StreamRawActionsAsync(
+                liveId: liveId,
+                cancellationToken: streamCts.Token
+            )
         )
         {
             streamedActions.Add(action);

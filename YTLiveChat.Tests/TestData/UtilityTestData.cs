@@ -16,25 +16,26 @@ internal static class UtilityTestData
     {
         string actionsJson = string.Join(",", actionJsons);
 
-        string continuationJsonBlock = continuationToken == null
-            ? "\"continuations\": null"
-            : $$"""
-                "continuations": [
-                  {
-                    "invalidationContinuationData": {
-                      "invalidationId": {
-                        "objectSource": 1056,
-                        "objectId": "Y2hhdH5{{liveIdTopicSuffix}}==",
-                        "topic": "chat~{{liveIdTopicSuffix}}",
-                        "subscribeToGcmTopics": true,
-                        "protoCreationTimestampMs": "{{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}}"
-                      },
-                      "timeoutMs": {{timeoutMs}},
-                      "continuation": "{{continuationToken}}"
-                    }
-                  }
-                ]
-                """;
+        string continuationJsonBlock =
+            continuationToken == null
+                ? "\"continuations\": null"
+                : $$"""
+                    "continuations": [
+                      {
+                        "invalidationContinuationData": {
+                          "invalidationId": {
+                            "objectSource": 1056,
+                            "objectId": "Y2hhdH5{{liveIdTopicSuffix}}==",
+                            "topic": "chat~{{liveIdTopicSuffix}}",
+                            "subscribeToGcmTopics": true,
+                            "protoCreationTimestampMs": "{{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}}"
+                          },
+                          "timeoutMs": {{timeoutMs}},
+                          "continuation": "{{continuationToken}}"
+                        }
+                      }
+                    ]
+                    """;
         return $$"""
             {
               "responseContext": {
@@ -77,13 +78,13 @@ internal static class UtilityTestData
         [
             .. itemObjectJsons.Select(itemJson =>
                 $$"""
-                {
-                  "addChatItemAction": {
-                    "item": {{itemJson}},
-                    "clientId": "CLIENT_ID_PLACEHOLDER_{{Guid.NewGuid().ToString("N")[..8]}}"
-                  }
-                }
-                """
+                    {
+                      "addChatItemAction": {
+                        "item": {{itemJson}},
+                        "clientId": "CLIENT_ID_PLACEHOLDER_{{Guid.NewGuid().ToString("N")[..8]}}"
+                      }
+                    }
+                    """
             ),
         ];
 
