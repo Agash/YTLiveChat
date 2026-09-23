@@ -37,13 +37,13 @@ jobs:
         run: dotnet build YTLiveChat.sln -c Release --no-restore
 
       - name: Test (net9.0)
-        run: dotnet test --project YTLiveChat.Tests/YTLiveChat.Tests.csproj -c Release --framework net9.0 --no-build
+        run: dotnet test --project ${{ github.workspace }}/YTLiveChat.Tests/YTLiveChat.Tests.csproj -c Release --framework net9.0 --no-build
 
       - name: Test (net11.0)
-        run: dotnet test --project YTLiveChat.Tests/YTLiveChat.Tests.csproj -c Release --framework net11.0 --no-build
+        run: dotnet test --project ${{ github.workspace }}/YTLiveChat.Tests/YTLiveChat.Tests.csproj -c Release --framework net11.0 --no-build
 
       - name: Test (net10.0)
-        run: dotnet test --project YTLiveChat.Tests/YTLiveChat.Tests.csproj -c Release --framework net10.0 --no-build -- --coverage --coverage-settings coverage.settings.xml --coverage-output-format cobertura --coverage-output coverage.cobertura.xml
+        run: dotnet test --project ${{ github.workspace }}/YTLiveChat.Tests/YTLiveChat.Tests.csproj -c Release --framework net10.0 --no-build -- --coverage --coverage-settings coverage.settings.xml --coverage-output-format cobertura --coverage-output coverage.cobertura.xml
 
       - name: Summarize coverage
         # Renders the cobertura totals into the run summary. Uploading the raw XML alone means nobody
