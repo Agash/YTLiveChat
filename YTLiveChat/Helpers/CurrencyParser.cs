@@ -10,7 +10,9 @@ internal static partial class CurrencyParser
 {
     private const string DefaultCurrency = "USD";
 
-    private static readonly Dictionary<string, string> s_xmlMap = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, string> s_xmlMap = new(
+        StringComparer.OrdinalIgnoreCase
+    )
     {
         ["$"] = "USD",
         ["A$"] = "AUD",
@@ -145,8 +147,8 @@ internal static partial class CurrencyParser
     };
 
 #if NET8_0_OR_GREATER
-    private static readonly FrozenDictionary<string, string> s_symbolToCode =
-        BuildMap().ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+    private static readonly FrozenDictionary<string, string> s_symbolToCode = BuildMap()
+        .ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 #else
     private static readonly Dictionary<string, string> s_symbolToCode = BuildMap();
 #endif
@@ -202,11 +204,11 @@ internal static partial class CurrencyParser
     {
         string normalized = NormalizeAmountToken(input);
         return decimal.TryParse(
-                normalized,
-                NumberStyles.Any,
-                CultureInfo.InvariantCulture,
-                out decimal amount
-            )
+            normalized,
+            NumberStyles.Any,
+            CultureInfo.InvariantCulture,
+            out decimal amount
+        )
             ? amount
             : 0m;
     }
@@ -231,15 +233,20 @@ internal static partial class CurrencyParser
         }
 
         Match embeddedRawCode = IsoCodeRegex().Match(rawInput.ToUpperInvariant());
-        return embeddedRawCode.Success
-            ? embeddedRawCode.Value
-            : normalizedSymbol.Contains('$') ? DefaultCurrency : normalizedSymbol == "¥" ? "JPY" : DefaultCurrency;
+        return embeddedRawCode.Success ? embeddedRawCode.Value
+            : normalizedSymbol.Contains('$') ? DefaultCurrency
+            : normalizedSymbol == "¥" ? "JPY"
+            : DefaultCurrency;
     }
 
     private static string NormalizeSpaces(string value) =>
         value.Replace('\u00A0', ' ').Replace('\u202F', ' ').Trim();
 
-    private static bool IsIsoCode(string value) => value.Length == 3 && IsAsciiUpper(value[0]) && IsAsciiUpper(value[1]) && IsAsciiUpper(value[2]);
+    private static bool IsIsoCode(string value) =>
+        value.Length == 3
+        && IsAsciiUpper(value[0])
+        && IsAsciiUpper(value[1])
+        && IsAsciiUpper(value[2]);
 
     private static bool IsAsciiUpper(char value) => value is >= 'A' and <= 'Z';
 
@@ -256,9 +263,10 @@ internal static partial class CurrencyParser
 
         if (hasComma && hasDot)
         {
-            normalized = normalized.LastIndexOf(',') > normalized.LastIndexOf('.')
-                ? normalized.Replace(".", string.Empty).Replace(",", ".")
-                : normalized.Replace(",", string.Empty);
+            normalized =
+                normalized.LastIndexOf(',') > normalized.LastIndexOf('.')
+                    ? normalized.Replace(".", string.Empty).Replace(",", ".")
+                    : normalized.Replace(",", string.Empty);
 
             return normalized;
         }
@@ -273,7 +281,9 @@ internal static partial class CurrencyParser
 
             int commaIndex = normalized.LastIndexOf(',');
             int digitsAfter = normalized.Length - commaIndex - 1;
-            return digitsAfter == 3 ? normalized.Replace(",", string.Empty) : normalized.Replace(",", ".");
+            return digitsAfter == 3
+                ? normalized.Replace(",", string.Empty)
+                : normalized.Replace(",", ".");
         }
 
         if (hasDot)
@@ -286,7 +296,9 @@ internal static partial class CurrencyParser
                     .Substring(0, lastDotIndex)
                     .Replace(".", string.Empty);
                 string decimalPart = normalized.Substring(lastDotIndex + 1);
-                return decimalPart.Length == 3 ? integerPart + decimalPart : integerPart + "." + decimalPart;
+                return decimalPart.Length == 3
+                    ? integerPart + decimalPart
+                    : integerPart + "." + decimalPart;
             }
         }
 

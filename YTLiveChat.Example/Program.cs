@@ -1,9 +1,7 @@
 using System.Text;
-
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-
 using YTLiveChat.Contracts;
 using YTLiveChat.Contracts.Models;
 using YTLiveChat.Example;
@@ -53,7 +51,10 @@ while (true)
         Console.WriteLine($"Target Live ID: {identifier}");
     }
 
-    if (!string.IsNullOrWhiteSpace(runOptions.Handle) || !string.IsNullOrWhiteSpace(runOptions.ChannelId))
+    if (
+        !string.IsNullOrWhiteSpace(runOptions.Handle)
+        || !string.IsNullOrWhiteSpace(runOptions.ChannelId)
+    )
     {
         Console.Write("Enable continuous livestream monitor mode (BETA/UNSUPPORTED)? (y/N): ");
         string? monitorResponse = Console.ReadLine();
@@ -64,7 +65,9 @@ while (true)
         {
             runOptions.EnableContinuousMonitor = true;
 
-            Console.Write("Only auto-detect streams that are actively broadcasting (skip scheduled/free-chat)? (Y/n): ");
+            Console.Write(
+                "Only auto-detect streams that are actively broadcasting (skip scheduled/free-chat)? (Y/n): "
+            );
             string? activeOnlyResponse = Console.ReadLine();
             runOptions.RequireActiveBroadcastForAutoDetectedStream =
                 string.IsNullOrWhiteSpace(activeOnlyResponse)
@@ -111,17 +114,22 @@ while (true)
         runOptions.EnableJsonLogging = true;
         Console.Write("Log file path (leave empty for auto path): ");
         string? pathInput = Console.ReadLine();
-        runOptions.DebugLogPath = !string.IsNullOrWhiteSpace(pathInput) ? Path.GetFullPath(pathInput.Trim()) : BuildDefaultLogPath(runOptions.SourceTag);
+        runOptions.DebugLogPath = !string.IsNullOrWhiteSpace(pathInput)
+            ? Path.GetFullPath(pathInput.Trim())
+            : BuildDefaultLogPath(runOptions.SourceTag);
     }
 
     runOptionsList.Add(runOptions);
-    Console.WriteLine($"Added target [{runOptions.SourceTag}]. Total targets: {runOptionsList.Count}");
+    Console.WriteLine(
+        $"Added target [{runOptions.SourceTag}]. Total targets: {runOptionsList.Count}"
+    );
 }
 
 static string BuildDefaultLogPath(string sourceTag)
 {
-    string safe = string.Concat(sourceTag.Select(ch =>
-        char.IsLetterOrDigit(ch) || ch is '-' or '_' ? ch : '_'));
+    string safe = string.Concat(
+        sourceTag.Select(ch => char.IsLetterOrDigit(ch) || ch is '-' or '_' ? ch : '_')
+    );
     string fileName = $"{safe}_{DateTimeOffset.UtcNow:yyyyMMdd_HHmmss}.json";
     return Path.GetFullPath(Path.Combine("logs", fileName));
 }
@@ -146,16 +154,28 @@ if (streamsTargets.Count > 0)
 {
     Console.Write("Fetch streams list for handle/channel targets? (y/N): ");
     string? streamsResponse = Console.ReadLine();
-    if (!string.IsNullOrWhiteSpace(streamsResponse)
-        && streamsResponse.Trim().Equals("y", StringComparison.OrdinalIgnoreCase))
+    if (
+        !string.IsNullOrWhiteSpace(streamsResponse)
+        && streamsResponse.Trim().Equals("y", StringComparison.OrdinalIgnoreCase)
+    )
     {
         using ILoggerFactory streamsLogFactory = LoggerFactory.Create(b =>
-            b.AddConsole().SetMinimumLevel(LogLevel.Warning));
-        using HttpClient streamsHttpClient = new() { BaseAddress = new Uri("https://www.youtube.com") };
-        YTHttpClient streamsYtHttpClient = new(streamsHttpClient, streamsLogFactory.CreateLogger<YTHttpClient>());
+            b.AddConsole().SetMinimumLevel(LogLevel.Warning)
+        );
+        using HttpClient streamsHttpClient = new()
+        {
+            BaseAddress = new Uri("https://www.youtube.com"),
+        };
+        YTHttpClient streamsYtHttpClient = new(
+            streamsHttpClient,
+            streamsLogFactory.CreateLogger<YTHttpClient>()
+        );
         YTLiveChatOptions streamsYtOptions = new() { YoutubeBaseUrl = "https://www.youtube.com" };
-        YTLiveChat.Services.YTLiveChat streamsService = new(streamsYtOptions, streamsYtHttpClient,
-            streamsLogFactory.CreateLogger<YTLiveChat.Services.YTLiveChat>());
+        YTLiveChat.Services.YTLiveChat streamsService = new(
+            streamsYtOptions,
+            streamsYtHttpClient,
+            streamsLogFactory.CreateLogger<YTLiveChat.Services.YTLiveChat>()
+        );
 
         foreach (ExampleRunOptions target in streamsTargets)
         {
@@ -228,10 +248,13 @@ builder.Logging.SetMinimumLevel(LogLevel.Warning);
 builder.Logging.AddFilter("YTLiveChat.Services.YTLiveChat", LogLevel.Information);
 builder.Logging.AddFilter("YTLiveChat.Example.ChatMonitorService", LogLevel.Information);
 
-_ = builder.Services.AddHttpClient("YTLiveChatExample", (serviceProvider, httpClient) =>
-{
-    httpClient.BaseAddress = new Uri("https://www.youtube.com");
-});
+_ = builder.Services.AddHttpClient(
+    "YTLiveChatExample",
+    (serviceProvider, httpClient) =>
+    {
+        httpClient.BaseAddress = new Uri("https://www.youtube.com");
+    }
+);
 
 builder.Services.AddSingleton<IReadOnlyList<ExampleRunOptions>>(runOptionsList);
 builder.Services.AddHostedService<ChatMonitorService>();

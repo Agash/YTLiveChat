@@ -1,8 +1,6 @@
 using System.Text.Json;
-
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-
 using YTLiveChat.Contracts;
 using YTLiveChat.Contracts.Models;
 using YTLiveChat.Contracts.Services;
@@ -20,6 +18,7 @@ internal class ChatMonitorService : IHostedService, IDisposable
     private readonly CancellationTokenSource _stoppingCts = new();
 
     private readonly List<MonitorSession> _sessions = [];
+
     // System.Threading.Lock rather than a bare object: the compiler binds `lock` to its own
     // Enter/Exit instead of Monitor, which is cheaper and makes the field's purpose explicit.
     private readonly Lock _sessionLock = new();
@@ -123,10 +122,7 @@ internal class ChatMonitorService : IHostedService, IDisposable
 
     private MonitorSession BuildSession(ExampleRunOptions options)
     {
-        YTLiveChatOptions ytOptions = new()
-        {
-            YoutubeBaseUrl = "https://www.youtube.com",
-        };
+        YTLiveChatOptions ytOptions = new() { YoutubeBaseUrl = "https://www.youtube.com" };
 
 #pragma warning disable CS0618
         if (options.EnableContinuousMonitor)
@@ -200,7 +196,8 @@ internal class ChatMonitorService : IHostedService, IDisposable
         session.ChatItemDeletedHandler = (_, e) => OnChatItemDeleted(session, e);
         session.ChatItemsDeletedByAuthorHandler = (_, e) => OnChatItemsDeletedByAuthor(session, e);
         session.ChatItemReplacedHandler = (_, e) => OnChatItemReplaced(session, e);
-        session.EngagementMessageReceivedHandler = (_, e) => OnEngagementMessageReceived(session, e);
+        session.EngagementMessageReceivedHandler = (_, e) =>
+            OnEngagementMessageReceived(session, e);
         session.GiftReceivedHandler = (_, e) => OnGiftReceived(session, e);
         session.ChatStoppedHandler = (_, e) => OnChatStopped(session, e);
         session.ErrorOccurredHandler = (_, e) => OnErrorOccurred(session, e);
@@ -358,10 +355,7 @@ internal class ChatMonitorService : IHostedService, IDisposable
         }
     }
 
-    private void OnLivestreamInaccessible(
-        MonitorSession session,
-        LivestreamInaccessibleEventArgs e
-    )
+    private void OnLivestreamInaccessible(MonitorSession session, LivestreamInaccessibleEventArgs e)
     {
         lock (s_consoleLock)
         {
@@ -396,8 +390,10 @@ internal class ChatMonitorService : IHostedService, IDisposable
             if (prop.Name == "clickTrackingParams")
                 continue;
             hasNonTrackingProp = true;
-            if (prop.Name.EndsWith("Action", StringComparison.Ordinal)
-                || prop.Name.EndsWith("Command", StringComparison.Ordinal))
+            if (
+                prop.Name.EndsWith("Action", StringComparison.Ordinal)
+                || prop.Name.EndsWith("Command", StringComparison.Ordinal)
+            )
             {
                 actionType = prop.Name;
                 break;
@@ -414,10 +410,12 @@ internal class ChatMonitorService : IHostedService, IDisposable
 
         // For addChatItemAction, resolve the renderer type and filter known ones.
         string displayKind = actionType ?? "unknown";
-        if (actionType == "addChatItemAction"
+        if (
+            actionType == "addChatItemAction"
             && e.RawAction.TryGetProperty("addChatItemAction", out JsonElement addChat)
             && addChat.TryGetProperty("item", out JsonElement item)
-            && item.ValueKind == JsonValueKind.Object)
+            && item.ValueKind == JsonValueKind.Object
+        )
         {
             using JsonElement.ObjectEnumerator itemEnum = item.EnumerateObject();
             if (itemEnum.MoveNext())
@@ -449,7 +447,10 @@ internal class ChatMonitorService : IHostedService, IDisposable
         {
             WriteTimestamp(DateTimeOffset.UtcNow);
             WriteSourceTag(session.SourceTag);
-            WriteTag(poll.IsNew ? "POLL NEW" : "POLL UPD", poll.IsNew ? ConsoleColor.Cyan : ConsoleColor.DarkCyan);
+            WriteTag(
+                poll.IsNew ? "POLL NEW" : "POLL UPD",
+                poll.IsNew ? ConsoleColor.Cyan : ConsoleColor.DarkCyan
+            );
             Console.Write(' ');
 
             // Question + creator header
@@ -457,7 +458,8 @@ internal class ChatMonitorService : IHostedService, IDisposable
             {
                 Console.ForegroundColor = ConsoleColor.White;
                 string q = string.Concat(poll.Question.OfType<TextPart>().Select(p => p.Text));
-                if (q.Length > 50) q = q[..50] + "…";
+                if (q.Length > 50)
+                    q = q[..50] + "…";
                 Console.Write($"\"{q}\"");
             }
 
@@ -471,12 +473,19 @@ internal class ChatMonitorService : IHostedService, IDisposable
 
             // Choices — mark selected with bullet, show vote % on updates
             Console.ForegroundColor = ConsoleColor.Gray;
-            string choicesSummary = string.Join(" | ", poll.Choices.Select(c =>
-            {
-                string prefix = c.IsSelected ? "• " : "";
-                string choiceText = string.Concat(c.Text.OfType<TextPart>().Select(p => p.Text));
-                return poll.IsNew ? $"{prefix}{choiceText}" : $"{prefix}{choiceText} {c.VoteRatio * 100:0}%";
-            }));
+            string choicesSummary = string.Join(
+                " | ",
+                poll.Choices.Select(c =>
+                {
+                    string prefix = c.IsSelected ? "• " : "";
+                    string choiceText = string.Concat(
+                        c.Text.OfType<TextPart>().Select(p => p.Text)
+                    );
+                    return poll.IsNew
+                        ? $"{prefix}{choiceText}"
+                        : $"{prefix}{choiceText} {c.VoteRatio * 100:0}%";
+                })
+            );
             Console.Write(choicesSummary);
 
             if (poll.TotalVotes.HasValue)
@@ -534,7 +543,10 @@ internal class ChatMonitorService : IHostedService, IDisposable
                 }
 
                 // Banner message text (e.g. "Don't miss out! People are going to watch @Channel")
-                string bannerText = string.Concat(redirect.BannerMessage.OfType<TextPart>().Select(p => p.Text)).Trim();
+                string bannerText = string.Concat(
+                        redirect.BannerMessage.OfType<TextPart>().Select(p => p.Text)
+                    )
+                    .Trim();
                 if (!string.IsNullOrEmpty(bannerText))
                 {
                     Console.ForegroundColor = ConsoleColor.DarkGray;
@@ -552,8 +564,10 @@ internal class ChatMonitorService : IHostedService, IDisposable
                 }
                 else
                 {
-                    if (pinned.IsModerator) WriteTag("MOD", ConsoleColor.Blue);
-                    if (pinned.IsVerified) WriteTag("VERIFIED", ConsoleColor.Cyan);
+                    if (pinned.IsModerator)
+                        WriteTag("MOD", ConsoleColor.Blue);
+                    if (pinned.IsVerified)
+                        WriteTag("VERIFIED", ConsoleColor.Cyan);
                 }
 
                 // Author name
@@ -580,7 +594,9 @@ internal class ChatMonitorService : IHostedService, IDisposable
                 Console.ResetColor();
                 Console.Write(' ');
                 Console.ForegroundColor = ConsoleColor.DarkGray;
-                Console.Write(string.Concat(summary.Summary.OfType<TextPart>().Select(p => p.Text)));
+                Console.Write(
+                    string.Concat(summary.Summary.OfType<TextPart>().Select(p => p.Text))
+                );
             }
 
             Console.ResetColor();
@@ -614,7 +630,10 @@ internal class ChatMonitorService : IHostedService, IDisposable
         }
     }
 
-    private static void OnChatItemsDeletedByAuthor(MonitorSession session, ChatItemsDeletedByAuthorEventArgs e)
+    private static void OnChatItemsDeletedByAuthor(
+        MonitorSession session,
+        ChatItemsDeletedByAuthorEventArgs e
+    )
     {
         lock (s_consoleLock)
         {
@@ -651,7 +670,10 @@ internal class ChatMonitorService : IHostedService, IDisposable
         }
     }
 
-    private static void OnEngagementMessageReceived(MonitorSession session, EngagementMessageReceivedEventArgs e)
+    private static void OnEngagementMessageReceived(
+        MonitorSession session,
+        EngagementMessageReceivedEventArgs e
+    )
     {
         EngagementItem engagement = e.Engagement;
         (string label, ConsoleColor color) = engagement.MessageType switch
@@ -672,7 +694,9 @@ internal class ChatMonitorService : IHostedService, IDisposable
                 Console.Write(' ');
                 Console.ForegroundColor = ConsoleColor.DarkGray;
                 // Collapse newlines for single-line console rendering
-                string text = string.Concat(engagement.Message.OfType<TextPart>().Select(p => p.Text))
+                string text = string.Concat(
+                        engagement.Message.OfType<TextPart>().Select(p => p.Text)
+                    )
                     .Replace('\n', ' ')
                     .Trim();
                 Console.Write(text);
@@ -781,7 +805,8 @@ internal class ChatMonitorService : IHostedService, IDisposable
         }
     }
 
-    private void OnApplicationStopping() => _logger.LogInformation("Application stopping. Stopping monitor sessions.");
+    private void OnApplicationStopping() =>
+        _logger.LogInformation("Application stopping. Stopping monitor sessions.");
 
     public void Dispose()
     {
@@ -940,19 +965,37 @@ internal class ChatMonitorService : IHostedService, IDisposable
             return ConsoleColor.Yellow;
 
         string hex = hexColor.Length > 6 ? hexColor[^6..] : hexColor;
-        if (!int.TryParse(hex[0..2], System.Globalization.NumberStyles.HexNumber, null, out int r) ||
-            !int.TryParse(hex[2..4], System.Globalization.NumberStyles.HexNumber, null, out int g) ||
-            !int.TryParse(hex[4..6], System.Globalization.NumberStyles.HexNumber, null, out int b))
+        if (
+            !int.TryParse(hex[0..2], System.Globalization.NumberStyles.HexNumber, null, out int r)
+            || !int.TryParse(
+                hex[2..4],
+                System.Globalization.NumberStyles.HexNumber,
+                null,
+                out int g
+            )
+            || !int.TryParse(
+                hex[4..6],
+                System.Globalization.NumberStyles.HexNumber,
+                null,
+                out int b
+            )
+        )
         {
             return ConsoleColor.Yellow;
         }
 
-        if (r > 180 && g < 60 && b < 60) return ConsoleColor.Red;       // ~$100+ (deep red)
-        if (r > 150 && g < 80 && b > 60) return ConsoleColor.Magenta;   // ~$50–$99 (pink/magenta)
-        if (r > 200 && g > 80 && b < 50) return ConsoleColor.DarkYellow; // ~$20–$49 (orange)
-        if (r > 200 && g > 160 && b < 80) return ConsoleColor.Yellow;    // ~$10–$19 (yellow)
-        if (g > 150 && b > 100 && r < 50) return ConsoleColor.Cyan;      // ~$2–$9 (cyan/green)
-        if (b > 150 && r < 80) return ConsoleColor.Blue;       // ~$1–$1.99 (blue)
+        if (r > 180 && g < 60 && b < 60)
+            return ConsoleColor.Red; // ~$100+ (deep red)
+        if (r > 150 && g < 80 && b > 60)
+            return ConsoleColor.Magenta; // ~$50–$99 (pink/magenta)
+        if (r > 200 && g > 80 && b < 50)
+            return ConsoleColor.DarkYellow; // ~$20–$49 (orange)
+        if (r > 200 && g > 160 && b < 80)
+            return ConsoleColor.Yellow; // ~$10–$19 (yellow)
+        if (g > 150 && b > 100 && r < 50)
+            return ConsoleColor.Cyan; // ~$2–$9 (cyan/green)
+        if (b > 150 && r < 80)
+            return ConsoleColor.Blue; // ~$1–$1.99 (blue)
 
         return ConsoleColor.Yellow;
     }
@@ -961,19 +1004,20 @@ internal class ChatMonitorService : IHostedService, IDisposable
     {
         string text = membership.EventType switch
         {
-            MembershipEventType.New =>
-                membership.LevelName is string lvl && lvl != "Member"
-                    ? $"JOIN {lvl}"
-                    : "JOIN",
-            MembershipEventType.Milestone =>
-                membership.MilestoneMonths is int months ? $"MILESTONE {months}m" : "MILESTONE",
-            MembershipEventType.GiftPurchase =>
-                membership.GiftCount is int n ? $"GIFT x{n}" : "GIFT",
+            MembershipEventType.New => membership.LevelName is string lvl && lvl != "Member"
+                ? $"JOIN {lvl}"
+                : "JOIN",
+            MembershipEventType.Milestone => membership.MilestoneMonths is int months
+                ? $"MILESTONE {months}m"
+                : "MILESTONE",
+            MembershipEventType.GiftPurchase => membership.GiftCount is int n
+                ? $"GIFT x{n}"
+                : "GIFT",
             MembershipEventType.GiftRedemption => "GIFTED",
-            MembershipEventType.Upgraded =>
-                membership.LevelName is string upgLvl && upgLvl != "Member"
-                    ? $"UPGRADE {upgLvl}"
-                    : "UPGRADE",
+            MembershipEventType.Upgraded => membership.LevelName is string upgLvl
+            && upgLvl != "Member"
+                ? $"UPGRADE {upgLvl}"
+                : "UPGRADE",
             _ => "MEM",
         };
 
@@ -992,10 +1036,11 @@ internal class ChatMonitorService : IHostedService, IDisposable
         // Secondary attribution — gifter for redemptions, recipient channel for gift purchases
         string? attribution = membership.EventType switch
         {
-            MembershipEventType.GiftPurchase when !string.IsNullOrWhiteSpace(membership.GifterUsername)
-                => null, // gifter is the ChatItem.Author, no need to repeat
-            MembershipEventType.GiftRedemption when !string.IsNullOrWhiteSpace(membership.GifterUsername)
-                => $"from {membership.GifterUsername}",
+            MembershipEventType.GiftPurchase
+                when !string.IsNullOrWhiteSpace(membership.GifterUsername) => null, // gifter is the ChatItem.Author, no need to repeat
+            MembershipEventType.GiftRedemption
+                when !string.IsNullOrWhiteSpace(membership.GifterUsername) =>
+                $"from {membership.GifterUsername}",
             _ => null,
         };
 
@@ -1015,7 +1060,8 @@ internal class ChatMonitorService : IHostedService, IDisposable
             switch (part)
             {
                 case TextPart textPart:
-                    Console.ForegroundColor = textPart.Bold ? ConsoleColor.White
+                    Console.ForegroundColor =
+                        textPart.Bold ? ConsoleColor.White
                         : textPart.IsDeemphasized ? ConsoleColor.DarkGray
                         : ConsoleColor.Gray;
                     Console.Write(textPart.Text);
@@ -1067,10 +1113,12 @@ internal class ChatMonitorService : IHostedService, IDisposable
         return membership.EventType switch
         {
             MembershipEventType.New => membership.HeaderSubtext ?? membership.HeaderPrimaryText,
-            MembershipEventType.Milestone => membership.HeaderPrimaryText ?? membership.HeaderSubtext,
+            MembershipEventType.Milestone => membership.HeaderPrimaryText
+                ?? membership.HeaderSubtext,
             MembershipEventType.GiftPurchase => membership.HeaderPrimaryText,
             MembershipEventType.GiftRedemption => membership.HeaderPrimaryText,
-            MembershipEventType.Upgraded => membership.HeaderSubtext ?? membership.HeaderPrimaryText,
+            MembershipEventType.Upgraded => membership.HeaderSubtext
+                ?? membership.HeaderPrimaryText,
             _ => membership.HeaderPrimaryText ?? membership.HeaderSubtext,
         };
     }

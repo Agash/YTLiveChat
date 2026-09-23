@@ -17,9 +17,10 @@ if (args.Length > 0 && args[0].Equals("analyze", StringComparison.OrdinalIgnoreC
 }
 
 // "count" is the explicit name for the default dump/count mode; also accepted without a subcommand.
-string[] countArgs = args.Length > 0 && args[0].Equals("count", StringComparison.OrdinalIgnoreCase)
-    ? args[1..]
-    : args;
+string[] countArgs =
+    args.Length > 0 && args[0].Equals("count", StringComparison.OrdinalIgnoreCase)
+        ? args[1..]
+        : args;
 
 Options options = ParseOptions(countArgs);
 if (options.Paths.Count == 0)
@@ -32,33 +33,28 @@ if (options.Paths.Count == 0)
     }
 }
 
-
 // Dump mode: collect full untruncated JSON for targeted extraction
 List<JsonElement> dumpedRenderers = [];
 List<JsonElement> dumpedActions = [];
 
 // Parsed: produce ChatItems (ChatReceived)
-HashSet<string> chatItemActionTypes =
-[
-    "addChatItemAction",
-    "addLiveChatTickerItemAction",
-];
+HashSet<string> chatItemActionTypes = ["addChatItemAction", "addLiveChatTickerItemAction"];
 
 // Parsed: fire a dedicated public event (not a ChatItem)
 HashSet<string> parsedDedicatedEventActionTypes =
 [
-    "removeChatItemAction",                  // → ChatItemDeleted
-    "replaceChatItemAction",                 // → ChatItemReplaced
-    "removeChatItemByAuthorAction",          // → ChatItemsDeletedByAuthor
-    "markChatItemsByAuthorAsDeletedAction",  // → ChatItemsDeletedByAuthor
+    "removeChatItemAction", // → ChatItemDeleted
+    "replaceChatItemAction", // → ChatItemReplaced
+    "removeChatItemByAuthorAction", // → ChatItemsDeletedByAuthor
+    "markChatItemsByAuthorAsDeletedAction", // → ChatItemsDeletedByAuthor
     "changeEngagementPanelVisibilityAction", // → EngagementMessageReceived
     // Poll lifecycle
-    "showLiveChatActionPanelAction",         // → PollUpdated (new poll)
-    "updateLiveChatPollAction",              // → PollUpdated (vote update)
-    "closeLiveChatActionPanelAction",        // → PollClosed
+    "showLiveChatActionPanelAction", // → PollUpdated (new poll)
+    "updateLiveChatPollAction", // → PollUpdated (vote update)
+    "closeLiveChatActionPanelAction", // → PollClosed
     // Banner lifecycle
-    "addBannerToLiveChatCommand",            // → BannerAdded
-    "removeBannerForLiveChatCommand",        // → BannerRemoved
+    "addBannerToLiveChatCommand", // → BannerAdded
+    "removeBannerForLiveChatCommand", // → BannerRemoved
 ];
 
 // Known but intentionally silent: recognized by the library, no public event emitted
@@ -144,7 +140,11 @@ foreach (string path in options.Paths)
                 && action.TryGetProperty("addChatItemAction", out JsonElement addChat)
                 && addChat.TryGetProperty("item", out JsonElement item)
                 && item.ValueKind == JsonValueKind.Object
-                && LogReader.TryGetSingleRenderer(item, out string? rendererType, out JsonElement rendererValue)
+                && LogReader.TryGetSingleRenderer(
+                    item,
+                    out string? rendererType,
+                    out JsonElement rendererValue
+                )
             )
             {
                 Increment(rendererCounts, rendererType!);
@@ -166,12 +166,21 @@ foreach (string path in options.Paths)
             }
             else if (
                 actionType == "addLiveChatTickerItemAction"
-                && action.TryGetProperty("addLiveChatTickerItemAction", out JsonElement tickerAction)
+                && action.TryGetProperty(
+                    "addLiveChatTickerItemAction",
+                    out JsonElement tickerAction
+                )
                 && tickerAction.TryGetProperty("item", out JsonElement tickerItem)
                 && tickerItem.ValueKind == JsonValueKind.Object
             )
             {
-                if (LogReader.TryGetSingleRenderer(tickerItem, out string? tickerRenderer, out JsonElement tickerOuterValue))
+                if (
+                    LogReader.TryGetSingleRenderer(
+                        tickerItem,
+                        out string? tickerRenderer,
+                        out JsonElement tickerOuterValue
+                    )
+                )
                 {
                     Increment(tickerRendererCounts, tickerRenderer!);
                     TryDumpRenderer(tickerRenderer!, tickerOuterValue, options, dumpedRenderers);
@@ -236,7 +245,7 @@ foreach (
 {
     if (parsedDedicatedEventActionTypes.Contains(kv.Key))
     {
-        Console.WriteLine($"{kv.Value,6}  {kv.Key}");
+        Console.WriteLine($"{kv.Value, 6}  {kv.Key}");
     }
 }
 
@@ -250,7 +259,7 @@ foreach (
 {
     if (silentActionTypes.Contains(kv.Key))
     {
-        Console.WriteLine($"{kv.Value,6}  {kv.Key}");
+        Console.WriteLine($"{kv.Value, 6}  {kv.Key}");
     }
 }
 
@@ -264,7 +273,7 @@ foreach (
 {
     if (!knownActionTypes.Contains(kv.Key) && kv.Key != "<tracking-only>")
     {
-        Console.WriteLine($"{kv.Value,6}  {kv.Key}");
+        Console.WriteLine($"{kv.Value, 6}  {kv.Key}");
     }
 }
 
@@ -294,7 +303,9 @@ if (options.EnableVariants)
 if (options.DumpRenderer != null)
 {
     Console.WriteLine();
-    Console.WriteLine($"== Dump Renderer: {options.DumpRenderer}{(options.FilterSubtext != null ? $" (headerSubtext prefix: \"{options.FilterSubtext}\")" : "")} ==");
+    Console.WriteLine(
+        $"== Dump Renderer: {options.DumpRenderer}{(options.FilterSubtext != null ? $" (headerSubtext prefix: \"{options.FilterSubtext}\")" : "")} =="
+    );
     Console.WriteLine($"  {dumpedRenderers.Count} match(es)");
 
     JsonSerializerOptions prettyJson = new() { WriteIndented = true };
@@ -399,7 +410,8 @@ static void TryDumpRenderer(
 
     if (options.FilterSubtext != null)
     {
-        string? headerSubtext = LogReader.TryGetSimpleText(rendererValue, "headerSubtext")
+        string? headerSubtext =
+            LogReader.TryGetSimpleText(rendererValue, "headerSubtext")
             ?? LogReader.TryGetRunsAsPlainText(rendererValue, "headerSubtext")
             ?? LogReader.TryGetSimpleText(rendererValue, "headerPrimaryText")
             ?? LogReader.TryGetRunsAsPlainText(rendererValue, "headerPrimaryText");
@@ -597,7 +609,17 @@ static Options ParseOptions(string[] args)
 
     // Expand any directory paths to *.jsonl files within them
     List<string> expandedPaths = [.. LogReader.ExpandPaths(paths)];
-    return new(expandedPaths, enableVariants, maxVariantRows, dumpRenderer, dumpAction, filterSubtext, filterHasField, dumpLimit, dumpOutput);
+    return new(
+        expandedPaths,
+        enableVariants,
+        maxVariantRows,
+        dumpRenderer,
+        dumpAction,
+        filterSubtext,
+        filterHasField,
+        dumpLimit,
+        dumpOutput
+    );
 }
 
 static Options PromptOptionsInteractive()
@@ -625,7 +647,8 @@ static Options PromptOptionsInteractive()
     Console.WriteLine("Enable variant analysis? (Y/n)");
     Console.Write("> ");
     string? variantInput = Console.ReadLine();
-    bool enableVariants = string.IsNullOrWhiteSpace(variantInput)
+    bool enableVariants =
+        string.IsNullOrWhiteSpace(variantInput)
         || variantInput.Equals("y", StringComparison.OrdinalIgnoreCase)
         || variantInput.Equals("yes", StringComparison.OrdinalIgnoreCase);
 
@@ -633,13 +656,27 @@ static Options PromptOptionsInteractive()
     Console.WriteLine("Max variant rows to print per section [default: 25]:");
     Console.Write("> ");
     string? rowsInput = Console.ReadLine();
-    if (!string.IsNullOrWhiteSpace(rowsInput) && int.TryParse(rowsInput, out int parsed) && parsed > 0)
+    if (
+        !string.IsNullOrWhiteSpace(rowsInput)
+        && int.TryParse(rowsInput, out int parsed)
+        && parsed > 0
+    )
     {
         maxVariantRows = parsed;
     }
 
     List<string> expandedInteractive = [.. LogReader.ExpandPaths(paths)];
-    return new(expandedInteractive, enableVariants, maxVariantRows, DumpRenderer: null, DumpAction: null, FilterSubtext: null, FilterHasField: null, DumpLimit: null, DumpOutput: null);
+    return new(
+        expandedInteractive,
+        enableVariants,
+        maxVariantRows,
+        DumpRenderer: null,
+        DumpAction: null,
+        FilterSubtext: null,
+        FilterHasField: null,
+        DumpLimit: null,
+        DumpOutput: null
+    );
 }
 
 static void PrintUsage()
@@ -649,70 +686,130 @@ static void PrintUsage()
     Console.WriteLine("Subcommands:");
     Console.WriteLine("  watch     Capture live chat from one or more streams to .jsonl files.");
     Console.WriteLine("  snapshot  Fetch and save YouTube page HTML snapshots for test fixtures.");
-    Console.WriteLine("  count     Count and dump renderer/action types from captured .jsonl logs. (default)");
-    Console.WriteLine("  analyze   Field-level baseline diff + deep recursive scan for new/unknown JSON keys.");
+    Console.WriteLine(
+        "  count     Count and dump renderer/action types from captured .jsonl logs. (default)"
+    );
+    Console.WriteLine(
+        "  analyze   Field-level baseline diff + deep recursive scan for new/unknown JSON keys."
+    );
     Console.WriteLine();
     Console.WriteLine("━━━ watch ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    Console.WriteLine("  dotnet run --project YTLiveChat.Tools -- watch <@handle|UCxxx|liveId> [...]");
+    Console.WriteLine(
+        "  dotnet run --project YTLiveChat.Tools -- watch <@handle|UCxxx|liveId> [...]"
+    );
     Console.WriteLine();
     Console.WriteLine("  Watches one or more live streams and appends every raw action JSON to a");
     Console.WriteLine("  timestamped .jsonl file in the current directory.");
     Console.WriteLine();
     Console.WriteLine("━━━ count ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    Console.WriteLine("  dotnet run --project YTLiveChat.Tools -- count [options] <logPath|dir> [...]");
-    Console.WriteLine("  dotnet run --project YTLiveChat.Tools -- [options] <logPath|dir> [...]  (shorthand)");
+    Console.WriteLine(
+        "  dotnet run --project YTLiveChat.Tools -- count [options] <logPath|dir> [...]"
+    );
+    Console.WriteLine(
+        "  dotnet run --project YTLiveChat.Tools -- [options] <logPath|dir> [...]  (shorthand)"
+    );
     Console.WriteLine();
     Console.WriteLine("  Options:");
-    Console.WriteLine("    --variants                  Variant signatures for memberships, super chats/stickers, unknown renderers.");
+    Console.WriteLine(
+        "    --variants                  Variant signatures for memberships, super chats/stickers, unknown renderers."
+    );
     Console.WriteLine("    --max-variant-rows=<n>      Max rows per variant section. Default: 25.");
-    Console.WriteLine("    --dump-renderer=<name>      Extract full JSON for all matching addChatItemAction renderer types.");
-    Console.WriteLine("    --dump-action=<name>        Extract full JSON for all matching top-level action types.");
-    Console.WriteLine("                                Use for non-renderer actions: banners, polls, fanzone chips, etc.");
-    Console.WriteLine("    --filter-subtext=<prefix>   With --dump-renderer: filter by headerSubtext/headerPrimaryText prefix.");
-    Console.WriteLine("    --filter-has-field=<name>   With --dump-renderer/--dump-action: only include results where the given");
-    Console.WriteLine("                                field name exists anywhere in the JSON (at any nesting depth).");
-    Console.WriteLine("    --limit=<n>                 Cap the number of dumped results. Useful for extracting one sample.");
-    Console.WriteLine("    --dump-output=<path>        Write dumped JSON to a file instead of stdout.");
+    Console.WriteLine(
+        "    --dump-renderer=<name>      Extract full JSON for all matching addChatItemAction renderer types."
+    );
+    Console.WriteLine(
+        "    --dump-action=<name>        Extract full JSON for all matching top-level action types."
+    );
+    Console.WriteLine(
+        "                                Use for non-renderer actions: banners, polls, fanzone chips, etc."
+    );
+    Console.WriteLine(
+        "    --filter-subtext=<prefix>   With --dump-renderer: filter by headerSubtext/headerPrimaryText prefix."
+    );
+    Console.WriteLine(
+        "    --filter-has-field=<name>   With --dump-renderer/--dump-action: only include results where the given"
+    );
+    Console.WriteLine(
+        "                                field name exists anywhere in the JSON (at any nesting depth)."
+    );
+    Console.WriteLine(
+        "    --limit=<n>                 Cap the number of dumped results. Useful for extracting one sample."
+    );
+    Console.WriteLine(
+        "    --dump-output=<path>        Write dumped JSON to a file instead of stdout."
+    );
     Console.WriteLine();
     Console.WriteLine("  Examples:");
     Console.WriteLine("    # Count everything in a directory of logs:");
     Console.WriteLine("    dotnet run --project YTLiveChat.Tools -- count logs/");
     Console.WriteLine();
     Console.WriteLine("    # Extract all fanzone chip actions as JSON:");
-    Console.WriteLine("    dotnet run --project YTLiveChat.Tools -- count --dump-action=showFanzoneTickerChipCommand logs/");
+    Console.WriteLine(
+        "    dotnet run --project YTLiveChat.Tools -- count --dump-action=showFanzoneTickerChipCommand logs/"
+    );
     Console.WriteLine();
     Console.WriteLine("    # Extract banner redirect actions to a file:");
-    Console.WriteLine("    dotnet run --project YTLiveChat.Tools -- count --dump-action=addBannerToLiveChatCommand --dump-output=banners.json log.jsonl");
+    Console.WriteLine(
+        "    dotnet run --project YTLiveChat.Tools -- count --dump-action=addBannerToLiveChatCommand --dump-output=banners.json log.jsonl"
+    );
     Console.WriteLine();
     Console.WriteLine("    # Extract membership upgrades by prefix filter:");
-    Console.WriteLine("    dotnet run --project YTLiveChat.Tools -- count --dump-renderer=liveChatMembershipItemRenderer --filter-subtext=\"Upgraded\" --dump-output=upgrades.json log.json");
+    Console.WriteLine(
+        "    dotnet run --project YTLiveChat.Tools -- count --dump-renderer=liveChatMembershipItemRenderer --filter-subtext=\"Upgraded\" --dump-output=upgrades.json log.json"
+    );
     Console.WriteLine();
-    Console.WriteLine("    # Find first gift message with an authorAvatar (for test data extraction):");
-    Console.WriteLine("    dotnet run --project YTLiveChat.Tools -- count --dump-renderer=giftMessageViewModel --filter-has-field=authorAvatar --limit=1 logs/");
+    Console.WriteLine(
+        "    # Find first gift message with an authorAvatar (for test data extraction):"
+    );
+    Console.WriteLine(
+        "    dotnet run --project YTLiveChat.Tools -- count --dump-renderer=giftMessageViewModel --filter-has-field=authorAvatar --limit=1 logs/"
+    );
     Console.WriteLine();
     Console.WriteLine("    # Find paid stickers with a lowerBumper:");
-    Console.WriteLine("    dotnet run --project YTLiveChat.Tools -- count --dump-renderer=liveChatPaidStickerRenderer --filter-has-field=lowerBumper --limit=3 --dump-output=stickers_bumper.json logs/");
+    Console.WriteLine(
+        "    dotnet run --project YTLiveChat.Tools -- count --dump-renderer=liveChatPaidStickerRenderer --filter-has-field=lowerBumper --limit=3 --dump-output=stickers_bumper.json logs/"
+    );
     Console.WriteLine();
     Console.WriteLine("━━━ analyze ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    Console.WriteLine("  dotnet run --project YTLiveChat.Tools -- analyze [options] <logPath|dir> [...]");
+    Console.WriteLine(
+        "  dotnet run --project YTLiveChat.Tools -- analyze [options] <logPath|dir> [...]"
+    );
     Console.WriteLine();
-    Console.WriteLine("  Compares observed renderer fields against C# response model baselines. Recursively");
-    Console.WriteLine("  walks every action's entire JSON tree to surface new property names and new run");
-    Console.WriteLine("  fields (text, bold, emoji, navigationEndpoint, etc.) at any nesting depth.");
+    Console.WriteLine(
+        "  Compares observed renderer fields against C# response model baselines. Recursively"
+    );
+    Console.WriteLine(
+        "  walks every action's entire JSON tree to surface new property names and new run"
+    );
+    Console.WriteLine(
+        "  fields (text, bold, emoji, navigationEndpoint, etc.) at any nesting depth."
+    );
     Console.WriteLine();
     Console.WriteLine("  Options:");
-    Console.WriteLine("    -v, --verbose               Also print all known/expected fields (not just new ones).");
+    Console.WriteLine(
+        "    -v, --verbose               Also print all known/expected fields (not just new ones)."
+    );
     Console.WriteLine();
     Console.WriteLine("  Report sections:");
-    Console.WriteLine("    Action type counts          All top-level action types seen across all files.");
-    Console.WriteLine("    Per-location renderer diffs  NEW fields vs. baseline for each renderer in each location.");
+    Console.WriteLine(
+        "    Action type counts          All top-level action types seen across all files."
+    );
+    Console.WriteLine(
+        "    Per-location renderer diffs  NEW fields vs. baseline for each renderer in each location."
+    );
     Console.WriteLine("    Unknown Renderer Types       Renderer keys with no baseline at all.");
-    Console.WriteLine("    Unknown Run Fields           Run-object properties not in KnownRunFields (any depth).");
-    Console.WriteLine("    Unknown JSON Keys            Any property name not in AllKnownJsonKeys (any depth).");
+    Console.WriteLine(
+        "    Unknown Run Fields           Run-object properties not in KnownRunFields (any depth)."
+    );
+    Console.WriteLine(
+        "    Unknown JSON Keys            Any property name not in AllKnownJsonKeys (any depth)."
+    );
     Console.WriteLine();
     Console.WriteLine("  Examples:");
     Console.WriteLine("    # Analyze a single new log:");
-    Console.WriteLine("    dotnet run --project YTLiveChat.Tools -- analyze logs/watch_20260420_060222.jsonl");
+    Console.WriteLine(
+        "    dotnet run --project YTLiveChat.Tools -- analyze logs/watch_20260420_060222.jsonl"
+    );
     Console.WriteLine();
     Console.WriteLine("    # Analyze all logs in a directory:");
     Console.WriteLine("    dotnet run --project YTLiveChat.Tools -- analyze logs/");
@@ -722,7 +819,12 @@ static void PrintUsage()
 
 static string BuildVariantSignature(string rendererType, JsonElement renderer, string source)
 {
-    List<string> parts = [$"src={source}", $"renderer={rendererType}", $"shape={BuildShapeSignature(renderer)}"];
+    List<string> parts =
+    [
+        $"src={source}",
+        $"renderer={rendererType}",
+        $"shape={BuildShapeSignature(renderer)}",
+    ];
 
     string? purchaseAmount = LogReader.TryGetSimpleText(renderer, "purchaseAmountText");
     if (!string.IsNullOrWhiteSpace(purchaseAmount))
@@ -887,7 +989,10 @@ static string? TryGetRunsTemplate(JsonElement container, string richTextProperty
 
 static string NormalizeText(string value)
 {
-    string compact = string.Join(' ', value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+    string compact = string.Join(
+        ' ',
+        value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+    );
     return compact.Length > 60 ? compact[..60] + "..." : compact;
 }
 
@@ -921,7 +1026,7 @@ static void PrintSorted(Dictionary<string, int> counts)
             .ThenBy(x => x.Key, StringComparer.Ordinal)
     )
     {
-        Console.WriteLine($"{kv.Value,6}  {kv.Key}");
+        Console.WriteLine($"{kv.Value, 6}  {kv.Key}");
     }
 }
 
@@ -943,7 +1048,7 @@ static void PrintVariants(
             break;
         }
 
-        Console.WriteLine($"{kv.Value,6}  {kv.Key}");
+        Console.WriteLine($"{kv.Value, 6}  {kv.Key}");
         if (variantSamples.TryGetValue(kv.Key, out string? sample))
         {
             Console.WriteLine($"        sample: {sample}");

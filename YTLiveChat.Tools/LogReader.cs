@@ -117,7 +117,8 @@ internal static class LogReader
     public static string GetRendererKey(JsonElement action)
     {
         // addChatItemAction.item.<rendererKey>
-        return action.TryGetProperty("addChatItemAction", out JsonElement addChat)
+        return
+            action.TryGetProperty("addChatItemAction", out JsonElement addChat)
             && addChat.TryGetProperty("item", out JsonElement item)
             && TryGetSingleRenderer(item, out string? r, out _)
             && r != null
@@ -130,7 +131,8 @@ internal static class LogReader
     /// </summary>
     public static string? GetRendererTypeFromItem(JsonElement action)
     {
-        return action.TryGetProperty("addChatItemAction", out JsonElement addChat)
+        return
+            action.TryGetProperty("addChatItemAction", out JsonElement addChat)
             && addChat.TryGetProperty("item", out JsonElement item)
             && TryGetSingleRenderer(item, out string? r, out _)
             ? r
@@ -234,13 +236,20 @@ internal static class LogReader
         {
             if (current.ValueKind == JsonValueKind.Array)
             {
-                if (!int.TryParse(segment, out int idx) || idx < 0 || idx >= current.GetArrayLength())
+                if (
+                    !int.TryParse(segment, out int idx)
+                    || idx < 0
+                    || idx >= current.GetArrayLength()
+                )
                     return null;
                 current = current[idx];
                 continue;
             }
 
-            if (current.ValueKind != JsonValueKind.Object || !current.TryGetProperty(segment, out current))
+            if (
+                current.ValueKind != JsonValueKind.Object
+                || !current.TryGetProperty(segment, out current)
+            )
                 return null;
         }
 
@@ -266,7 +275,11 @@ internal static class LogReader
         {
             if (Directory.Exists(path))
             {
-                foreach (string file in Directory.EnumerateFiles(path, "*.jsonl").OrderBy(f => f, StringComparer.Ordinal))
+                foreach (
+                    string file in Directory
+                        .EnumerateFiles(path, "*.jsonl")
+                        .OrderBy(f => f, StringComparer.Ordinal)
+                )
                     yield return file;
             }
             else

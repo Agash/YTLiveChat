@@ -174,7 +174,8 @@ internal static class SuperChatTestData
     /// and no lowerBumper. Real data from watch_20260421_070317.jsonl — @buroburo_563,
     /// Member (3 years), ¥1,600, sticker "Sunglasses perpetually fall onto video game controller's proud face".
     /// </summary>
-    public static string PaidStickerWithMemberBadge() => """
+    public static string PaidStickerWithMemberBadge() =>
+        """
             {
               "clickTrackingParams": "CAEQl98BIhMI177AhdLokwMV4Ex6BR199Bc3ygEEW0e7Hw==",
               "addChatItemAction": {
@@ -285,7 +286,8 @@ internal static class SuperChatTestData
     /// sticker "Beaming face with smiling eyes". Has two thumbnail sources (s40/s80)
     /// to confirm LastOrDefault (highest-res) is used.
     /// </summary>
-    public static string PaidStickerWithLowerBumper() => """
+    public static string PaidStickerWithLowerBumper() =>
+        """
             {
               "clickTrackingParams": "CAEQl98BIhMIjLXdsob_kwMV98tPCB31Ww6TygEEdZ2q5A==",
               "addChatItemAction": {

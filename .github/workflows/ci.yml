@@ -28,6 +28,11 @@ jobs:
       - name: Restore
         run: dotnet restore YTLiveChat.sln
 
+      - name: Check formatting
+        run: |
+          dotnet tool restore
+          dotnet csharpier check .
+
       - name: Build
         run: dotnet build YTLiveChat.sln -c Release --no-restore
 

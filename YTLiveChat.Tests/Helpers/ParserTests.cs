@@ -1,5 +1,4 @@
 ﻿using System.Text.Json;
-
 using YTLiveChat.Contracts.Models;
 using YTLiveChat.Helpers;
 using YTLiveChat.Models.Response;
@@ -276,7 +275,12 @@ public class ParserTests
     [TestMethod]
     public void ToChatItem_SuperChatMessage_MultipleCurrencyFormats_ParsesCorrectly()
     {
-        (string rendererJson, string expectedId, decimal expectedAmount, string expectedCurrency)[] cases =
+        (
+            string rendererJson,
+            string expectedId,
+            decimal expectedAmount,
+            string expectedCurrency
+        )[] cases =
         [
             (
                 SuperChatTestData.SuperChatMessageAudPrefixSymbol(),
@@ -290,27 +294,24 @@ public class ParserTests
                 25.00m,
                 "HKD"
             ),
-            (
-                SuperChatTestData.SuperChatMessagePlnCode(),
-                "SC_ID_CURRENCY_PLN_01",
-                10.00m,
-                "PLN"
-            ),
+            (SuperChatTestData.SuperChatMessagePlnCode(), "SC_ID_CURRENCY_PLN_01", 10.00m, "PLN"),
             (
                 SuperChatTestData.SuperChatMessageArsCodePrefix(),
                 "SC_ID_CURRENCY_ARS_01",
                 2500m,
                 "ARS"
             ),
-            (
-                SuperChatTestData.SuperChatMessageVndSymbol(),
-                "SC_ID_CURRENCY_VND_01",
-                20000m,
-                "VND"
-            ),
+            (SuperChatTestData.SuperChatMessageVndSymbol(), "SC_ID_CURRENCY_VND_01", 20000m, "VND"),
         ];
 
-        foreach ((string rendererJson, string expectedId, decimal expectedAmount, string expectedCurrency) in cases)
+        foreach (
+            (
+                string rendererJson,
+                string expectedId,
+                decimal expectedAmount,
+                string expectedCurrency
+            ) in cases
+        )
         {
             ChatItem? chatItem = ParseRendererContentToChatItem(
                 rendererJson,
@@ -392,7 +393,11 @@ public class ParserTests
         Assert.IsNotNull(chatItem);
         Assert.IsNotNull(chatItem.MembershipDetails);
         Assert.AreEqual(MembershipEventType.New, chatItem.MembershipDetails.EventType);
-        Assert.AreEqual("Rat Boss!", chatItem.MembershipDetails.LevelName, "Tier name should preserve '!'.");
+        Assert.AreEqual(
+            "Rat Boss!",
+            chatItem.MembershipDetails.LevelName,
+            "Tier name should preserve '!'."
+        );
         Assert.AreEqual("Welcome to Rat Boss!!", chatItem.MembershipDetails.HeaderSubtext);
     }
 
@@ -448,7 +453,10 @@ public class ParserTests
             chatItem.MembershipDetails.LevelName,
             "Tier name should be extracted from the second run."
         );
-        Assert.AreEqual("Upgraded membership to Cardinal Archer!", chatItem.MembershipDetails.HeaderSubtext);
+        Assert.AreEqual(
+            "Upgraded membership to Cardinal Archer!",
+            chatItem.MembershipDetails.HeaderSubtext
+        );
         Assert.AreEqual("@rembray", chatItem.Author.Name);
         Assert.AreEqual("UCdtey2zoNQ9HVgdK9oEA_RA", chatItem.Author.ChannelId);
         Assert.IsTrue(chatItem.IsMembership);
@@ -520,7 +528,10 @@ public class ParserTests
         Assert.AreEqual(MembershipEventType.New, chatItem.MembershipDetails.EventType);
         Assert.AreEqual("ヘルエスタ王国民シップ", chatItem.MembershipDetails.LevelName);
         Assert.AreEqual("Member (1 year)", chatItem.MembershipDetails.MembershipBadgeLabel);
-        Assert.AreEqual("Welcome to ヘルエスタ王国民シップ!", chatItem.MembershipDetails.HeaderSubtext);
+        Assert.AreEqual(
+            "Welcome to ヘルエスタ王国民シップ!",
+            chatItem.MembershipDetails.HeaderSubtext
+        );
         Assert.IsNotNull(chatItem.Author.Badge);
         Assert.AreEqual("Member (1 year)", chatItem.Author.Badge.Label);
     }
@@ -582,7 +593,10 @@ public class ParserTests
             chatItem.Message.Length,
             "Should have one message run for the user's comment."
         );
-        _ = Assert.IsInstanceOfType<TextPart>(chatItem.Message[0], "Message part should be TextPart.");
+        _ = Assert.IsInstanceOfType<TextPart>(
+            chatItem.Message[0],
+            "Message part should be TextPart."
+        );
         Assert.AreEqual(
             "YOOOOOO hope all is a well my man",
             ((TextPart)chatItem.Message[0]).Text,
@@ -1164,8 +1178,7 @@ public class ParserTests
     public void GetOptionsFromLivePage_MissingCanonical_UsesCanonicalBaseUrlFallback()
     {
         string liveId = "AbCdEfGhI12";
-        string html =
-            """
+        string html = """
             <html><head>
             <script>
             var cfg = {
@@ -1189,8 +1202,7 @@ public class ParserTests
     public void GetOptionsFromLivePage_MissingCanonical_UsesChatTopicFallback()
     {
         string liveId = "ZyXwVuTsRq9";
-        string html =
-            """
+        string html = """
             <html><head>
             <script>
             var cfg = {
@@ -1246,17 +1258,15 @@ public class ParserTests
     [TestMethod]
     public void ExtractStreamCandidatesFromStreamsPage_ReturnsLiveAndUpcomingSignals()
     {
-        string html =
-            """
+        string html = """
             <html><body><script>
             {"videoRenderer":{"videoId":"AAAAAAAAAAA","thumbnailOverlayTimeStatusRenderer":{"style":"LIVE"},"shortViewCountText":{"simpleText":"1.2K watching"}}}
             {"videoRenderer":{"videoId":"BBBBBBBBBBB","thumbnailOverlayTimeStatusRenderer":{"style":"UPCOMING"},"upcomingEventData":{"startTime":"1771405200"},"shortViewCountText":{"simpleText":"29 waiting"}}}
             </script></body></html>
             """;
 
-        IReadOnlyList<StreamPageCandidate> candidates = Parser.ExtractStreamCandidatesFromStreamsPage(
-            html
-        );
+        IReadOnlyList<StreamPageCandidate> candidates =
+            Parser.ExtractStreamCandidatesFromStreamsPage(html);
 
         Assert.AreEqual(2, candidates.Count);
         Assert.AreEqual("AAAAAAAAAAA", candidates[0].LiveId);
@@ -1269,17 +1279,15 @@ public class ParserTests
     [TestMethod]
     public void ExtractStreamCandidatesFromStreamsPage_DeduplicatesByVideoId()
     {
-        string html =
-            """
+        string html = """
             <html><body><script>
             {"videoRenderer":{"videoId":"CCCCCCCCCCC","thumbnailOverlayTimeStatusRenderer":{"style":"UPCOMING"},"upcomingEventData":{"startTime":"1771405200"}}}
             {"videoRenderer":{"videoId":"CCCCCCCCCCC","thumbnailOverlayTimeStatusRenderer":{"style":"LIVE"},"shortViewCountText":{"simpleText":"500 watching"}}}
             </script></body></html>
             """;
 
-        IReadOnlyList<StreamPageCandidate> candidates = Parser.ExtractStreamCandidatesFromStreamsPage(
-            html
-        );
+        IReadOnlyList<StreamPageCandidate> candidates =
+            Parser.ExtractStreamCandidatesFromStreamsPage(html);
 
         Assert.AreEqual(1, candidates.Count);
         Assert.AreEqual("CCCCCCCCCCC", candidates[0].LiveId);
@@ -1290,30 +1298,25 @@ public class ParserTests
     [TestMethod]
     public void ExtractStreamCandidatesFromStreamsPage_RealSnapshots_ParsesLiveAndUpcoming()
     {
-        IReadOnlyList<StreamPageCandidate> candidates = Parser.ExtractStreamCandidatesFromStreamsPage(
-            WebSnapshotTestData.StreamsPageSnapshotFragments()
-        );
+        IReadOnlyList<StreamPageCandidate> candidates =
+            Parser.ExtractStreamCandidatesFromStreamsPage(
+                WebSnapshotTestData.StreamsPageSnapshotFragments()
+            );
 
         Assert.IsTrue(candidates.Any(c => c.LiveId == "17PFTNoO_RE" && c.IsLive));
         Assert.IsTrue(
             candidates.Any(c =>
-                c.LiveId == "oPOBYMu2zk8"
-                && c.IsUpcoming
-                && c.UpcomingStartTime == 1771322400L
+                c.LiveId == "oPOBYMu2zk8" && c.IsUpcoming && c.UpcomingStartTime == 1771322400L
             )
         );
         Assert.IsTrue(
             candidates.Any(c =>
-                c.LiveId == "hlDFczhR2mo"
-                && c.IsUpcoming
-                && c.UpcomingStartTime == 1788748200L
+                c.LiveId == "hlDFczhR2mo" && c.IsUpcoming && c.UpcomingStartTime == 1788748200L
             )
         );
         Assert.IsTrue(
             candidates.Any(c =>
-                c.LiveId == "197OEpjj8RI"
-                && c.IsUpcoming
-                && c.UpcomingStartTime == 1819720800L
+                c.LiveId == "197OEpjj8RI" && c.IsUpcoming && c.UpcomingStartTime == 1819720800L
             )
         );
     }
@@ -1322,9 +1325,8 @@ public class ParserTests
     public void ExtractStreamCandidatesFromStreamsPage_FullLunaStreamsSnapshot_ParsesLiveAndUpcoming()
     {
         string html = LoadWebSnapshot("HimemoriLuna.streams.2026-02-17.html");
-        IReadOnlyList<StreamPageCandidate> candidates = Parser.ExtractStreamCandidatesFromStreamsPage(
-            html
-        );
+        IReadOnlyList<StreamPageCandidate> candidates =
+            Parser.ExtractStreamCandidatesFromStreamsPage(html);
 
         Assert.IsTrue(candidates.Count > 0);
         Assert.IsTrue(candidates.Any(c => c.LiveId == "qT5OTDvJK1Q" && c.IsLive));
@@ -1359,16 +1361,19 @@ public class ParserTests
     public void ExtractStreamCandidatesFromStreamsPage_FullAkiStreamsSnapshot_ParsesFreeChatAndUpcoming()
     {
         string html = LoadWebSnapshot("AkiRosenthal.streams.2026-02-17.html");
-        IReadOnlyList<StreamPageCandidate> candidates = Parser.ExtractStreamCandidatesFromStreamsPage(
-            html
-        );
+        IReadOnlyList<StreamPageCandidate> candidates =
+            Parser.ExtractStreamCandidatesFromStreamsPage(html);
 
-        Assert.IsTrue(candidates.Any(c =>
-            c.LiveId == "VoWHIX4tp5k" && c.IsUpcoming && c.UpcomingStartTime == 1798123500L
-        ));
-        Assert.IsTrue(candidates.Any(c =>
-            c.LiveId == "qS50yDHZOx4" && c.IsUpcoming && c.UpcomingStartTime == 1771332300L
-        ));
+        Assert.IsTrue(
+            candidates.Any(c =>
+                c.LiveId == "VoWHIX4tp5k" && c.IsUpcoming && c.UpcomingStartTime == 1798123500L
+            )
+        );
+        Assert.IsTrue(
+            candidates.Any(c =>
+                c.LiveId == "qS50yDHZOx4" && c.IsUpcoming && c.UpcomingStartTime == 1771332300L
+            )
+        );
         Assert.IsFalse(candidates.Any(c => c.IsLive));
     }
 
@@ -1384,13 +1389,14 @@ public class ParserTests
     public void ExtractStreamCandidatesFromStreamsPage_FullIofiStreamsSnapshot_ParsesSingleUpcoming()
     {
         string html = LoadWebSnapshot("AiraniIofifteen.streams.2026-02-17.html");
-        IReadOnlyList<StreamPageCandidate> candidates = Parser.ExtractStreamCandidatesFromStreamsPage(
-            html
-        );
+        IReadOnlyList<StreamPageCandidate> candidates =
+            Parser.ExtractStreamCandidatesFromStreamsPage(html);
 
-        Assert.IsTrue(candidates.Any(c =>
-            c.LiveId == "c2lb7tb1SEA" && c.IsUpcoming && c.UpcomingStartTime == 1771333200L
-        ));
+        Assert.IsTrue(
+            candidates.Any(c =>
+                c.LiveId == "c2lb7tb1SEA" && c.IsUpcoming && c.UpcomingStartTime == 1771333200L
+            )
+        );
         Assert.IsFalse(candidates.Any(c => c.IsLive));
     }
 
@@ -1406,9 +1412,8 @@ public class ParserTests
     public void ExtractStreamCandidatesFromStreamsPage_AkiCurrentSnapshot_FindsLiveMembersOnlyAndUpcomingFreeChat()
     {
         string html = LoadWebSnapshot("AkiRosenthal.streams.2026-02-17.current.html");
-        IReadOnlyList<StreamPageCandidate> candidates = Parser.ExtractStreamCandidatesFromStreamsPage(
-            html
-        );
+        IReadOnlyList<StreamPageCandidate> candidates =
+            Parser.ExtractStreamCandidatesFromStreamsPage(html);
 
         Assert.IsTrue(candidates.Any(c => c.LiveId == "qS50yDHZOx4" && c.IsLive));
         Assert.IsTrue(
@@ -1445,8 +1450,14 @@ public class ParserTests
         Assert.AreEqual("@holoen_raorapanthera", poll.CreatorHandle);
         Assert.AreEqual(0, poll.TotalVotes);
         Assert.AreEqual(2, poll.Choices.Count);
-        Assert.AreEqual("LET IN", string.Concat(poll.Choices[0].Text.OfType<TextPart>().Select(p => p.Text)));
-        Assert.AreEqual("OUT", string.Concat(poll.Choices[1].Text.OfType<TextPart>().Select(p => p.Text)));
+        Assert.AreEqual(
+            "LET IN",
+            string.Concat(poll.Choices[0].Text.OfType<TextPart>().Select(p => p.Text))
+        );
+        Assert.AreEqual(
+            "OUT",
+            string.Concat(poll.Choices[1].Text.OfType<TextPart>().Select(p => p.Text))
+        );
         // Fresh polls have no voteRatio (default 0.0 since the field is not present in JSON)
         Assert.AreEqual(0.0, poll.Choices[0].VoteRatio);
         Assert.AreEqual(0.0, poll.Choices[1].VoteRatio);
@@ -1470,9 +1481,15 @@ public class ParserTests
         Assert.AreEqual("@holoen_raorapanthera", poll.CreatorHandle);
         Assert.AreEqual(0, poll.TotalVotes);
         Assert.AreEqual(2, poll.Choices.Count);
-        Assert.AreEqual("LET IN", string.Concat(poll.Choices[0].Text.OfType<TextPart>().Select(p => p.Text)));
+        Assert.AreEqual(
+            "LET IN",
+            string.Concat(poll.Choices[0].Text.OfType<TextPart>().Select(p => p.Text))
+        );
         Assert.AreEqual(0.0, poll.Choices[0].VoteRatio, 0.001);
-        Assert.AreEqual("OUT", string.Concat(poll.Choices[1].Text.OfType<TextPart>().Select(p => p.Text)));
+        Assert.AreEqual(
+            "OUT",
+            string.Concat(poll.Choices[1].Text.OfType<TextPart>().Select(p => p.Text))
+        );
         Assert.AreEqual(0.0, poll.Choices[1].VoteRatio, 0.001);
     }
 
@@ -1491,12 +1508,21 @@ public class ParserTests
         Assert.AreEqual("ChwKGkNKTzk4NUNiNzVNREZYWlFUQWdkT2U0VjVR", poll.PollId);
         Assert.IsTrue(poll.IsNew, "showLiveChatActionPanelAction should be marked IsNew.");
         Assert.IsNotNull(poll.Question);
-        Assert.AreEqual("for the wood", string.Concat(poll.Question.OfType<TextPart>().Select(p => p.Text)));
+        Assert.AreEqual(
+            "for the wood",
+            string.Concat(poll.Question.OfType<TextPart>().Select(p => p.Text))
+        );
         Assert.AreEqual("@OuroKronii", poll.CreatorHandle);
         Assert.AreEqual(0, poll.TotalVotes);
         Assert.AreEqual(2, poll.Choices.Count);
-        Assert.AreEqual("wall", string.Concat(poll.Choices[0].Text.OfType<TextPart>().Select(p => p.Text)));
-        Assert.AreEqual("floor", string.Concat(poll.Choices[1].Text.OfType<TextPart>().Select(p => p.Text)));
+        Assert.AreEqual(
+            "wall",
+            string.Concat(poll.Choices[0].Text.OfType<TextPart>().Select(p => p.Text))
+        );
+        Assert.AreEqual(
+            "floor",
+            string.Concat(poll.Choices[1].Text.OfType<TextPart>().Select(p => p.Text))
+        );
     }
 
     [TestMethod]
@@ -1514,7 +1540,10 @@ public class ParserTests
         Assert.AreEqual("ChwKGkNKTzk4NUNiNzVNREZYWlFUQWdkT2U0VjVR", poll.PollId);
         Assert.IsFalse(poll.IsNew, "updateLiveChatPollAction should not be marked IsNew.");
         Assert.IsNotNull(poll.Question);
-        Assert.AreEqual("for the wood", string.Concat(poll.Question.OfType<TextPart>().Select(p => p.Text)));
+        Assert.AreEqual(
+            "for the wood",
+            string.Concat(poll.Question.OfType<TextPart>().Select(p => p.Text))
+        );
         Assert.AreEqual(0, poll.TotalVotes);
         Assert.AreEqual(0.0, poll.Choices[0].VoteRatio, 0.001);
         Assert.AreEqual(0.0, poll.Choices[1].VoteRatio, 0.001);
@@ -1624,7 +1653,10 @@ public class ParserTests
         BannerItem? banner = Parser.ToBannerItem(action);
 
         Assert.IsNotNull(banner, "ToBannerItem should return a non-null BannerItem.");
-        _ = Assert.IsInstanceOfType<PinnedMessageBannerItem>(banner, "Pinned message must be PinnedMessageBannerItem.");
+        _ = Assert.IsInstanceOfType<PinnedMessageBannerItem>(
+            banner,
+            "Pinned message must be PinnedMessageBannerItem."
+        );
         PinnedMessageBannerItem pinned = (PinnedMessageBannerItem)banner;
 
         Assert.AreEqual("PINNED_ACTION_ID_01", pinned.ActionId);
@@ -1657,7 +1689,10 @@ public class ParserTests
         BannerItem? banner = Parser.ToBannerItem(action);
 
         Assert.IsNotNull(banner, "ToBannerItem should return a non-null BannerItem for redirect.");
-        _ = Assert.IsInstanceOfType<CrossChannelRedirectBannerItem>(banner, "Redirect must be CrossChannelRedirectBannerItem.");
+        _ = Assert.IsInstanceOfType<CrossChannelRedirectBannerItem>(
+            banner,
+            "Redirect must be CrossChannelRedirectBannerItem."
+        );
         CrossChannelRedirectBannerItem redirect = (CrossChannelRedirectBannerItem)banner;
 
         Assert.AreEqual("ChwKGkNKLW1yNjd4NkpNREZhRE5GZ2tkVUFNWUNn", redirect.ActionId);
@@ -1666,7 +1701,10 @@ public class ParserTests
         Assert.AreEqual("@TakanashiKiara", redirect.RedirectChannelHandle);
         Assert.AreEqual("OcULALBAXRA", redirect.RedirectVideoId);
         Assert.IsNotNull(redirect.ChannelPhoto, "Redirect banner should have a ChannelPhoto.");
-        Assert.IsTrue(redirect.BannerMessage.Length >= 2, "Redirect banner message should have multiple parts.");
+        Assert.IsTrue(
+            redirect.BannerMessage.Length >= 2,
+            "Redirect banner message should have multiple parts."
+        );
     }
 
     [TestMethod]
@@ -1680,16 +1718,28 @@ public class ParserTests
 
         BannerItem? banner = Parser.ToBannerItem(action);
 
-        Assert.IsNotNull(banner, "ToBannerItem should return a non-null BannerItem for learn-more redirect.");
-        _ = Assert.IsInstanceOfType<CrossChannelRedirectBannerItem>(banner, "Learn-more redirect must be CrossChannelRedirectBannerItem.");
+        Assert.IsNotNull(
+            banner,
+            "ToBannerItem should return a non-null BannerItem for learn-more redirect."
+        );
+        _ = Assert.IsInstanceOfType<CrossChannelRedirectBannerItem>(
+            banner,
+            "Learn-more redirect must be CrossChannelRedirectBannerItem."
+        );
         CrossChannelRedirectBannerItem redirect = (CrossChannelRedirectBannerItem)banner;
 
         Assert.AreEqual("ChwKGkNPNzM0NEdnNlpNREZUUFFsQWtkM25ZN3NR", redirect.ActionId);
         Assert.AreEqual(BannerType.CrossChannelRedirect, redirect.BannerType);
         Assert.AreEqual(CrossChannelRedirectType.Raid, redirect.RedirectType);
         Assert.AreEqual("@holoen_ceciliaimmergreen", redirect.RedirectChannelHandle);
-        Assert.IsNull(redirect.RedirectVideoId, "Learn-more redirect should have no RedirectVideoId.");
-        Assert.IsNotNull(redirect.ChannelPhoto, "Learn-more redirect banner should have a ChannelPhoto.");
+        Assert.IsNull(
+            redirect.RedirectVideoId,
+            "Learn-more redirect should have no RedirectVideoId."
+        );
+        Assert.IsNotNull(
+            redirect.ChannelPhoto,
+            "Learn-more redirect banner should have a ChannelPhoto."
+        );
     }
 
     [TestMethod]
@@ -1764,10 +1814,22 @@ public class ParserTests
         Assert.IsTrue(pinned.IsOwner, "Author should be flagged as OWNER.");
         Assert.IsTrue(pinned.IsVerified, "Author should be flagged as VERIFIED.");
         Assert.AreEqual(4, pinned.Message.Length, "Message should have 1 text + 3 emoji parts.");
-        _ = Assert.IsInstanceOfType<TextPart>(pinned.Message[0], "First part should be a TextPart.");
-        _ = Assert.IsInstanceOfType<EmojiPart>(pinned.Message[1], "Second part should be an EmojiPart.");
-        _ = Assert.IsInstanceOfType<EmojiPart>(pinned.Message[2], "Third part should be an EmojiPart.");
-        _ = Assert.IsInstanceOfType<EmojiPart>(pinned.Message[3], "Fourth part should be an EmojiPart.");
+        _ = Assert.IsInstanceOfType<TextPart>(
+            pinned.Message[0],
+            "First part should be a TextPart."
+        );
+        _ = Assert.IsInstanceOfType<EmojiPart>(
+            pinned.Message[1],
+            "Second part should be an EmojiPart."
+        );
+        _ = Assert.IsInstanceOfType<EmojiPart>(
+            pinned.Message[2],
+            "Third part should be an EmojiPart."
+        );
+        _ = Assert.IsInstanceOfType<EmojiPart>(
+            pinned.Message[3],
+            "Fourth part should be an EmojiPart."
+        );
     }
 
     [TestMethod]
@@ -1811,12 +1873,26 @@ public class ParserTests
 
         Assert.AreEqual("ChwKGkNMdk96OG55NzVNREZYYkNsQWtkNFVVRndB", redirect.ActionId);
         Assert.AreEqual(BannerType.CrossChannelRedirect, redirect.BannerType);
-        Assert.AreEqual(CrossChannelRedirectType.Redirect, redirect.RedirectType, "watchEndpoint button should map to Redirect.");
+        Assert.AreEqual(
+            CrossChannelRedirectType.Redirect,
+            redirect.RedirectType,
+            "watchEndpoint button should map to Redirect."
+        );
         Assert.AreEqual("@usadapekora", redirect.RedirectChannelHandle);
-        Assert.AreEqual("AFcfu7GuxVs", redirect.RedirectVideoId, "Go-now redirect should carry a video ID.");
+        Assert.AreEqual(
+            "AFcfu7GuxVs",
+            redirect.RedirectVideoId,
+            "Go-now redirect should carry a video ID."
+        );
         Assert.IsNotNull(redirect.ChannelPhoto, "Should have a channel photo.");
-        Assert.AreEqual(2, redirect.BannerMessage.Length, "Banner message should have 2 parts (prefix text + bold handle).");
-        TextPart? handlePart = redirect.BannerMessage.OfType<TextPart>().FirstOrDefault(p => p.Bold);
+        Assert.AreEqual(
+            2,
+            redirect.BannerMessage.Length,
+            "Banner message should have 2 parts (prefix text + bold handle)."
+        );
+        TextPart? handlePart = redirect
+            .BannerMessage.OfType<TextPart>()
+            .FirstOrDefault(p => p.Bold);
         Assert.IsNotNull(handlePart, "The @handle run should be marked bold.");
         Assert.AreEqual("@usadapekora", handlePart.Text);
     }
@@ -2055,7 +2131,11 @@ public class ParserTests
         Assert.IsNotNull(item);
         Assert.AreEqual("ChwKGkNKelhuTldmNzVNREZaZHhUQWdkY0JZeDZR", item.Id);
         Assert.AreEqual(EngagementMessageType.PollResult, item.MessageType);
-        Assert.AreEqual(8, item.Message.Length, "Bold question + newline + 2 result lines + 2 newlines + summary = 8 parts.");
+        Assert.AreEqual(
+            8,
+            item.Message.Length,
+            "Bold question + newline + 2 result lines + 2 newlines + summary = 8 parts."
+        );
         Assert.IsNull(item.LearnMoreUrl);
         // Verify bold run for the question text
         TextPart questionPart = Assert.IsInstanceOfType<TextPart>(item.Message[0]);
@@ -2130,7 +2210,10 @@ public class ParserTests
         Assert.IsNull(gift.GiftImageName);
         Assert.IsNull(gift.GiftImageColor);
 
-        Assert.IsNotNull(gift.AuthorAvatar, "AuthorAvatar should be populated from avatarViewModel.image.sources.");
+        Assert.IsNotNull(
+            gift.AuthorAvatar,
+            "AuthorAvatar should be populated from avatarViewModel.image.sources."
+        );
         Assert.AreEqual(
             "https://yt4.ggpht.com/ytc/AIdro_kxKFy47u3Kv9yH8eQIPFcxR3iD4lub6s2Fxcsch3_Uy54=s64-c-k-c0x00ffffff-no-rj",
             gift.AuthorAvatar.Url,
@@ -2184,18 +2267,29 @@ public class ParserTests
         );
         Assert.IsNotNull(action);
 
-        Models.Response.LiveChatPaidStickerRenderer? renderer =
-            action.AddChatItemAction?.Item?.LiveChatPaidStickerRenderer;
+        Models.Response.LiveChatPaidStickerRenderer? renderer = action
+            .AddChatItemAction
+            ?.Item
+            ?.LiveChatPaidStickerRenderer;
         Assert.IsNotNull(renderer, "Renderer should deserialize from addChatItemAction.");
 
         Assert.IsNotNull(renderer.LowerBumper, "LowerBumper should deserialize.");
-        BumperUserEduContentViewModel? bumper = renderer.LowerBumper
-            .LiveChatItemBumperViewModel?.Content?.BumperUserEduContentViewModel;
+        BumperUserEduContentViewModel? bumper = renderer
+            .LowerBumper
+            .LiveChatItemBumperViewModel
+            ?.Content
+            ?.BumperUserEduContentViewModel;
         Assert.IsNotNull(bumper, "BumperUserEduContentViewModel should be present.");
         Assert.AreEqual("Let's celebrate their 1st Super on a live stream", bumper.Text?.Content);
-        Assert.AreEqual("CELEBRATION", bumper.Image?.Sources?.FirstOrDefault()?.ClientResource?.ImageName);
+        Assert.AreEqual(
+            "CELEBRATION",
+            bumper.Image?.Sources?.FirstOrDefault()?.ClientResource?.ImageName
+        );
         // imageColor 4294901760 = 0xFFFF0000
-        Assert.AreEqual(4294901760L, bumper.Image?.Sources?.FirstOrDefault()?.ClientResource?.ImageColor);
+        Assert.AreEqual(
+            4294901760L,
+            bumper.Image?.Sources?.FirstOrDefault()?.ClientResource?.ImageColor
+        );
     }
 
     [TestMethod]
@@ -2234,8 +2328,10 @@ public class ParserTests
         Assert.AreEqual("Member (3 years)", item.Author.Badge.Label);
 
         // No lowerBumper on this renderer
-        Models.Response.LiveChatPaidStickerRenderer? renderer =
-            action.AddChatItemAction?.Item?.LiveChatPaidStickerRenderer;
+        Models.Response.LiveChatPaidStickerRenderer? renderer = action
+            .AddChatItemAction
+            ?.Item
+            ?.LiveChatPaidStickerRenderer;
         Assert.IsNotNull(renderer);
         Assert.IsNull(renderer.LowerBumper, "This sticker has no lowerBumper.");
     }
@@ -2266,10 +2362,7 @@ public class ParserTests
         Contracts.Models.CreatorGoalItem? goal = Parser.ToCreatorGoalItem(action);
         Assert.IsNotNull(goal, "ToCreatorGoalItem should return a CreatorGoalItem.");
 
-        Assert.AreEqual(
-            "ChwKGkNMYkttOWF4a3BRREZaMjRyZ1VkeXc4a2V3",
-            goal.Id
-        );
+        Assert.AreEqual("ChwKGkNMYkttOWF4a3BRREZaMjRyZ1VkeXc4a2V3", goal.Id);
         Assert.AreEqual("EgtPQXFoN0tWLXIzSSD6AygB", goal.EntityKey);
         Assert.AreEqual("See Super Chat goal", goal.AccessibilityLabel);
         Assert.AreEqual("Super Chat Goal", goal.GoalType);
@@ -2292,10 +2385,7 @@ public class ParserTests
         Contracts.Models.CreatorGoalItem? goal = Parser.ToCreatorGoalItem(action);
         Assert.IsNotNull(goal, "ToCreatorGoalItem should return a CreatorGoalItem.");
 
-        Assert.AreEqual(
-            "ChwKGkNLZTRpdXJVazVRREZSNjRyZ1VkXzVrM0Rn",
-            goal.Id
-        );
+        Assert.AreEqual("ChwKGkNLZTRpdXJVazVRREZSNjRyZ1VkXzVrM0Rn", goal.Id);
         Assert.AreEqual("EgtPQXFoN0tWLXIzSSD6AygB", goal.EntityKey);
         Assert.AreEqual("See Super Chat goal", goal.AccessibilityLabel);
         Assert.AreEqual("Super Chat Goal", goal.GoalType);

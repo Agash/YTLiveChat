@@ -132,5 +132,4 @@ internal static class TextMessageTestData
             }
             """;
     }
-
 }

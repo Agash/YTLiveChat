@@ -1,9 +1,7 @@
 using System.Net;
 using System.Text.Json;
-
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-
 using YTLiveChat.Helpers;
 using YTLiveChat.Models;
 using YTLiveChat.Models.Response;
@@ -64,12 +62,15 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
                     Client = new ClientInfo
                     {
                         ClientVersion = options.ClientVersion,
-                        ClientName = "WEB"
-                    }
+                        ClientName = "WEB",
+                    },
                 },
                 Continuation = options.Continuation,
             };
-            string jsonPayload = JsonSerializer.Serialize(payload, YTLiveChatJsonSerializerContext.Default.LiveChatRequest);
+            string jsonPayload = JsonSerializer.Serialize(
+                payload,
+                YTLiveChatJsonSerializerContext.Default.LiveChatRequest
+            );
             using StringContent content = new(
                 jsonPayload,
                 System.Text.Encoding.UTF8,
@@ -207,7 +208,8 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
     {
         // Always fetch channel/watch pages with a stateless client to avoid cookie-driven
         // consent interstitial loops between monitor probes.
-        string html = await GetStringStatelessAsync(urlPath, cancellationToken).ConfigureAwait(false);
+        string html = await GetStringStatelessAsync(urlPath, cancellationToken)
+            .ConfigureAwait(false);
         if (!IsConsentInterstitialPage(html))
         {
             return html;
@@ -232,14 +234,16 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
         return fallbackHtml;
     }
 
-    private async Task<string> GetStringAsync(string urlPath, CancellationToken cancellationToken) =>
+    private async Task<string> GetStringAsync(
+        string urlPath,
+        CancellationToken cancellationToken
+    ) =>
         // HttpClient.GetStringAsync will combine BaseAddress and urlPath.
 #if NETSTANDARD2_1 || NETSTANDARD2_0
         await _httpClient.GetStringAsync(urlPath).ConfigureAwait(false);
 #else
         await _httpClient.GetStringAsync(urlPath, cancellationToken).ConfigureAwait(false);
 #endif
-
 
     private async Task<string> GetStringStatelessAsync(
         string urlPath,
@@ -307,7 +311,8 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
             return $"/{normalizedHandle}";
         }
 
-        return !string.IsNullOrEmpty(channelId) ? $"/channel/{channelId}"
+        return !string.IsNullOrEmpty(channelId)
+            ? $"/channel/{channelId}"
             : throw new ArgumentException("A channel handle or channelId must be provided.");
     }
 
@@ -321,10 +326,8 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
             return $"/{normalizedHandle}/streams";
         }
 
-        return !string.IsNullOrEmpty(channelId) ? $"/channel/{channelId}/streams"
-            : throw new ArgumentException(
-                "A channel handle or channelId must be provided."
-            );
+        return !string.IsNullOrEmpty(channelId)
+            ? $"/channel/{channelId}/streams"
+            : throw new ArgumentException("A channel handle or channelId must be provided.");
     }
 }
-

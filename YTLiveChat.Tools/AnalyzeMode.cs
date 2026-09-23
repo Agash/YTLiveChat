@@ -14,225 +14,267 @@ internal static class AnalyzeMode
 
     private static readonly HashSet<string> MessageRendererBaseFields =
     [
-        "id", "timestampUsec",
-        "authorName", "authorPhoto", "authorBadges", "authorExternalChannelId",
-        "contextMenuEndpoint", "contextMenuAccessibility",
-        "trackingParams", "clickTrackingParams",
+        "id",
+        "timestampUsec",
+        "authorName",
+        "authorPhoto",
+        "authorBadges",
+        "authorExternalChannelId",
+        "contextMenuEndpoint",
+        "contextMenuAccessibility",
+        "trackingParams",
+        "clickTrackingParams",
     ];
 
-    private static readonly Dictionary<string, HashSet<string>> Baselines =
-        new(StringComparer.Ordinal)
-        {
-            // ── addChatItemAction item renderers ──────────────────────────────
-            ["liveChatTextMessageRenderer"] =
-            [
-                ..MessageRendererBaseFields,
-                "message",
-                "beforeContentButtons",
-            ],
-            ["liveChatPaidMessageRenderer"] =
-            [
-                ..MessageRendererBaseFields,
-                "message",
-                "purchaseAmountText",
-                "headerBackgroundColor",
-                "headerTextColor",
-                "bodyBackgroundColor",
-                "bodyTextColor",
-                "authorNameTextColor",
-                "timestampColor",
-                "isV2Style",
-                "textInputBackgroundColor",
-                "leaderboardBadge",
-                // UI interaction widgets — server-rendered buttons, no data value for a read-only library
-                "creatorHeartButton",
-                "replyButton",
-                "pdgLikeButton",
-            ],
-            ["liveChatPaidStickerRenderer"] =
-            [
-                ..MessageRendererBaseFields,
-                "sticker",
-                "purchaseAmountText",
-                "moneyChipBackgroundColor",
-                "moneyChipTextColor",
-                "backgroundColor",
-                "authorNameTextColor",
-                "stickerDisplayWidth",
-                "stickerDisplayHeight",
-                "isV2Style",
-                // 1st-purchase novelty fields (~4% of stickers): decorative overlay + bumper + tracking
-                "headerOverlayImage",
-                "lowerBumper",
-                "pdgPurchasedNoveltyLoggingDirectives",
-                // Present on ~98% of ticker stickers: purchase description + visual gradient
-                "purchaseText",
-                "backgroundGradient",
-                // UI-only interaction widget (same as on liveChatPaidMessageRenderer)
-                "creatorHeartButton",
-            ],
-            ["liveChatMembershipItemRenderer"] =
-            [
-                ..MessageRendererBaseFields,
-                "headerPrimaryText",
-                "headerSubtext",
-                "message",
-                // Present (~3.7%) on milestone items with no message body
-                "empty",
-            ],
-            ["liveChatSponsorshipsGiftPurchaseAnnouncementRenderer"] =
-            [
-                ..MessageRendererBaseFields,
-                "header",
-            ],
-            ["liveChatSponsorshipsGiftRedemptionAnnouncementRenderer"] =
-            [
-                ..MessageRendererBaseFields,
-                "message",
-            ],
-            ["liveChatPlaceholderItemRenderer"] =
-            [
-                "id",
-                "timestampUsec",
-                "clickTrackingParams",
-            ],
-            // Loosely known — the model uses JsonObject fallback for these
-            ["liveChatViewerEngagementMessageRenderer"] =
-            [
-                "id", "timestampUsec",
-                "message", "actionButton", "icon",
-                "trackingParams", "clickTrackingParams",
-                // Observed on ~4% of instances (e.g. guidelines messages that are dismissable)
-                "contextMenuEndpoint", "contextMenuAccessibility",
-            ],
-            ["liveChatModeChangeMessageRenderer"] =
-            [
-                "id", "timestampUsec",
-                "text", "subtext", "icon",
-                "trackingParams", "clickTrackingParams",
-            ],
+    private static readonly Dictionary<string, HashSet<string>> Baselines = new(
+        StringComparer.Ordinal
+    )
+    {
+        // ── addChatItemAction item renderers ──────────────────────────────
+        ["liveChatTextMessageRenderer"] =
+        [
+            .. MessageRendererBaseFields,
+            "message",
+            "beforeContentButtons",
+        ],
+        ["liveChatPaidMessageRenderer"] =
+        [
+            .. MessageRendererBaseFields,
+            "message",
+            "purchaseAmountText",
+            "headerBackgroundColor",
+            "headerTextColor",
+            "bodyBackgroundColor",
+            "bodyTextColor",
+            "authorNameTextColor",
+            "timestampColor",
+            "isV2Style",
+            "textInputBackgroundColor",
+            "leaderboardBadge",
+            // UI interaction widgets — server-rendered buttons, no data value for a read-only library
+            "creatorHeartButton",
+            "replyButton",
+            "pdgLikeButton",
+        ],
+        ["liveChatPaidStickerRenderer"] =
+        [
+            .. MessageRendererBaseFields,
+            "sticker",
+            "purchaseAmountText",
+            "moneyChipBackgroundColor",
+            "moneyChipTextColor",
+            "backgroundColor",
+            "authorNameTextColor",
+            "stickerDisplayWidth",
+            "stickerDisplayHeight",
+            "isV2Style",
+            // 1st-purchase novelty fields (~4% of stickers): decorative overlay + bumper + tracking
+            "headerOverlayImage",
+            "lowerBumper",
+            "pdgPurchasedNoveltyLoggingDirectives",
+            // Present on ~98% of ticker stickers: purchase description + visual gradient
+            "purchaseText",
+            "backgroundGradient",
+            // UI-only interaction widget (same as on liveChatPaidMessageRenderer)
+            "creatorHeartButton",
+        ],
+        ["liveChatMembershipItemRenderer"] =
+        [
+            .. MessageRendererBaseFields,
+            "headerPrimaryText",
+            "headerSubtext",
+            "message",
+            // Present (~3.7%) on milestone items with no message body
+            "empty",
+        ],
+        ["liveChatSponsorshipsGiftPurchaseAnnouncementRenderer"] =
+        [
+            .. MessageRendererBaseFields,
+            "header",
+        ],
+        ["liveChatSponsorshipsGiftRedemptionAnnouncementRenderer"] =
+        [
+            .. MessageRendererBaseFields,
+            "message",
+        ],
+        ["liveChatPlaceholderItemRenderer"] = ["id", "timestampUsec", "clickTrackingParams"],
+        // Loosely known — the model uses JsonObject fallback for these
+        ["liveChatViewerEngagementMessageRenderer"] =
+        [
+            "id",
+            "timestampUsec",
+            "message",
+            "actionButton",
+            "icon",
+            "trackingParams",
+            "clickTrackingParams",
+            // Observed on ~4% of instances (e.g. guidelines messages that are dismissable)
+            "contextMenuEndpoint",
+            "contextMenuAccessibility",
+        ],
+        ["liveChatModeChangeMessageRenderer"] =
+        [
+            "id",
+            "timestampUsec",
+            "text",
+            "subtext",
+            "icon",
+            "trackingParams",
+            "clickTrackingParams",
+        ],
 
-            // ── addBannerToLiveChatCommand ────────────────────────────────────
-            ["liveChatBannerRenderer"] =
-            [
-                "header", "contents",
-                "actionId", "viewerIsCreator", "targetId",
-                "isStackable", "backgroundType", "bannerProperties", "bannerType",
-                "clickTrackingParams",
-                // UI-only collapse/expand commands (observed on pinned-message banners)
-                "onCollapseCommand", "onExpandCommand",
-            ],
-            ["liveChatBannerRedirectRenderer"] =
-            [
-                "bannerMessage", "authorPhoto",
-                "inlineActionButton", "bannerActionButton", "contextMenuButton",
-                "clickTrackingParams",
-                // Logging/accessibility context — observed on ~12% of redirect banners
-                "rendererContext",
-            ],
-            ["liveChatBannerChatSummaryRenderer"] =
-            [
-                "liveChatSummaryId", "chatSummary",
-                // UI-only interaction fields: feedback buttons + icon
-                "collapsedStateEntityKey",
-                "dislikeFeedbackButton", "likeFeedbackButton",
-                "icon",
-                "trackingParams", "clickTrackingParams",
-            ],
-            ["liveChatCallForQuestionsRenderer"] =
-            [
-                "questionMessage", "creatorAuthorName", "creatorAvatar", "featureLabel",
-                "clickTrackingParams",
-                // UI-only: separator dot ("·") and overflow menu button
-                "contentSeparator", "overflowMenuButton",
-            ],
+        // ── addBannerToLiveChatCommand ────────────────────────────────────
+        ["liveChatBannerRenderer"] =
+        [
+            "header",
+            "contents",
+            "actionId",
+            "viewerIsCreator",
+            "targetId",
+            "isStackable",
+            "backgroundType",
+            "bannerProperties",
+            "bannerType",
+            "clickTrackingParams",
+            // UI-only collapse/expand commands (observed on pinned-message banners)
+            "onCollapseCommand",
+            "onExpandCommand",
+        ],
+        ["liveChatBannerRedirectRenderer"] =
+        [
+            "bannerMessage",
+            "authorPhoto",
+            "inlineActionButton",
+            "bannerActionButton",
+            "contextMenuButton",
+            "clickTrackingParams",
+            // Logging/accessibility context — observed on ~12% of redirect banners
+            "rendererContext",
+        ],
+        ["liveChatBannerChatSummaryRenderer"] =
+        [
+            "liveChatSummaryId",
+            "chatSummary",
+            // UI-only interaction fields: feedback buttons + icon
+            "collapsedStateEntityKey",
+            "dislikeFeedbackButton",
+            "likeFeedbackButton",
+            "icon",
+            "trackingParams",
+            "clickTrackingParams",
+        ],
+        ["liveChatCallForQuestionsRenderer"] =
+        [
+            "questionMessage",
+            "creatorAuthorName",
+            "creatorAvatar",
+            "featureLabel",
+            "clickTrackingParams",
+            // UI-only: separator dot ("·") and overflow menu button
+            "contentSeparator",
+            "overflowMenuButton",
+        ],
 
-            // ── Poll (showLiveChatActionPanelAction / updateLiveChatPollAction) ─
-            ["pollRenderer"] =
-            [
-                "choices", "liveChatPollId", "header",
-                "trackingParams", "clickTrackingParams",
-            ],
-            ["pollHeaderRenderer"] =
-            [
-                "pollQuestion", "thumbnail", "metadataText", "liveChatPollType",
-                "trackingParams", "clickTrackingParams",
-            ],
+        // ── Poll (showLiveChatActionPanelAction / updateLiveChatPollAction) ─
+        ["pollRenderer"] =
+        [
+            "choices",
+            "liveChatPollId",
+            "header",
+            "trackingParams",
+            "clickTrackingParams",
+        ],
+        ["pollHeaderRenderer"] =
+        [
+            "pollQuestion",
+            "thumbnail",
+            "metadataText",
+            "liveChatPollType",
+            "trackingParams",
+            "clickTrackingParams",
+        ],
 
-            // ── YouTube Jewels virtual gift ───────────────────────────────────
-            ["giftMessageViewModel"] =
-            [
-                "id", "text", "authorName", "image", "imageA11yLabel", "rendererContext",
-                // Present on ~45% of gifts: URL-based gift image, its a11y label, and author avatar
-                "giftImage", "giftImageA11yLabel", "authorAvatar",
-            ],
+        // ── YouTube Jewels virtual gift ───────────────────────────────────
+        ["giftMessageViewModel"] =
+        [
+            "id",
+            "text",
+            "authorName",
+            "image",
+            "imageA11yLabel",
+            "rendererContext",
+            // Present on ~45% of gifts: URL-based gift image, its a11y label, and author avatar
+            "giftImage",
+            "giftImageA11yLabel",
+            "authorAvatar",
+        ],
 
-            // ── addLiveChatTickerItemAction outer item renderers ──────────────
-            ["liveChatTickerPaidMessageItemRenderer"] =
-            [
-                "id",
-                "showItemEndpoint",
-                "clickTrackingParams",
-                "trackingParams",
-                "authorExternalChannelId",
-                "authorPhoto",
-                "authorUsername",
-                "startBackgroundColor",
-                "endBackgroundColor",
-                "amountTextColor",
-                "durationSec",
-                "fullDurationSec",
-                // Animation / engagement tracking — UI-only, no data value for a read-only library
-                "animationOrigin",
-                "dynamicStateData",
-                "openEngagementPanelCommand",
-            ],
-            ["liveChatTickerSponsorItemRenderer"] =
-            [
-                "id",
-                "showItemEndpoint",
-                "clickTrackingParams",
-                "trackingParams",
-                "authorExternalChannelId",
-                "sponsorPhoto",
-                "detailText",
-                "detailTextColor",
-                "detailIcon",
-                "startBackgroundColor",
-                "endBackgroundColor",
-                "durationSec",
-                "fullDurationSec",
-            ],
-            ["liveChatTickerPaidStickerItemRenderer"] =
-            [
-                "id",
-                "showItemEndpoint",
-                "clickTrackingParams",
-                "trackingParams",
-                "authorExternalChannelId",
-                "authorPhoto",
-                "tickerThumbnails",
-                "startBackgroundColor",
-                "endBackgroundColor",
-                "durationSec",
-                "fullDurationSec",
-            ],
+        // ── addLiveChatTickerItemAction outer item renderers ──────────────
+        ["liveChatTickerPaidMessageItemRenderer"] =
+        [
+            "id",
+            "showItemEndpoint",
+            "clickTrackingParams",
+            "trackingParams",
+            "authorExternalChannelId",
+            "authorPhoto",
+            "authorUsername",
+            "startBackgroundColor",
+            "endBackgroundColor",
+            "amountTextColor",
+            "durationSec",
+            "fullDurationSec",
+            // Animation / engagement tracking — UI-only, no data value for a read-only library
+            "animationOrigin",
+            "dynamicStateData",
+            "openEngagementPanelCommand",
+        ],
+        ["liveChatTickerSponsorItemRenderer"] =
+        [
+            "id",
+            "showItemEndpoint",
+            "clickTrackingParams",
+            "trackingParams",
+            "authorExternalChannelId",
+            "sponsorPhoto",
+            "detailText",
+            "detailTextColor",
+            "detailIcon",
+            "startBackgroundColor",
+            "endBackgroundColor",
+            "durationSec",
+            "fullDurationSec",
+        ],
+        ["liveChatTickerPaidStickerItemRenderer"] =
+        [
+            "id",
+            "showItemEndpoint",
+            "clickTrackingParams",
+            "trackingParams",
+            "authorExternalChannelId",
+            "authorPhoto",
+            "tickerThumbnails",
+            "startBackgroundColor",
+            "endBackgroundColor",
+            "durationSec",
+            "fullDurationSec",
+        ],
 
-            // ── Creator Goal ticker chip ──────────────────────────────────────────
-            ["liveChatTickerCreatorGoalViewModel"] =
-            [
-                "id",
-                "initialTickerText",
-                "tickerIcon",
-                "creatorGoalEntityKey",
-                "shouldShowCountIncrementAnimation",
-                "a11yLabel",
-                "onClickCommand",
-                "loggingDirectives",
-                "clickTrackingParams",
-                "trackingParams",
-            ],
-        };
+        // ── Creator Goal ticker chip ──────────────────────────────────────────
+        ["liveChatTickerCreatorGoalViewModel"] =
+        [
+            "id",
+            "initialTickerText",
+            "tickerIcon",
+            "creatorGoalEntityKey",
+            "shouldShowCountIncrementAnimation",
+            "a11yLabel",
+            "onClickCommand",
+            "loggingDirectives",
+            "clickTrackingParams",
+            "trackingParams",
+        ],
+    };
 
     // ── Deep scan baselines ───────────────────────────────────────────────────
     // Used by the two recursive scanners that walk every action at any depth.
@@ -240,8 +282,13 @@ internal static class AnalyzeMode
     // All known field names inside run objects.
     private static readonly HashSet<string> KnownRunFields = new(StringComparer.Ordinal)
     {
-        "text", "bold", "italics", "strikethrough", "emoji",
-        "navigationEndpoint", "fontFace",
+        "text",
+        "bold",
+        "italics",
+        "strikethrough",
+        "emoji",
+        "navigationEndpoint",
+        "fontFace",
         // Per-run ARGB color tint (observed on liveChatBannerRedirectRenderer.bannerMessage runs)
         "textColor",
         // De-emphasized styling (observed on liveChatBannerChatSummaryRenderer.chatSummary runs)
@@ -253,12 +300,17 @@ internal static class AnalyzeMode
     private static readonly HashSet<string> AllKnownJsonKeys = new(StringComparer.Ordinal)
     {
         // ── Top-level InnerTube continuation response ─────────────────────────
-        "continuationContents", "liveChatContinuation", "actions",
-        "responseContext", "mainAppWebResponseContext", "loggedOut",
-        "webResponseContextExtensionData", "hasDecorated",
-
+        "continuationContents",
+        "liveChatContinuation",
+        "actions",
+        "responseContext",
+        "mainAppWebResponseContext",
+        "loggedOut",
+        "webResponseContextExtensionData",
+        "hasDecorated",
         // ── Top-level action keys ─────────────────────────────────────────────
-        "clickTrackingParams", "trackingParams",
+        "clickTrackingParams",
+        "trackingParams",
         "addChatItemAction",
         "addLiveChatTickerItemAction",
         "addBannerToLiveChatCommand",
@@ -281,7 +333,6 @@ internal static class AnalyzeMode
         // Gift animation overlay widgets — companion to giftMessageViewModel, purely visual
         "addInteractivityWidgetAction",
         "updateOrAddInteractivityWidgetAction",
-
         // ── Action payload fields ─────────────────────────────────────────────
         "item",
         "targetItemId",
@@ -291,7 +342,6 @@ internal static class AnalyzeMode
         "pollToUpdate",
         "targetPanelId",
         "skipOnDismissCommand",
-
         // ── Renderer container / wrapper keys ─────────────────────────────────
         "giftMessageViewModel",
         "liveChatTextMessageRenderer",
@@ -320,231 +370,384 @@ internal static class AnalyzeMode
         "contents",
         "renderer",
         "header",
-
         // ── Common renderer base fields ───────────────────────────────────────
-        "id", "timestampUsec",
-        "authorName", "authorPhoto", "authorBadges", "authorExternalChannelId",
-        "contextMenuEndpoint", "contextMenuAccessibility",
+        "id",
+        "timestampUsec",
+        "authorName",
+        "authorPhoto",
+        "authorBadges",
+        "authorExternalChannelId",
+        "contextMenuEndpoint",
+        "contextMenuAccessibility",
         "message",
-
         // ── Rich text (runs + run-object fields) ──────────────────────────────
-        "simpleText", "runs",
-        "text", "bold", "italics", "strikethrough", "fontFace",
-        "emoji", "emojiId", "shortcuts", "searchTerms", "image",
-        "isCustomEmoji", "supportsSkinTone", "variantIds",
+        "simpleText",
+        "runs",
+        "text",
+        "bold",
+        "italics",
+        "strikethrough",
+        "fontFace",
+        "emoji",
+        "emojiId",
+        "shortcuts",
+        "searchTerms",
+        "image",
+        "isCustomEmoji",
+        "supportsSkinTone",
+        "variantIds",
         "navigationEndpoint",
-
         // ── Thumbnail / image ─────────────────────────────────────────────────
-        "thumbnails", "url", "width", "height",
-
+        "thumbnails",
+        "url",
+        "width",
+        "height",
         // ── Accessibility ─────────────────────────────────────────────────────
-        "accessibility", "accessibilityData", "label",
-
+        "accessibility",
+        "accessibilityData",
+        "label",
         // ── Badge ─────────────────────────────────────────────────────────────
-        "liveChatAuthorBadgeRenderer", "customThumbnail", "tooltip",
-        "icon", "iconType",
-
+        "liveChatAuthorBadgeRenderer",
+        "customThumbnail",
+        "tooltip",
+        "icon",
+        "iconType",
         // ── Paid message ──────────────────────────────────────────────────────
         "purchaseAmountText",
-        "headerBackgroundColor", "headerTextColor",
-        "bodyBackgroundColor", "bodyTextColor",
-        "authorNameTextColor", "timestampColor",
-        "isV2Style", "textInputBackgroundColor",
-        "leaderboardBadge", "creatorHeartButton", "replyButton", "pdgLikeButton",
-
+        "headerBackgroundColor",
+        "headerTextColor",
+        "bodyBackgroundColor",
+        "bodyTextColor",
+        "authorNameTextColor",
+        "timestampColor",
+        "isV2Style",
+        "textInputBackgroundColor",
+        "leaderboardBadge",
+        "creatorHeartButton",
+        "replyButton",
+        "pdgLikeButton",
         // ── Paid sticker ──────────────────────────────────────────────────────
         "sticker",
-        "moneyChipBackgroundColor", "moneyChipTextColor", "backgroundColor",
-        "stickerDisplayWidth", "stickerDisplayHeight",
-        "headerOverlayImage", "lowerBumper", "pdgPurchasedNoveltyLoggingDirectives",
+        "moneyChipBackgroundColor",
+        "moneyChipTextColor",
+        "backgroundColor",
+        "stickerDisplayWidth",
+        "stickerDisplayHeight",
+        "headerOverlayImage",
+        "lowerBumper",
+        "pdgPurchasedNoveltyLoggingDirectives",
         // Present on ~98% of ticker stickers
-        "purchaseText", "backgroundGradient",
-
+        "purchaseText",
+        "backgroundGradient",
         // ── Membership ────────────────────────────────────────────────────────
-        "headerPrimaryText", "headerSubtext",
-        "empty", "beforeContentButtons",
-
+        "headerPrimaryText",
+        "headerSubtext",
+        "empty",
+        "beforeContentButtons",
         // ── Gift sponsorship ──────────────────────────────────────────────────
-        "primaryText", "primaryThumbnail",
-
+        "primaryText",
+        "primaryThumbnail",
         // ── Viewer engagement / mode change ───────────────────────────────────
-        "actionButton", "subtext",
-
+        "actionButton",
+        "subtext",
         // ── Ticker outer items ────────────────────────────────────────────────
-        "showItemEndpoint", "showLiveChatItemEndpoint",
-        "authorUsername", "sponsorPhoto",
-        "detailText", "detailTextColor", "detailIcon",
-        "startBackgroundColor", "endBackgroundColor", "amountTextColor",
-        "durationSec", "fullDurationSec",
+        "showItemEndpoint",
+        "showLiveChatItemEndpoint",
+        "authorUsername",
+        "sponsorPhoto",
+        "detailText",
+        "detailTextColor",
+        "detailIcon",
+        "startBackgroundColor",
+        "endBackgroundColor",
+        "amountTextColor",
+        "durationSec",
+        "fullDurationSec",
         "tickerThumbnails",
-        "animationOrigin", "dynamicStateData", "openEngagementPanelCommand",
-
+        "animationOrigin",
+        "dynamicStateData",
+        "openEngagementPanelCommand",
         // ── Banner ────────────────────────────────────────────────────────────
-        "actionId", "viewerIsCreator", "targetId",
-        "isStackable", "backgroundType", "bannerProperties", "bannerType",
-        "autoCollapseDelay", "seconds", "bannerCollapsedStateEntityKey",
-        "inlineActionButton", "bannerActionButton", "contextMenuButton",
+        "actionId",
+        "viewerIsCreator",
+        "targetId",
+        "isStackable",
+        "backgroundType",
+        "bannerProperties",
+        "bannerType",
+        "autoCollapseDelay",
+        "seconds",
+        "bannerCollapsedStateEntityKey",
+        "inlineActionButton",
+        "bannerActionButton",
+        "contextMenuButton",
         "bannerMessage",
         // Chat summary banner fields
-        "liveChatSummaryId", "chatSummary",
-        "collapsedStateEntityKey", "dislikeFeedbackButton", "likeFeedbackButton",
+        "liveChatSummaryId",
+        "chatSummary",
+        "collapsedStateEntityKey",
+        "dislikeFeedbackButton",
+        "likeFeedbackButton",
         // Call-for-questions banner fields
-        "questionMessage", "creatorAuthorName", "creatorAvatar", "featureLabel",
-
+        "questionMessage",
+        "creatorAuthorName",
+        "creatorAvatar",
+        "featureLabel",
         // ── Poll ──────────────────────────────────────────────────────────────
-        "liveChatPollId", "choices", "selected",
-        "signinEndpoint", "signInEndpoint", "nextEndpoint",
-        "liveChatPollQuestion", "pollQuestion", "metadataText",
-        "liveChatPollType", "thumbnail",
-        "voteCount", "voteRatioIfSelected", "voteRatio", "votePercentage",
-
+        "liveChatPollId",
+        "choices",
+        "selected",
+        "signinEndpoint",
+        "signInEndpoint",
+        "nextEndpoint",
+        "liveChatPollQuestion",
+        "pollQuestion",
+        "metadataText",
+        "liveChatPollType",
+        "thumbnail",
+        "voteCount",
+        "voteRatioIfSelected",
+        "voteRatio",
+        "votePercentage",
         // ── Leaderboard badge ─────────────────────────────────────────────────
-        "buttonViewModel", "title", "iconName", "accessibilityText", "onTap",
-
+        "buttonViewModel",
+        "title",
+        "iconName",
+        "accessibilityText",
+        "onTap",
         // ── InnerTube navigation / button infrastructure ───────────────────────
-        "commandMetadata", "webCommandMetadata",
-        "webPageType", "rootVe", "ignoreNavigation",
-        "urlEndpoint", "target",
-        "watchEndpoint", "videoId",
-        "liveChatItemContextMenuEndpoint", "params",
-        "serviceEndpoint", "feedbackEndpoint", "feedbackToken",
-        "uiActions", "hideEnclosingContainer",
-        "buttonRenderer", "style", "size", "isDisabled", "command",
-
+        "commandMetadata",
+        "webCommandMetadata",
+        "webPageType",
+        "rootVe",
+        "ignoreNavigation",
+        "urlEndpoint",
+        "target",
+        "watchEndpoint",
+        "videoId",
+        "liveChatItemContextMenuEndpoint",
+        "params",
+        "serviceEndpoint",
+        "feedbackEndpoint",
+        "feedbackToken",
+        "uiActions",
+        "hideEnclosingContainer",
+        "buttonRenderer",
+        "style",
+        "size",
+        "isDisabled",
+        "command",
         // ── Context menu items ────────────────────────────────────────────────
-        "menuItems", "menuNavigationItemRenderer", "menuServiceItemRenderer",
+        "menuItems",
+        "menuNavigationItemRenderer",
+        "menuServiceItemRenderer",
         "defaultText",
-
         // ── Thumbnail sources (used in poll header, heart viewmodel, etc.) ───
-        "sources", "clientResource", "imageName", "imageColor",
-
+        "sources",
+        "clientResource",
+        "imageName",
+        "imageColor",
         // ── Logging / tracking / renderer context ─────────────────────────────
-        "loggingDirectives", "visibility", "types", "clientId",
-        "loggingContext", "rendererContext",
-        "accessibilityContext", "commandContext",
-
+        "loggingDirectives",
+        "visibility",
+        "types",
+        "clientId",
+        "loggingContext",
+        "rendererContext",
+        "accessibilityContext",
+        "commandContext",
         // ── Fanzone ticker chip (membership-event UI chip) ─────────────────────
-        "fanzoneTickerChip", "liveChatTickerFanzoneViewModel",
-        "tickerIcon", "endTimestampMs",
-        "hack",  // removeFanzoneTickerChipCommand payload
-
+        "fanzoneTickerChip",
+        "liveChatTickerFanzoneViewModel",
+        "tickerIcon",
+        "endTimestampMs",
+        "hack", // removeFanzoneTickerChipCommand payload
         // ── Creator Goal ticker chip (showCreatorGoalTickerChipCommand) ──────────
-        "creatorGoalTickerChip", "liveChatTickerCreatorGoalViewModel",
-        "initialTickerText", "creatorGoalEntityKey",
-        "shouldShowCountIncrementAnimation", "a11yLabel",
+        "creatorGoalTickerChip",
+        "liveChatTickerCreatorGoalViewModel",
+        "initialTickerText",
+        "creatorGoalEntityKey",
+        "shouldShowCountIncrementAnimation",
+        "a11yLabel",
         "onClickCommand",
         // Engagement-panel chain (content path → progressCountA11yLabel)
-        "engagementPanel", "engagementPanelSectionListRenderer",
+        "engagementPanel",
+        "engagementPanelSectionListRenderer",
         "sectionListRenderer",
-        "creatorGoalProgressFlowViewModel", "progressFlowButton", "progressCountA11yLabel",
-        "liveChatPurchaseMessageEndpoint", "titleFormatted",
+        "creatorGoalProgressFlowViewModel",
+        "progressFlowButton",
+        "progressCountA11yLabel",
+        "liveChatPurchaseMessageEndpoint",
+        "titleFormatted",
         // Header/dialog path (help text shown when viewer clicks "?") — UI-only, not surfaced
         "engagementPanelTitleHeaderRenderer",
-        "commandExecutorCommand", "commands",
-        "liveChatDialogEndpoint", "liveChatDialogRenderer", "dialogMessages", "confirmButton",
+        "commandExecutorCommand",
+        "commands",
+        "liveChatDialogEndpoint",
+        "liveChatDialogRenderer",
+        "dialogMessages",
+        "confirmButton",
         // Panel routing and presentation config
-        "engagementPanelPresentationConfigs", "engagementPanelPopupPresentationConfig",
+        "engagementPanelPresentationConfigs",
+        "engagementPanelPopupPresentationConfig",
         "hideEngagementPanelEndpoint",
-
         // ── Toast / notification action ───────────────────────────────────────
         "liveChatAddToToastAction",
-        "notificationActionRenderer", "responseText",
-
+        "notificationActionRenderer",
+        "responseText",
         // ── Run text styling ──────────────────────────────────────────────────
         "textColor",
-
         // ── YouTube Jewels gift view model ────────────────────────────────────
         "imageA11yLabel",
         // Present on ~45% of gifts: URL-based gift image + a11y label + author avatar
-        "giftImage", "giftImageA11yLabel", "authorAvatar",
-
+        "giftImage",
+        "giftImageA11yLabel",
+        "authorAvatar",
         // ── Content + styleRuns (ViewModel text containers) ───────────────────
-        "content", "styleRuns", "startIndex", "length",
-
+        "content",
+        "styleRuns",
+        "startIndex",
+        "length",
         // ── Engagement panel / reply thread system ────────────────────────────
-        "showEngagementPanelEndpoint", "identifier", "surface", "tag",
+        "showEngagementPanelEndpoint",
+        "identifier",
+        "surface",
+        "tag",
         "globalConfiguration",
-        "engagementPanelPopupPresentationConfig", "engagementPanelPresentationConfigs",
-        "popupType", "innertubeCommand",
-        "replyCountEntityKey", "replyCountPlaceholder",
-        "engagementStateEntityKey", "engagementStateKey",
-        "isFullWidth", "useGreenPath",
-
+        "engagementPanelPopupPresentationConfig",
+        "engagementPanelPresentationConfigs",
+        "popupType",
+        "innertubeCommand",
+        "replyCountEntityKey",
+        "replyCountPlaceholder",
+        "engagementStateEntityKey",
+        "engagementStateKey",
+        "isFullWidth",
+        "useGreenPath",
         // ── Reply button view models ──────────────────────────────────────────
-        "pdgReplyButtonViewModel", "replyIcon",
-
+        "pdgReplyButtonViewModel",
+        "replyIcon",
         // ── Creator heart view model ──────────────────────────────────────────
-        "creatorHeartViewModel", "creatorThumbnail",
-        "heartedIcon", "unheartedIcon",
-        "heartedAccessibilityLabel", "unheartedAccessibilityLabel", "heartedHoverText",
-        "borderImageProcessor", "imageTint", "processor", "color",
-
+        "creatorHeartViewModel",
+        "creatorThumbnail",
+        "heartedIcon",
+        "unheartedIcon",
+        "heartedAccessibilityLabel",
+        "unheartedAccessibilityLabel",
+        "heartedHoverText",
+        "borderImageProcessor",
+        "imageTint",
+        "processor",
+        "color",
         // ── Like / PDG like view model ────────────────────────────────────────
         "pdgLikeViewModel",
-        "toggleButton", "toggleButtonViewModel",
-        "defaultButtonViewModel", "toggledButtonViewModel",
-        "likeCountEntityKey", "likeIcon", "likedIcon",
-        "likesEmptyStateText", "emptyStateText",
-        "buttonSize", "customBackgroundColor", "customFontColor", "type", "iconTrailing",
-
+        "toggleButton",
+        "toggleButtonViewModel",
+        "defaultButtonViewModel",
+        "toggledButtonViewModel",
+        "likeCountEntityKey",
+        "likeIcon",
+        "likedIcon",
+        "likesEmptyStateText",
+        "emptyStateText",
+        "buttonSize",
+        "customBackgroundColor",
+        "customFontColor",
+        "type",
+        "iconTrailing",
         // ── Ticker state animation ────────────────────────────────────────────
-        "stateSlideDirection", "stateSlideDurationMs",
-        "stateUpdateDelayAfterMs", "stateUpdateDelayBeforeMs",
-
+        "stateSlideDirection",
+        "stateSlideDurationMs",
+        "stateUpdateDelayAfterMs",
+        "stateUpdateDelayBeforeMs",
         // ── Banner / command properties ───────────────────────────────────────
-        "bannerTimeoutMs", "isEphemeral", "targetActionId",
-
+        "bannerTimeoutMs",
+        "isEphemeral",
+        "targetActionId",
         // ── Navigation extras ─────────────────────────────────────────────────
-        "nofollow", "playerParams", "gestures",
-
+        "nofollow",
+        "playerParams",
+        "gestures",
         // ── 1st-purchase bumper view model ────────────────────────────────────
-        "liveChatItemBumperViewModel", "bumperUserEduContentViewModel",
+        "liveChatItemBumperViewModel",
+        "bumperUserEduContentViewModel",
         "pdgPurchasedBumperLoggingDirectives",
-
         // ── Moderation / report state ─────────────────────────────────────────
         // (liveChatReportModerationStateCommand payload — opaque, not modelled)
         "moderationState",
-
         // ── Banner UI controls ────────────────────────────────────────────────
         // onCollapseCommand/onExpandCommand: fold animation on pinned-message banners
-        "onCollapseCommand", "onExpandCommand",
+        "onCollapseCommand",
+        "onExpandCommand",
         // contentSeparator: "·" separator dot in liveChatCallForQuestionsRenderer
         // overflowMenuButton: "⋮" overflow menu in liveChatCallForQuestionsRenderer
-        "contentSeparator", "overflowMenuButton",
-
+        "contentSeparator",
+        "overflowMenuButton",
         // ── Run text styling ──────────────────────────────────────────────────
         // deemphasize: subdued style on summary banner runs (already in MessageText model)
         "deemphasize",
-
         // ── addInteractivityWidgetAction / updateOrAddInteractivityWidgetAction ─
         // These two action types are already classified as silent (purely visual gift
         // animations). All keys below live inside their payloads and are listed here
         // to suppress false-positive "Unknown JSON Key" reports in the analyzer.
-        "interactivityWidgetRenderer", "widgetRenderer",
-        "elementRenderer", "compatibilityOptions",
-        "liveChatId", "liveChatAuthorExternalChannelId",
-        "enterAnimation", "exitAnimation",
+        "interactivityWidgetRenderer",
+        "widgetRenderer",
+        "elementRenderer",
+        "compatibilityOptions",
+        "liveChatId",
+        "liveChatAuthorExternalChannelId",
+        "enterAnimation",
+        "exitAnimation",
         "giftA11yLabel",
-        "giftAttributionItemViewModel", "attributionImage",
-        "giftOverlayItemViewModel", "overlayImage",
-        "imageDisplayHeight", "imageDisplayWidth",
-        "overlayImageDisplayHeight", "overlayImageDisplayWidth",
+        "giftAttributionItemViewModel",
+        "attributionImage",
+        "giftOverlayItemViewModel",
+        "overlayImage",
+        "imageDisplayHeight",
+        "imageDisplayWidth",
+        "overlayImageDisplayHeight",
+        "overlayImageDisplayWidth",
         "overlayImageHeightPercentageOfWindow",
         "shouldScaleOverlayImageDynamically",
         "contentMode",
         "companionWidgetRenderer",
-        "timeoutMs", "priority", "queueId", "preloadImages",
-        "position", "matrix", "layout", "rows", "columns", "packedData",
+        "timeoutMs",
+        "priority",
+        "queueId",
+        "preloadImages",
+        "position",
+        "matrix",
+        "layout",
+        "rows",
+        "columns",
+        "packedData",
         "specialPlacement",
         "onWidgetShown",
-        "comboCount", "comboDecorationImage", "displayImmediately",
-        "entityUpdateCommand", "entityBatchUpdate", "mutations",
-        "booleanEntity", "entityKey", "key", "payload", "value",
-        "startX", "startY", "endX", "endY",
-        "colors", "positions",
-        "apiUrl", "sendPost",
-        "elementsCommand", "setEntityCommand", "entity",
-        "avatarViewModel", "avatarImageSize", "circular",
+        "comboCount",
+        "comboDecorationImage",
+        "displayImmediately",
+        "entityUpdateCommand",
+        "entityBatchUpdate",
+        "mutations",
+        "booleanEntity",
+        "entityKey",
+        "key",
+        "payload",
+        "value",
+        "startX",
+        "startY",
+        "endX",
+        "endY",
+        "colors",
+        "positions",
+        "apiUrl",
+        "sendPost",
+        "elementsCommand",
+        "setEntityCommand",
+        "entity",
+        "avatarViewModel",
+        "avatarImageSize",
+        "circular",
         "multiSelectorThumbnailRow",
     };
 
@@ -561,8 +764,10 @@ internal static class AnalyzeMode
         public string Location = string.Empty;
         public string RendererType = string.Empty;
         public int TotalCount;
+
         // All field names observed → count + one example value
         public readonly Dictionary<string, FieldEntry> Fields = new(StringComparer.Ordinal);
+
         // Badge composition
         public int BadgeCustomThumbnailCount;
         public int BadgeIconTypeCount;
@@ -578,8 +783,10 @@ internal static class AnalyzeMode
 
         foreach (string arg in args)
         {
-            if (arg.Equals("--verbose", StringComparison.OrdinalIgnoreCase) ||
-                arg.Equals("-v", StringComparison.OrdinalIgnoreCase))
+            if (
+                arg.Equals("--verbose", StringComparison.OrdinalIgnoreCase)
+                || arg.Equals("-v", StringComparison.OrdinalIgnoreCase)
+            )
             {
                 verbose = true;
                 continue;
@@ -596,12 +803,16 @@ internal static class AnalyzeMode
 
         if (paths.Count == 0)
         {
-            Console.WriteLine("No log paths provided. Enter one or more paths or directories separated by ';' or ',':");
+            Console.WriteLine(
+                "No log paths provided. Enter one or more paths or directories separated by ';' or ',':"
+            );
             Console.Write("> ");
             string? input = Console.ReadLine();
             if (!string.IsNullOrWhiteSpace(input))
             {
-                foreach (string segment in input.Split([';', ','], StringSplitOptions.RemoveEmptyEntries))
+                foreach (
+                    string segment in input.Split([';', ','], StringSplitOptions.RemoveEmptyEntries)
+                )
                 {
                     string p = segment.Trim();
                     if (!string.IsNullOrWhiteSpace(p))
@@ -664,7 +875,9 @@ internal static class AnalyzeMode
                     {
                         ProcessBannerAction(action, stats, unknownRendererTypes);
                     }
-                    else if (actionType is "showLiveChatActionPanelAction" or "updateLiveChatPollAction")
+                    else if (
+                        actionType is "showLiveChatActionPanelAction" or "updateLiveChatPollAction"
+                    )
                     {
                         ProcessPollAction(actionType, action, stats, unknownRendererTypes);
                     }
@@ -684,18 +897,24 @@ internal static class AnalyzeMode
         // ── Print report ──────────────────────────────────────────────────────
 
         Console.WriteLine();
-        WriteSectionHeader($"FIELD ANALYSIS REPORT — {expandedPaths.Count} file(s), {totalActions:N0} actions");
+        WriteSectionHeader(
+            $"FIELD ANALYSIS REPORT — {expandedPaths.Count} file(s), {totalActions:N0} actions"
+        );
         Console.WriteLine();
 
         // Top-level action summary
         Console.WriteLine("Action type counts:");
-        foreach (KeyValuePair<string, int> kv in actionCounts.OrderByDescending(x => x.Value).ThenBy(x => x.Key, StringComparer.Ordinal))
-            Console.WriteLine($"  {kv.Value,7:N0}  {kv.Key}");
+        foreach (
+            KeyValuePair<string, int> kv in actionCounts
+                .OrderByDescending(x => x.Value)
+                .ThenBy(x => x.Key, StringComparer.Ordinal)
+        )
+            Console.WriteLine($"  {kv.Value, 7:N0}  {kv.Key}");
         Console.WriteLine();
 
         // Group stats by location
-        IEnumerable<IGrouping<string, RendererStats>> groups = stats.Values
-            .GroupBy(s => s.Location, StringComparer.Ordinal)
+        IEnumerable<IGrouping<string, RendererStats>> groups = stats
+            .Values.GroupBy(s => s.Location, StringComparer.Ordinal)
             .OrderBy(g => g.Key, StringComparer.Ordinal);
 
         bool anyNewFields = false;
@@ -707,14 +926,19 @@ internal static class AnalyzeMode
 
             foreach (RendererStats rs in group.OrderByDescending(s => s.TotalCount))
             {
-                bool hasBaseline = Baselines.TryGetValue(rs.RendererType, out HashSet<string>? baseline);
+                bool hasBaseline = Baselines.TryGetValue(
+                    rs.RendererType,
+                    out HashSet<string>? baseline
+                );
                 Console.Write("  ");
                 WriteColor(rs.RendererType, ConsoleColor.Cyan);
-                Console.WriteLine($"  ({rs.TotalCount:N0} instances){(hasBaseline ? "" : "  [NO BASELINE]")}");
+                Console.WriteLine(
+                    $"  ({rs.TotalCount:N0} instances){(hasBaseline ? "" : "  [NO BASELINE]")}"
+                );
 
                 // Sort fields: NEW first, then known alphabetically
-                IEnumerable<KeyValuePair<string, FieldEntry>> ordered = rs.Fields
-                    .OrderBy(f =>
+                IEnumerable<KeyValuePair<string, FieldEntry>> ordered = rs
+                    .Fields.OrderBy(f =>
                     {
                         bool known = hasBaseline && baseline!.Contains(f.Key);
                         return known ? 1 : 0; // NEW first
@@ -743,7 +967,9 @@ internal static class AnalyzeMode
                         continue; // skip known fields in non-verbose mode
                     }
 
-                    Console.Write($"  {field.Key,-40}  {field.Value.Count,6:N0}/{rs.TotalCount:N0}  ({pct,5:F1}%)");
+                    Console.Write(
+                        $"  {field.Key, -40}  {field.Value.Count, 6:N0}/{rs.TotalCount:N0}  ({pct, 5:F1}%)"
+                    );
                     if (!known)
                         Console.Write($"  eg: {field.Value.Example}");
                     Console.WriteLine();
@@ -758,7 +984,9 @@ internal static class AnalyzeMode
                         {
                             Console.Write("    ");
                             WriteColor("[missing]", ConsoleColor.DarkGray);
-                            Console.WriteLine($"  {knownField,-40}  (never observed in this file)");
+                            Console.WriteLine(
+                                $"  {knownField, -40}  (never observed in this file)"
+                            );
                         }
                     }
                 }
@@ -766,8 +994,11 @@ internal static class AnalyzeMode
                 // Badge breakdown
                 if (rs.BadgeCustomThumbnailCount + rs.BadgeIconTypeCount + rs.BadgeUnknownCount > 0)
                 {
-                    int total = rs.BadgeCustomThumbnailCount + rs.BadgeIconTypeCount + rs.BadgeUnknownCount;
-                    Console.WriteLine($"    [badges]   customThumbnail={rs.BadgeCustomThumbnailCount:N0}  iconType={rs.BadgeIconTypeCount:N0}  unknown={rs.BadgeUnknownCount:N0}  (total badge instances={total:N0})");
+                    int total =
+                        rs.BadgeCustomThumbnailCount + rs.BadgeIconTypeCount + rs.BadgeUnknownCount;
+                    Console.WriteLine(
+                        $"    [badges]   customThumbnail={rs.BadgeCustomThumbnailCount:N0}  iconType={rs.BadgeIconTypeCount:N0}  unknown={rs.BadgeUnknownCount:N0}  (total badge instances={total:N0})"
+                    );
                 }
 
                 Console.WriteLine();
@@ -776,7 +1007,9 @@ internal static class AnalyzeMode
 
         if (!anyNewFields && !verbose)
         {
-            Console.WriteLine("  (No new fields detected. Run with --verbose to see all known fields.)");
+            Console.WriteLine(
+                "  (No new fields detected. Run with --verbose to see all known fields.)"
+            );
             Console.WriteLine();
         }
 
@@ -810,11 +1043,15 @@ internal static class AnalyzeMode
         }
         else
         {
-            foreach (KeyValuePair<string, FieldEntry> kv in unknownRunFields.OrderByDescending(x => x.Value.Count).ThenBy(x => x.Key, StringComparer.Ordinal))
+            foreach (
+                KeyValuePair<string, FieldEntry> kv in unknownRunFields
+                    .OrderByDescending(x => x.Value.Count)
+                    .ThenBy(x => x.Key, StringComparer.Ordinal)
+            )
             {
                 Console.Write("  ");
                 WriteColor("[NEW]  ", ConsoleColor.Yellow);
-                Console.WriteLine($"{kv.Key,-80}  {kv.Value.Count:N0}x  eg: {kv.Value.Example}");
+                Console.WriteLine($"{kv.Key, -80}  {kv.Value.Count:N0}x  eg: {kv.Value.Example}");
             }
         }
 
@@ -829,11 +1066,15 @@ internal static class AnalyzeMode
         }
         else
         {
-            foreach (KeyValuePair<string, FieldEntry> kv in unknownJsonKeys.OrderByDescending(x => x.Value.Count).ThenBy(x => x.Key, StringComparer.Ordinal))
+            foreach (
+                KeyValuePair<string, FieldEntry> kv in unknownJsonKeys
+                    .OrderByDescending(x => x.Value.Count)
+                    .ThenBy(x => x.Key, StringComparer.Ordinal)
+            )
             {
                 Console.Write("  ");
                 WriteColor("[NEW]  ", ConsoleColor.Yellow);
-                Console.WriteLine($"{kv.Key,-50}  {kv.Value.Count:N0}x  eg: {kv.Value.Example}");
+                Console.WriteLine($"{kv.Key, -50}  {kv.Value.Count:N0}x  eg: {kv.Value.Example}");
             }
         }
 
@@ -856,66 +1097,126 @@ internal static class AnalyzeMode
     private static void ProcessAddChatItem(
         JsonElement action,
         Dictionary<string, RendererStats> stats,
-        HashSet<string> unknownRendererTypes)
+        HashSet<string> unknownRendererTypes
+    )
     {
-        if (!action.TryGetProperty("addChatItemAction", out JsonElement addChat) ||
-            !addChat.TryGetProperty("item", out JsonElement item))
+        if (
+            !action.TryGetProperty("addChatItemAction", out JsonElement addChat)
+            || !addChat.TryGetProperty("item", out JsonElement item)
+        )
         {
             return;
         }
 
-        if (!LogReader.TryGetSingleRenderer(item, out string? rendererType, out JsonElement rendererValue) ||
-            rendererType == null)
+        if (
+            !LogReader.TryGetSingleRenderer(
+                item,
+                out string? rendererType,
+                out JsonElement rendererValue
+            )
+            || rendererType == null
+        )
         {
             return;
         }
 
-        ObserveRenderer("addChatItemAction", rendererType, rendererValue, stats, unknownRendererTypes);
+        ObserveRenderer(
+            "addChatItemAction",
+            rendererType,
+            rendererValue,
+            stats,
+            unknownRendererTypes
+        );
     }
 
     private static void ProcessTickerItem(
         JsonElement action,
         Dictionary<string, RendererStats> stats,
-        HashSet<string> unknownRendererTypes)
+        HashSet<string> unknownRendererTypes
+    )
     {
-        if (!action.TryGetProperty("addLiveChatTickerItemAction", out JsonElement tickerAction) ||
-            !tickerAction.TryGetProperty("item", out JsonElement tickerItem))
+        if (
+            !action.TryGetProperty("addLiveChatTickerItemAction", out JsonElement tickerAction)
+            || !tickerAction.TryGetProperty("item", out JsonElement tickerItem)
+        )
         {
             return;
         }
 
-        if (LogReader.TryGetSingleRenderer(tickerItem, out string? outerRenderer, out JsonElement outerValue) &&
-            outerRenderer != null)
+        if (
+            LogReader.TryGetSingleRenderer(
+                tickerItem,
+                out string? outerRenderer,
+                out JsonElement outerValue
+            )
+            && outerRenderer != null
+        )
         {
             ObserveRenderer("ticker.item", outerRenderer, outerValue, stats, unknownRendererTypes);
         }
 
-        if (LogReader.TryGetNestedShowRenderer(tickerItem, out string? nestedRenderer, out JsonElement nestedValue) &&
-            nestedRenderer != null)
+        if (
+            LogReader.TryGetNestedShowRenderer(
+                tickerItem,
+                out string? nestedRenderer,
+                out JsonElement nestedValue
+            )
+            && nestedRenderer != null
+        )
         {
-            ObserveRenderer("ticker.showLiveChatItemEndpoint", nestedRenderer, nestedValue, stats, unknownRendererTypes);
+            ObserveRenderer(
+                "ticker.showLiveChatItemEndpoint",
+                nestedRenderer,
+                nestedValue,
+                stats,
+                unknownRendererTypes
+            );
         }
     }
 
     private static void ProcessBannerAction(
         JsonElement action,
         Dictionary<string, RendererStats> stats,
-        HashSet<string> unknownRendererTypes)
+        HashSet<string> unknownRendererTypes
+    )
     {
-        if (!action.TryGetProperty("addBannerToLiveChatCommand", out JsonElement bannerCmd) ||
-            !bannerCmd.TryGetProperty("bannerRenderer", out JsonElement bannerRenderer) ||
-            !bannerRenderer.TryGetProperty("liveChatBannerRenderer", out JsonElement liveRenderer))
+        if (
+            !action.TryGetProperty("addBannerToLiveChatCommand", out JsonElement bannerCmd)
+            || !bannerCmd.TryGetProperty("bannerRenderer", out JsonElement bannerRenderer)
+            || !bannerRenderer.TryGetProperty(
+                "liveChatBannerRenderer",
+                out JsonElement liveRenderer
+            )
+        )
         {
             return;
         }
 
-        ObserveRenderer("addBannerToLiveChatCommand", "liveChatBannerRenderer", liveRenderer, stats, unknownRendererTypes);
+        ObserveRenderer(
+            "addBannerToLiveChatCommand",
+            "liveChatBannerRenderer",
+            liveRenderer,
+            stats,
+            unknownRendererTypes
+        );
 
-        if (liveRenderer.TryGetProperty("contents", out JsonElement contents) &&
-            LogReader.TryGetSingleRenderer(contents, out string? contentRenderer, out JsonElement contentValue) &&
-            contentRenderer != null)
+        if (
+            liveRenderer.TryGetProperty("contents", out JsonElement contents)
+            && LogReader.TryGetSingleRenderer(
+                contents,
+                out string? contentRenderer,
+                out JsonElement contentValue
+            )
+            && contentRenderer != null
+        )
         {
-            ObserveRenderer("addBannerToLiveChatCommand.contents", contentRenderer, contentValue, stats, unknownRendererTypes);
+            ObserveRenderer(
+                "addBannerToLiveChatCommand.contents",
+                contentRenderer,
+                contentValue,
+                stats,
+                unknownRendererTypes
+            );
         }
     }
 
@@ -923,24 +1224,29 @@ internal static class AnalyzeMode
         string actionType,
         JsonElement action,
         Dictionary<string, RendererStats> stats,
-        HashSet<string> unknownRendererTypes)
+        HashSet<string> unknownRendererTypes
+    )
     {
         JsonElement pollRenderer = default;
         bool found = false;
 
-        if (actionType == "showLiveChatActionPanelAction" &&
-            action.TryGetProperty("showLiveChatActionPanelAction", out JsonElement show) &&
-            show.TryGetProperty("panelToShow", out JsonElement panel) &&
-            panel.TryGetProperty("liveChatActionPanelRenderer", out JsonElement panelRenderer) &&
-            panelRenderer.TryGetProperty("contents", out JsonElement contents) &&
-            contents.TryGetProperty("pollRenderer", out pollRenderer))
+        if (
+            actionType == "showLiveChatActionPanelAction"
+            && action.TryGetProperty("showLiveChatActionPanelAction", out JsonElement show)
+            && show.TryGetProperty("panelToShow", out JsonElement panel)
+            && panel.TryGetProperty("liveChatActionPanelRenderer", out JsonElement panelRenderer)
+            && panelRenderer.TryGetProperty("contents", out JsonElement contents)
+            && contents.TryGetProperty("pollRenderer", out pollRenderer)
+        )
         {
             found = true;
         }
-        else if (actionType == "updateLiveChatPollAction" &&
-            action.TryGetProperty("updateLiveChatPollAction", out JsonElement update) &&
-            update.TryGetProperty("pollToUpdate", out JsonElement pollToUpdate) &&
-            pollToUpdate.TryGetProperty("pollRenderer", out pollRenderer))
+        else if (
+            actionType == "updateLiveChatPollAction"
+            && action.TryGetProperty("updateLiveChatPollAction", out JsonElement update)
+            && update.TryGetProperty("pollToUpdate", out JsonElement pollToUpdate)
+            && pollToUpdate.TryGetProperty("pollRenderer", out pollRenderer)
+        )
         {
             found = true;
         }
@@ -956,7 +1262,8 @@ internal static class AnalyzeMode
         string rendererType,
         JsonElement rendererValue,
         Dictionary<string, RendererStats> stats,
-        HashSet<string> unknownRendererTypes)
+        HashSet<string> unknownRendererTypes
+    )
     {
         string key = $"{location}:{rendererType}";
         if (!stats.TryGetValue(key, out RendererStats? rs))
@@ -991,7 +1298,12 @@ internal static class AnalyzeMode
             {
                 foreach (JsonElement badge in prop.Value.EnumerateArray())
                 {
-                    if (badge.TryGetProperty("liveChatAuthorBadgeRenderer", out JsonElement badgeRenderer))
+                    if (
+                        badge.TryGetProperty(
+                            "liveChatAuthorBadgeRenderer",
+                            out JsonElement badgeRenderer
+                        )
+                    )
                     {
                         if (badgeRenderer.TryGetProperty("customThumbnail", out _))
                             rs.BadgeCustomThumbnailCount++;
@@ -1007,7 +1319,6 @@ internal static class AnalyzeMode
                 }
             }
         }
-
     }
 
     // ── Deep recursive scanners ───────────────────────────────────────────────
@@ -1017,7 +1328,10 @@ internal static class AnalyzeMode
     /// <see cref="AllKnownJsonKeys"/>. Keyed by the property name alone (count aggregates
     /// across all occurrences); the stored example gives enough context to locate it.
     /// </summary>
-    private static void WalkForUnknownKeys(JsonElement element, Dictionary<string, FieldEntry> unknownKeys)
+    private static void WalkForUnknownKeys(
+        JsonElement element,
+        Dictionary<string, FieldEntry> unknownKeys
+    )
     {
         if (element.ValueKind == JsonValueKind.Object)
         {
@@ -1027,7 +1341,10 @@ internal static class AnalyzeMode
                 {
                     if (!unknownKeys.TryGetValue(prop.Name, out FieldEntry? entry))
                     {
-                        entry = new FieldEntry { Example = LogReader.SummarizeValue(prop.Value, 90) };
+                        entry = new FieldEntry
+                        {
+                            Example = LogReader.SummarizeValue(prop.Value, 90),
+                        };
                         unknownKeys[prop.Name] = entry;
                     }
                     entry.Count++;
@@ -1051,12 +1368,16 @@ internal static class AnalyzeMode
     private static void WalkForUnknownRunFields(
         string path,
         JsonElement element,
-        Dictionary<string, FieldEntry> unknownRunFields)
+        Dictionary<string, FieldEntry> unknownRunFields
+    )
     {
         if (element.ValueKind == JsonValueKind.Object)
         {
             // If this object is a rich-text container, scan its runs
-            if (element.TryGetProperty("runs", out JsonElement runs) && runs.ValueKind == JsonValueKind.Array)
+            if (
+                element.TryGetProperty("runs", out JsonElement runs)
+                && runs.ValueKind == JsonValueKind.Array
+            )
             {
                 foreach (JsonElement run in runs.EnumerateArray())
                 {
@@ -1071,7 +1392,10 @@ internal static class AnalyzeMode
                         string key = $"{path}.runs[].{runField.Name}";
                         if (!unknownRunFields.TryGetValue(key, out FieldEntry? entry))
                         {
-                            entry = new FieldEntry { Example = LogReader.SummarizeValue(runField.Value, 90) };
+                            entry = new FieldEntry
+                            {
+                                Example = LogReader.SummarizeValue(runField.Value, 90),
+                            };
                             unknownRunFields[key] = entry;
                         }
                         entry.Count++;
@@ -1117,12 +1441,18 @@ internal static class AnalyzeMode
     private static void PrintUsage()
     {
         Console.WriteLine("Usage:");
-        Console.WriteLine("  dotnet run --project YTLiveChat.Tools -- analyze [options] <path1> [path2 ...]");
+        Console.WriteLine(
+            "  dotnet run --project YTLiveChat.Tools -- analyze [options] <path1> [path2 ...]"
+        );
         Console.WriteLine();
-        Console.WriteLine("  Paths may be individual .jsonl files or directories (expanded to all *.jsonl within).");
+        Console.WriteLine(
+            "  Paths may be individual .jsonl files or directories (expanded to all *.jsonl within)."
+        );
         Console.WriteLine();
         Console.WriteLine("Options:");
-        Console.WriteLine("  --verbose / -v    Show all fields (known + new + missing). Default: new fields only.");
+        Console.WriteLine(
+            "  --verbose / -v    Show all fields (known + new + missing). Default: new fields only."
+        );
         Console.WriteLine("  --help            Show this message.");
         Console.WriteLine();
         Console.WriteLine("Sections in the report:");
@@ -1135,14 +1465,18 @@ internal static class AnalyzeMode
         Console.WriteLine("                           showLiveChatActionPanelAction,");
         Console.WriteLine("                           updateLiveChatPollAction.");
         Console.WriteLine("  Unknown Renderer Types   Renderer keys with no baseline entry.");
-        Console.WriteLine("  Unknown Run Fields       Fields inside runs[] arrays not in the known set.");
+        Console.WriteLine(
+            "  Unknown Run Fields       Fields inside runs[] arrays not in the known set."
+        );
         Console.WriteLine();
         Console.WriteLine("Examples:");
         Console.WriteLine("  # Analyze an entire logs directory:");
         Console.WriteLine("  dotnet run --project YTLiveChat.Tools -- analyze logs/");
         Console.WriteLine();
         Console.WriteLine("  # Analyze specific files with all fields shown:");
-        Console.WriteLine("  dotnet run --project YTLiveChat.Tools -- analyze --verbose logs/watch_20260413.jsonl");
+        Console.WriteLine(
+            "  dotnet run --project YTLiveChat.Tools -- analyze --verbose logs/watch_20260413.jsonl"
+        );
         Console.WriteLine();
         Console.WriteLine("  # Analyze old logs directory:");
         Console.WriteLine("  dotnet run --project YTLiveChat.Tools -- analyze logs/_old/");

@@ -6,7 +6,8 @@ internal static class ActionTestData
     /// Subscribers-only mode engagement message (5 minutes).
     /// Real data from dump_engagement.json (first entry).
     /// </summary>
-    public static string ViewerEngagementSubscribersOnly() => """
+    public static string ViewerEngagementSubscribersOnly() =>
+        """
             {
               "addChatItemAction": {
                 "item": {
@@ -64,7 +65,8 @@ internal static class ActionTestData
     /// Subscribers-only mode engagement message (20 minutes).
     /// Real data from dump_engagement.json (second entry).
     /// </summary>
-    public static string ViewerEngagementSubscribersOnly20Min() => """
+    public static string ViewerEngagementSubscribersOnly20Min() =>
+        """
             {
               "addChatItemAction": {
                 "item": {
@@ -122,7 +124,8 @@ internal static class ActionTestData
     /// Community guidelines reminder engagement message.
     /// Real data from dump_engagement.json (third entry).
     /// </summary>
-    public static string ViewerEngagementCommunityGuidelines() => """
+    public static string ViewerEngagementCommunityGuidelines() =>
+        """
             {
               "addChatItemAction": {
                 "item": {
@@ -178,7 +181,8 @@ internal static class ActionTestData
     /// Poll result summary engagement message (POLL icon, no timestamp, no actionButton).
     /// Real data from dump_engagement.json (seventh entry).
     /// </summary>
-    public static string ViewerEngagementPollResult() => """
+    public static string ViewerEngagementPollResult() =>
+        """
             {
               "addChatItemAction": {
                 "item": {
@@ -218,7 +222,8 @@ internal static class ActionTestData
             }
             """;
 
-    public static string AddBannerPinnedMessage() => """
+    public static string AddBannerPinnedMessage() =>
+        """
             {
               "addBannerToLiveChatCommand": {
                 "bannerRenderer": {
@@ -271,7 +276,8 @@ internal static class ActionTestData
     /// Cross-channel redirect banner from real live capture (watch_20260412_152414.jsonl).
     /// Banner type: LIVE_CHAT_BANNER_TYPE_CROSS_CHANNEL_REDIRECT
     /// </summary>
-    public static string AddBannerRedirectCommand() => """
+    public static string AddBannerRedirectCommand() =>
+        """
             {
               "addBannerToLiveChatCommand": {
                 "bannerRenderer": {
@@ -319,7 +325,8 @@ internal static class ActionTestData
     /// Real data from dump_banner_new.json entry 6 (@holoen_ceciliaimmergreen).
     /// Banner type: LIVE_CHAT_BANNER_TYPE_CROSS_CHANNEL_REDIRECT
     /// </summary>
-    public static string AddBannerRedirectLearnMore() => """
+    public static string AddBannerRedirectLearnMore() =>
+        """
             {
               "addBannerToLiveChatCommand": {
                 "bannerRenderer": {
@@ -380,7 +387,8 @@ internal static class ActionTestData
     /// Contains liveChatBannerChatSummaryRenderer with bold title, disclaimer, and body text.
     /// Real data from dump_poll_banners.json entry 0 (watch_20260415_060005.jsonl).
     /// </summary>
-    public static string AddBannerChatSummary() => """
+    public static string AddBannerChatSummary() =>
+        """
             {
               "clickTrackingParams": "CAEQl98BIhMI89Gw65bvkwMVrAE6Ah1euhdEygEExHmptQ==",
               "addBannerToLiveChatCommand": {
@@ -426,7 +434,8 @@ internal static class ActionTestData
     /// Pinned message banner from @InugamiKorone with OWNER + VERIFIED badges and Japanese text with 3 flushed-face emojis.
     /// Real data from dump_banners.json (entry 0).
     /// </summary>
-    public static string AddBannerPinnedMessage_InugamiKorone() => """
+    public static string AddBannerPinnedMessage_InugamiKorone() =>
+        """
             {
               "addBannerToLiveChatCommand": {
                 "bannerRenderer": {
@@ -545,7 +554,8 @@ internal static class ActionTestData
     /// Banner type: LIVE_CHAT_BANNER_TYPE_CROSS_CHANNEL_REDIRECT
     /// isEphemeral: true, bannerTimeoutMs: "20000"
     /// </summary>
-    public static string AddBannerRedirectLearnMore_KureijiOllie() => """
+    public static string AddBannerRedirectLearnMore_KureijiOllie() =>
+        """
             {
               "addBannerToLiveChatCommand": {
                 "bannerRenderer": {
@@ -620,7 +630,8 @@ internal static class ActionTestData
     /// Banner type: LIVE_CHAT_BANNER_TYPE_CROSS_CHANNEL_REDIRECT
     /// actionId: ChwKGkNMdk96OG55NzVNREZYYkNsQWtkNFVVRndB
     /// </summary>
-    public static string AddBannerRedirectGoNow_UsadaPekora() => """
+    public static string AddBannerRedirectGoNow_UsadaPekora() =>
+        """
             {
               "addBannerToLiveChatCommand": {
                 "bannerRenderer": {
@@ -676,7 +687,8 @@ internal static class ActionTestData
     /// (beforeContentButtons, iconName CROWN, title "#3").
     /// Real data from watch_20260411_045605.jsonl — @Sin_mikity, Member (2 years), rank #3.
     /// </summary>
-    public static string TextMessageWithLeaderboardRank_SinMikity() => """
+    public static string TextMessageWithLeaderboardRank_SinMikity() =>
+        """
             {
               "clickTrackingParams": "CAEQl98BIhMIv6rmss3okwMVoxQ6Ah22hCJsygEEZbNZxg==",
               "addChatItemAction": {
@@ -789,7 +801,8 @@ internal static class ActionTestData
             }
             """;
 
-    public static string RemoveChatItem() => """
+    public static string RemoveChatItem() =>
+        """
             {
               "removeChatItemAction": {
                 "targetItemId": "REMOVED_MSG_ID_01"
@@ -797,7 +810,8 @@ internal static class ActionTestData
             }
             """;
 
-    public static string ReportModerationStateEmpty() => """
+    public static string ReportModerationStateEmpty() =>
+        """
             {
               "liveChatReportModerationStateCommand": {}
             }
@@ -808,7 +822,8 @@ internal static class ActionTestData
     /// Real polls have NO <c>voteRatio</c>/<c>votePercentage</c> on choices when first opened.
     /// Data matches the shape observed in live captures (dump_showpanel_new.json).
     /// </summary>
-    public static string ShowPanelActionNewPoll() => """
+    public static string ShowPanelActionNewPoll() =>
+        """
             {
               "clickTrackingParams": "CAEQl98BIhMIkq6pmejokwMVHwE6Ah3w5hZNygEEpuqq1w==",
               "showLiveChatActionPanelAction": {
@@ -878,7 +893,8 @@ internal static class ActionTestData
     /// Real data from dump_poll_show.json (watch_20260415_060005.jsonl).
     /// Poll ID: ChwKGkNKTzk4NUNiNzVNREZYWlFUQWdkT2U0VjVR
     /// </summary>
-    public static string ShowPollAction_OuroKronii_WallVsFloor() => """
+    public static string ShowPollAction_OuroKronii_WallVsFloor() =>
+        """
             {
               "clickTrackingParams": "CAEQl98BIhMIgdmNkpvvkwMV9thJBx2pkxN6ygEE75Nu3Q==",
               "showLiveChatActionPanelAction": {
@@ -957,7 +973,8 @@ internal static class ActionTestData
     /// First updateLiveChatPollAction for the @OuroKronii "for the wood" poll: both choices at 0 votes.
     /// Real data from dump_poll_updates.json entry 0 (watch_20260415_060005.jsonl).
     /// </summary>
-    public static string UpdatePollAction_OuroKronii_ZeroVotes() => """
+    public static string UpdatePollAction_OuroKronii_ZeroVotes() =>
+        """
             {
               "updateLiveChatPollAction": {
                 "pollToUpdate": {
@@ -1010,7 +1027,8 @@ internal static class ActionTestData
     /// Mid-poll updateLiveChatPollAction for @OuroKronii: wall 45% vs floor 55%, 1301 votes, "10 min ago".
     /// Real data from dump_poll_updates.json ~entry 600 (watch_20260415_060005.jsonl).
     /// </summary>
-    public static string UpdatePollAction_OuroKronii_MidPoll_Wall45_Floor55() => """
+    public static string UpdatePollAction_OuroKronii_MidPoll_Wall45_Floor55() =>
+        """
             {
               "updateLiveChatPollAction": {
                 "pollToUpdate": {
@@ -1063,7 +1081,8 @@ internal static class ActionTestData
     /// Final updateLiveChatPollAction for @OuroKronii: wall 47% vs floor 53%, 1972 votes, "20 min ago".
     /// Real data from dump_poll_updates.json last entry (watch_20260415_060005.jsonl).
     /// </summary>
-    public static string UpdatePollAction_OuroKronii_FinalResult_Wall47_Floor53() => """
+    public static string UpdatePollAction_OuroKronii_FinalResult_Wall47_Floor53() =>
+        """
             {
               "updateLiveChatPollAction": {
                 "pollToUpdate": {
@@ -1117,7 +1136,8 @@ internal static class ActionTestData
     /// Includes skipOnDismissCommand: true, observed when closing a creator poll panel.
     /// Real data from dump_poll_close.json (watch_20260415_060005.jsonl).
     /// </summary>
-    public static string ClosePollPanel_OuroKronii() => """
+    public static string ClosePollPanel_OuroKronii() =>
+        """
             {
               "closeLiveChatActionPanelAction": {
                 "targetPanelId": "ChwKGkNKTzk4NUNiNzVNREZYWlFUQWdkT2U0VjVR",
@@ -1131,7 +1151,8 @@ internal static class ActionTestData
     /// "for the wood" — floor 53%, wall 47% — Poll complete: 1.9K votes.
     /// Real data from dump_poll_engagement.json (watch_20260415_060005.jsonl).
     /// </summary>
-    public static string ViewerEngagementPollResult_OuroKronii_WallVsFloor() => """
+    public static string ViewerEngagementPollResult_OuroKronii_WallVsFloor() =>
+        """
             {
               "addChatItemAction": {
                 "item": {
@@ -1165,7 +1186,8 @@ internal static class ActionTestData
             }
             """;
 
-    public static string RemoveChatItemByAuthor() => """
+    public static string RemoveChatItemByAuthor() =>
+        """
             {
               "removeChatItemByAuthorAction": {
                 "externalChannelId": "UC_BANNED_CHANNEL_01"
@@ -1173,7 +1195,8 @@ internal static class ActionTestData
             }
             """;
 
-    public static string RemoveBanner() => """
+    public static string RemoveBanner() =>
+        """
             {
               "removeBannerForLiveChatCommand": {
                 "targetActionId": "PINNED_ACTION_ID_01"
@@ -1181,7 +1204,8 @@ internal static class ActionTestData
             }
             """;
 
-    public static string CloseLiveChatActionPanel() => """
+    public static string CloseLiveChatActionPanel() =>
+        """
             {
               "closeLiveChatActionPanelAction": {
                 "targetPanelId": "POLL_ID_SHOW_01"
@@ -1241,7 +1265,8 @@ internal static class ActionTestData
     /// replaceChatItemAction with a full liveChatTextMessageRenderer replacement.
     /// Data from real live capture (dump_replace_membership.json, first entry).
     /// </summary>
-    public static string ReplaceChatItemWithText() => """
+    public static string ReplaceChatItemWithText() =>
+        """
             {
               "replaceChatItemAction": {
                 "targetItemId": "ChwKGkNQcTJ5X0t3NlpNREZlZkJ3Z1FkUTI4RmJR",
@@ -1294,7 +1319,8 @@ internal static class ActionTestData
     /// updateLiveChatPollAction with 0% votes (poll just opened, first update).
     /// Data from real live capture (dump_updatepoll_new.json, first entry).
     /// </summary>
-    public static string UpdatePollActionZeroVotes() => """
+    public static string UpdatePollActionZeroVotes() =>
+        """
             {
               "updateLiveChatPollAction": {
                 "pollToUpdate": {
@@ -1348,7 +1374,8 @@ internal static class ActionTestData
     /// Real data from watch_20260422_203201.jsonl — @franciscosaranteheredia1890 sent Sparkles.
     /// Verifies that multi-source ToImage uses the last (highest-resolution) source.
     /// </summary>
-    public static string GiftMessageViewModelWithAvatarAndGiftImage() => """
+    public static string GiftMessageViewModelWithAvatarAndGiftImage() =>
+        """
             {
               "clickTrackingParams": "CAEQl98BIhMI--y79qaClAMVqot8Bh3mCRhiygEEw1TgWw==",
               "addChatItemAction": {
@@ -1429,7 +1456,8 @@ internal static class ActionTestData
             }
             """;
 
-    public static string GiftMessageViewModelAction() => """
+    public static string GiftMessageViewModelAction() =>
+        """
             {
               "addChatItemAction": {
                 "item": {
@@ -1474,7 +1502,8 @@ internal static class ActionTestData
     /// Id: "ChwKGkNMYkttOWF4a3BRREZaMjRyZ1VkeXc4a2V3"
     /// EntityKey: "EgtPQXFoN0tWLXIzSSD6AygB"
     /// </summary>
-    public static string CreatorGoalTickerChip() => """
+    public static string CreatorGoalTickerChip() =>
+        """
             {
               "showCreatorGoalTickerChipCommand": {
                 "creatorGoalTickerChip": {
@@ -1600,7 +1629,8 @@ internal static class ActionTestData
     /// Id: "ChwKGkNLZTRpdXJVazVRREZSNjRyZ1VkXzVrM0Rn"
     /// EntityKey: "EgtPQXFoN0tWLXIzSSD6AygB"
     /// </summary>
-    public static string CreatorGoalTickerChipWithTrackingParams() => """
+    public static string CreatorGoalTickerChipWithTrackingParams() =>
+        """
             {
               "clickTrackingParams": "CAIQl98BIhMIoKmQ0NiTlAMVfcNJBx0XCjywygEEqLJbrg==",
               "showCreatorGoalTickerChipCommand": {
