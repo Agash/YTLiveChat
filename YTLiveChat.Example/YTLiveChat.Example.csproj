@@ -14,6 +14,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PublishAot>true</PublishAot>
+    <!-- A native executable ships no XML docs. The Compile-only AOT publish (dotnet/sdk#54515) also
+         never copies them into OutDir, where publish looks (MSB3030). -->
+    <PublishDocumentationFiles>false</PublishDocumentationFiles>
     <!-- PublishAot puts the runtime pack in the dependency graph, where the SDK baseline resolves to
          an unpatched 10.0.x. Pin the patched one so security scanning sees what actually ships. -->
     <RuntimeFrameworkVersion Condition="'$(TargetFramework)' == 'net10.0'"
