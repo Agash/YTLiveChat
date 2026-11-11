@@ -1,3 +1,7 @@
+### Changed
+- `Superchat.Currency` is nullable and always an ISO 4217 code: a bare "$" is USD and "¥" is JPY, and an
+  amount whose currency the parser does not recognize reports null. There is no USD fallback.
+
 ### Added (response model — internal)
 - `liveChatPaidStickerRenderer` now models `headerOverlayImage`, `lowerBumper`, and
   `pdgPurchasedNoveltyLoggingDirectives` — decorative fields for YouTube's "1st purchase novelty"

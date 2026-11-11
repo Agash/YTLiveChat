@@ -741,7 +741,7 @@ internal static partial class Parser
     /// <summary>
     /// Parses the primary amount/currency string into numeric value and symbol/code.
     /// </summary>
-    private static (decimal AmountValue, string Currency) ParseAmount(string? amountString) =>
+    private static (decimal AmountValue, string? Currency) ParseAmount(string? amountString) =>
         CurrencyParser.Parse(amountString);
 
     private static string? TryExtractTierNameFromHeaderSubtextRuns(
@@ -965,7 +965,7 @@ internal static partial class Parser
         if (item.LiveChatPaidMessageRenderer != null)
         {
             LiveChatPaidMessageRenderer paidRenderer = item.LiveChatPaidMessageRenderer;
-            (decimal amountValue, string currency) = ParseAmount(
+            (decimal amountValue, string? currency) = ParseAmount(
                 paidRenderer.PurchaseAmountText?.Text
             );
             superchatDetails = new Contracts.Models.Superchat // Use contract type
@@ -984,7 +984,7 @@ internal static partial class Parser
         else if (item.LiveChatPaidStickerRenderer != null)
         {
             LiveChatPaidStickerRenderer stickerRenderer = item.LiveChatPaidStickerRenderer;
-            (decimal amountValue, string currency) = ParseAmount(
+            (decimal amountValue, string? currency) = ParseAmount(
                 stickerRenderer.PurchaseAmountText?.Text
             );
             superchatDetails = new Contracts.Models.Superchat // Use contract type

@@ -8,8 +8,6 @@ namespace YTLiveChat.Helpers;
 
 internal static partial class CurrencyParser
 {
-    private const string DefaultCurrency = "USD";
-
     private static readonly Dictionary<string, string> s_xmlMap = new(
         StringComparer.OrdinalIgnoreCase
     )
@@ -153,11 +151,11 @@ internal static partial class CurrencyParser
     private static readonly Dictionary<string, string> s_symbolToCode = BuildMap();
 #endif
 
-    public static (decimal AmountValue, string Currency) Parse(string? rawInput)
+    public static (decimal AmountValue, string? Currency) Parse(string? rawInput)
     {
         if (string.IsNullOrWhiteSpace(rawInput))
         {
-            return (0m, DefaultCurrency);
+            return (0m, null);
         }
 
         string normalizedInput = NormalizeSpaces(rawInput!);
@@ -171,7 +169,7 @@ internal static partial class CurrencyParser
         string before = normalizedInput.Substring(0, numberMatch.Index);
         string after = normalizedInput.Substring(numberMatch.Index + numberMatch.Length);
         string symbolPart = string.Concat(before, after).Trim();
-        string currencyCode = ResolveCurrencyCode(symbolPart, normalizedInput);
+        string? currencyCode = ResolveCurrencyCode(symbolPart, normalizedInput);
         return (amountValue, currencyCode);
     }
 
@@ -213,7 +211,7 @@ internal static partial class CurrencyParser
             : 0m;
     }
 
-    private static string ResolveCurrencyCode(string symbolPart, string rawInput)
+    private static string? ResolveCurrencyCode(string symbolPart, string rawInput)
     {
         string normalizedSymbol = NormalizeSpaces(symbolPart).Replace(" ", string.Empty);
         if (s_symbolToCode.TryGetValue(normalizedSymbol, out string? directCode))
@@ -233,10 +231,12 @@ internal static partial class CurrencyParser
         }
 
         Match embeddedRawCode = IsoCodeRegex().Match(rawInput.ToUpperInvariant());
+        // YouTube writes US dollars as a bare "$" (other dollars carry a prefix such as "CA$") and yen as "¥".
+        // Anything else unrecognized has no known currency: guessing one would mislabel the amount.
         return embeddedRawCode.Success ? embeddedRawCode.Value
-            : normalizedSymbol.Contains('$') ? DefaultCurrency
+            : normalizedSymbol == "$" ? "USD"
             : normalizedSymbol == "¥" ? "JPY"
-            : DefaultCurrency;
+            : null;
     }
 
     private static string NormalizeSpaces(string value) =>

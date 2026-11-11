@@ -17,10 +17,10 @@ public class Superchat
     public decimal AmountValue { get; set; }
 
     /// <summary>
-    /// The currency code (e.g., "USD", "JPY") or symbol, parsed from AmountString.
-    /// Defaults to "USD" if parsing fails.
+    /// The ISO 4217 currency code (e.g., "USD", "JPY") parsed from AmountString. A bare "$" is USD and "¥" is JPY,
+    /// as YouTube renders them; null when AmountString names no currency this parser recognizes.
     /// </summary>
-    public required string Currency { get; set; }
+    public string? Currency { get; set; }
 
     /// <summary>
     /// The primary background color hex code (e.g., "1565C0" for blue) for the Super Chat body or sticker background.
