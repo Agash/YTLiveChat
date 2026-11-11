@@ -14,8 +14,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PublishAot>true</PublishAot>
-    <!-- A native executable ships no XML docs. The Compile-only AOT publish (dotnet/sdk#54515) also
-         never copies them into OutDir, where publish looks (MSB3030). -->
+    <!-- A native executable ships no XML docs. -->
     <PublishDocumentationFiles>false</PublishDocumentationFiles>
     <OptimizationPreference>speed</OptimizationPreference>
   </PropertyGroup>
