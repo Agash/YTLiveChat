@@ -27,6 +27,10 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
         TypeInfoResolver = YTLiveChatJsonSerializerContext.Default,
     };
 
+    // YouTube's own texts (membership notices, gift labels, poll metadata, counts) are requested in English: the
+    // parser reads values out of them, and their wording differs per language.
+    private const string InterfaceLanguage = "en";
+
 #if DEBUG
     private const string PrettyPrintQueryValue = "true";
 #else
@@ -63,6 +67,7 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
                     {
                         ClientVersion = options.ClientVersion,
                         ClientName = "WEB",
+                        Hl = InterfaceLanguage,
                     },
                 },
                 Continuation = options.Continuation,
