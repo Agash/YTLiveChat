@@ -2044,6 +2044,22 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     }
 
     /// <inheritdoc />
+    public async Task<Contracts.Models.ChannelInfo?> GetChannelInfoAsync(
+        string? handle = null,
+        string? channelId = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (string.IsNullOrWhiteSpace(handle) && string.IsNullOrWhiteSpace(channelId))
+            throw new ArgumentException("Either handle or channelId must be provided.");
+
+        string html = await _ytHttpClient
+            .GetChannelPageAsync(handle, channelId, cancellationToken)
+            .ConfigureAwait(false);
+        return Parser.ParseChannelPage(html);
+    }
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<Contracts.Models.StreamInfo>> GetStreamsAsync(
         string? handle = null,
         string? channelId = null,

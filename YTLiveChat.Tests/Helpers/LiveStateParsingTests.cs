@@ -152,4 +152,35 @@ public class LiveStateParsingTests
         Assert.AreEqual(6235L, metadata.LikeCount);
         Assert.AreEqual(30000, timeoutMs);
     }
+
+    [TestMethod]
+    public void ParseChannelPage_EnglishPage_ReadsTheProfileAndCounts()
+    {
+        ChannelInfo? channel = Parser.ParseChannelPage(
+            WebSnapshotTestData.LoadWebSnapshot("_HakosBaelz.channel-en.2026-11-17.html")
+        );
+
+        Assert.IsNotNull(channel);
+        Assert.AreEqual("UCgmPnx-EEeOrZSg5Tiw7ZRQ", channel.ChannelId);
+        Assert.AreEqual("@HakosBaelz", channel.Handle);
+        Assert.AreEqual("1.24M subscribers", channel.SubscriberCountText);
+        Assert.AreEqual(1_240_000L, channel.SubscriberCount);
+        Assert.AreEqual(1_300L, channel.VideoCount);
+        Assert.IsFalse(string.IsNullOrEmpty(channel.Title));
+        Assert.IsNotNull(channel.AvatarUrl);
+        Assert.IsNotNull(channel.BannerUrl);
+    }
+
+    [TestMethod]
+    public void ParseChannelPage_OtherLanguage_KeepsTheProfileWithoutParsingCounts()
+    {
+        ChannelInfo? channel = Parser.ParseChannelPage(
+            WebSnapshotTestData.LoadWebSnapshot("_HakosBaelz.home.2026-04-23.html")
+        );
+
+        Assert.IsNotNull(channel);
+        Assert.AreEqual("UCgmPnx-EEeOrZSg5Tiw7ZRQ", channel.ChannelId);
+        Assert.IsNull(channel.SubscriberCount);
+        Assert.IsTrue(channel.IsOfficialArtist);
+    }
 }

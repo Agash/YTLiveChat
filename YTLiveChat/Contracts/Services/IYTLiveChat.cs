@@ -189,6 +189,20 @@ public interface IYTLiveChat : IDisposable
     event EventHandler<ErrorOccurredEventArgs>? ErrorOccurred;
 
     /// <summary>
+    /// Fetches a channel's profile from its page: id, handle, name, description, avatar, banner, subscriber and
+    /// video counts, badges and link. Needs no sign-in; the page is read in English so the counts can be parsed.
+    /// </summary>
+    /// <param name="handle">Channel @handle.</param>
+    /// <param name="channelId">Channel ID.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The profile, or null when the page has none (for example a removed channel).</returns>
+    Task<ChannelInfo?> GetChannelInfoAsync(
+        string? handle = null,
+        string? channelId = null,
+        CancellationToken cancellationToken = default
+    );
+
+    /// <summary>
     /// Fetches the list of streams (live, upcoming, and recent past) from a channel's streams page.
     /// Returns title, thumbnail, live status, viewer/view count, scheduled time, published time, and duration for each entry.
     /// </summary>

@@ -2160,6 +2160,9 @@ internal static partial class Parser
     [GeneratedRegex(@"^(\d{1,3}(?:[.,'\u00a0\u202f ]\d{3})+|\d+)(?=$|\s)")]
     private static partial Regex LeadingWholeNumberRegex();
 
+    [GeneratedRegex(@"^([\d.,]+)\s*([KMB])?\s+(?:subscribers?|videos?)$")]
+    private static partial Regex EnglishCountRegex();
+
     [GeneratedRegex("\"isUpcoming\":\\s*(true|false)", RegexOptions.Compiled)]
     private static partial Regex IsUpcomingRegex();
 
@@ -2308,6 +2311,13 @@ internal static partial class Parser
     );
 
     private static Regex LeadingWholeNumberRegex() => _leadingWholeNumberRegex;
+
+    private static readonly Regex _englishCountRegex = new(
+        @"^([\d.,]+)\s*([KMB])?\s+(?:subscribers?|videos?)$",
+        RegexOptions.Compiled
+    );
+
+    private static Regex EnglishCountRegex() => _englishCountRegex;
 
     private static readonly Regex _isLiveRegex = new(
         "\"isLive\":\\s*(true|false)",
@@ -2705,6 +2715,174 @@ internal static partial class Parser
         }
 
         return (metadata, continuation, timeoutMs);
+    }
+
+    /// <summary>
+    /// Reads a channel page fetched in English. Observed 2026-11-17: metadata.channelMetadataRenderer (externalId,
+    /// title, description, keywords, vanityChannelUrl) and header.pageHeaderRenderer.content.pageHeaderViewModel
+    /// (metadata rows: the handle, then "1.16M subscribers" and "1,259 videos"; avatar and banner sources; the
+    /// title's attachment badge; the attribution link).
+    /// </summary>
+    public static Contracts.Models.ChannelInfo? ParseChannelPage(string html)
+    {
+        string? json = ExtractJsonObjectAfterMarker(html, "ytInitialData");
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        using JsonDocument document = JsonDocument.Parse(json!);
+        JsonElement root = document.RootElement;
+        if (
+            !root.TryGetProperty("metadata", out JsonElement metadata)
+            || !metadata.TryGetProperty("channelMetadataRenderer", out JsonElement channel)
+            || ReadString(channel, "externalId") is not { } channelId
+        )
+        {
+            return null;
+        }
+
+        Contracts.Models.ChannelInfo info = new()
+        {
+            ChannelId = channelId,
+            Title = ReadString(channel, "title") ?? string.Empty,
+            Description = ReadString(channel, "description"),
+            Keywords = ReadString(channel, "keywords"),
+            Handle = ReadString(channel, "vanityChannelUrl") is { } vanity && vanity.LastIndexOf('/') is int slash and >= 0
+                ? vanity.Substring(slash + 1)
+                : null,
+        };
+
+        if (
+            root.TryGetProperty("header", out JsonElement header)
+            && header.TryGetProperty("pageHeaderRenderer", out JsonElement pageHeader)
+            && pageHeader.TryGetProperty("content", out JsonElement content)
+            && content.TryGetProperty("pageHeaderViewModel", out JsonElement view)
+        )
+        {
+            foreach (string part in MetadataParts(view))
+            {
+                if (part.StartsWith("@", StringComparison.Ordinal))
+                {
+                    info.Handle ??= part;
+                }
+                else if (part.EndsWith("subscribers", StringComparison.Ordinal) || part.EndsWith("subscriber", StringComparison.Ordinal))
+                {
+                    info.SubscriberCountText = part;
+                    info.SubscriberCount = AbbreviatedCount(part);
+                }
+                else if (part.EndsWith("videos", StringComparison.Ordinal) || part.EndsWith("video", StringComparison.Ordinal))
+                {
+                    info.VideoCount = AbbreviatedCount(part);
+                }
+            }
+
+            info.AvatarUrl = LargestSource(view, "image", "decoratedAvatarViewModel", "avatar", "avatarViewModel", "image");
+            info.BannerUrl = LargestSource(view, "banner", "imageBannerViewModel", "image");
+            string badges = view.TryGetProperty("title", out JsonElement title) ? title.GetRawText() : string.Empty;
+            info.IsVerified = badges.Contains("CHECK_CIRCLE_FILLED", StringComparison.Ordinal);
+            info.IsOfficialArtist = badges.Contains("AUDIO_BADGE", StringComparison.Ordinal);
+            if (
+                view.TryGetProperty("attribution", out JsonElement attribution)
+                && attribution.TryGetProperty("attributionViewModel", out JsonElement attributionView)
+                && attributionView.TryGetProperty("text", out JsonElement attributionText)
+            )
+            {
+                info.Link = ReadString(attributionText, "content");
+            }
+        }
+
+        return info;
+    }
+
+    private static IEnumerable<string> MetadataParts(JsonElement view)
+    {
+        if (
+            !view.TryGetProperty("metadata", out JsonElement metadata)
+            || !metadata.TryGetProperty("contentMetadataViewModel", out JsonElement content)
+            || !content.TryGetProperty("metadataRows", out JsonElement rows)
+            || rows.ValueKind != JsonValueKind.Array
+        )
+        {
+            yield break;
+        }
+
+        foreach (JsonElement row in rows.EnumerateArray())
+        {
+            if (!row.TryGetProperty("metadataParts", out JsonElement parts) || parts.ValueKind != JsonValueKind.Array)
+            {
+                continue;
+            }
+
+            foreach (JsonElement part in parts.EnumerateArray())
+            {
+                if (
+                    part.TryGetProperty("text", out JsonElement text)
+                    && ReadString(text, "content") is { Length: > 0 } value
+                )
+                {
+                    yield return value;
+                }
+            }
+        }
+    }
+
+    // English counts as YouTube abbreviates them: "1.16M subscribers", "523K subscribers", "1,259 videos", "1 video".
+    private static long? AbbreviatedCount(string text)
+    {
+        Match match = EnglishCountRegex().Match(text);
+        if (
+            !match.Success
+            || !decimal.TryParse(
+                match.Groups[1].Value.Replace(",", string.Empty),
+                System.Globalization.NumberStyles.AllowDecimalPoint,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out decimal number
+            )
+        )
+        {
+            return null;
+        }
+
+        decimal factor = match.Groups[2].Value switch
+        {
+            "K" => 1_000m,
+            "M" => 1_000_000m,
+            "B" => 1_000_000_000m,
+            _ => 1m,
+        };
+        return (long)Math.Round(number * factor);
+    }
+
+    private static string? LargestSource(JsonElement element, params string[] path)
+    {
+        JsonElement current = element;
+        foreach (string step in path)
+        {
+            if (!current.TryGetProperty(step, out current))
+            {
+                return null;
+            }
+        }
+
+        if (!current.TryGetProperty("sources", out JsonElement sources) || sources.ValueKind != JsonValueKind.Array)
+        {
+            return null;
+        }
+
+        string? best = null;
+        long bestWidth = -1;
+        foreach (JsonElement source in sources.EnumerateArray())
+        {
+            long width = ReadInt64(source, "width") ?? 0;
+            if (ReadString(source, "url") is { } url && width >= bestWidth)
+            {
+                best = url;
+                bestWidth = width;
+            }
+        }
+
+        return best;
     }
 
     // A text node as plain text: simpleText, or the runs joined.

@@ -264,8 +264,8 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
     }
 
     /// <summary>
-    /// Fetches the channel home page HTML for a given handle or channel ID.
-    /// Used to extract membership offer tokens from <c>ytInitialData</c>.
+    /// Fetches the channel home page HTML for a given handle or channel ID, in English (<c>hl=en</c>) so its counts
+    /// can be read.
     /// </summary>
     public virtual async Task<string> GetChannelPageAsync(
         string? handle,
@@ -273,7 +273,7 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
         CancellationToken cancellationToken = default
     )
     {
-        string urlPath = BuildChannelHomePath(handle, channelId);
+        string urlPath = BuildChannelHomePath(handle, channelId) + "?hl=en";
         return await GetPageHtmlWithConsentFallbackAsync(urlPath, cancellationToken)
             .ConfigureAwait(false);
     }
