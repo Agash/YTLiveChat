@@ -13,6 +13,8 @@
   must add them.
 
 ### Added
+- `GiftItem.GiftKey`: the Jewels gift's key from its image file (`gold_coin`, `heart`, `sparkles`), the same in
+  every interface language; and `GiftItem.ComboCount` for a gift sent several times in a row.
 - `StreamChatReplayAsync` (`ReplayChatItem`): a past stream's chat replay, from the start or from a point in the
   video, without sign-in: messages, Super Chats, stickers, memberships, gift memberships and Jewels gifts, each with
   its place in the video and the time it was sent. Reads the "Live chat replay" view (every message) unless
@@ -32,6 +34,10 @@
 - `ReactionsReceived`: the reactions viewers send, per stretch of time (`ReactionsItem`, `ReactionBucket`).
 
 ### Changed
+- Jewels gifts are read in YouTube's current shape. A single gift reads "sent Heart" and names no price, so
+  `GiftItemName` comes from the gift image's description and `JewelAmount` is set only for a combo, which states the
+  total ("comboed x2 Gold coin for 20 Jewels"). Earlier versions expected "sent Gold coin for 10 Jewels" and left both
+  empty for every gift.
 - YouTube's own texts are requested in English (`hl=en`). Without it YouTube answered in the language of the
   request's location, and membership types, tiers, milestone months, gift counts and gifters are read out of those
   texts. The numbers and handles are also read from the runs YouTube keeps them in, which hold in every language;

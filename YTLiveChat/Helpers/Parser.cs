@@ -2578,12 +2578,29 @@ internal static partial class Parser
 
         string? giftItemName = null;
         int? jewelAmount = null;
+        int? comboCount = null;
         Match giftMatch = JewelsGiftTextRegex().Match(text);
         if (giftMatch.Success)
         {
             giftItemName = giftMatch.Groups[1].Value;
             if (int.TryParse(giftMatch.Groups[2].Value, out int parsed))
                 jewelAmount = parsed;
+        }
+        else if (ReadJewelsCombo(text) is { } combo)
+        {
+            (comboCount, giftItemName, jewelAmount) = combo;
+        }
+        else if (text.StartsWith(SentPrefix, StringComparison.Ordinal))
+        {
+            giftItemName = text.Substring(SentPrefix.Length).Trim();
+        }
+
+        // The image description names the gift the same way for every gift: "@handle sent a gift, Heart".
+        string? labelled = vm.GiftImageA11yLabel;
+        int labelAt = labelled?.LastIndexOf(SentAGiftMarker, StringComparison.Ordinal) ?? -1;
+        if (labelAt >= 0)
+        {
+            giftItemName = labelled!.Substring(labelAt + SentAGiftMarker.Length).Trim();
         }
 
         Models.Response.ViewModelClientResource? resource = vm
@@ -2601,8 +2618,82 @@ internal static partial class Parser
             GiftImageName = resource?.ImageName,
             GiftImageColor = resource?.ImageColor?.ToHex6Color(),
             GiftImage = vm.GiftImage?.Sources?.ToImage(),
+            GiftKey = GiftKeyFromImage(vm.GiftImage?.Sources?.FirstOrDefault()?.Url),
+            ComboCount = comboCount,
         };
     }
+
+    private const string SentPrefix = "sent ";
+    private const string SentAGiftMarker = " sent a gift, ";
+
+    // "comboed x3 Yes for 6 Jewels": the same gift sent several times in a row, for the Jewels of all of them.
+    private static (int Count, string Name, int Jewels)? ReadJewelsCombo(string text)
+    {
+        const string prefix = "comboed x";
+        const string jewelsMarker = " for ";
+        if (!text.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        int countEnd = text.IndexOf(' ', prefix.Length);
+        int jewelsAt = text.LastIndexOf(jewelsMarker, StringComparison.Ordinal);
+        if (countEnd < 0 || jewelsAt <= countEnd)
+        {
+            return null;
+        }
+
+        string jewelsText = text.Substring(jewelsAt + jewelsMarker.Length);
+        int jewelsEnd = jewelsText.IndexOf(' ');
+        return
+            int.TryParse(
+                text.Substring(prefix.Length, countEnd - prefix.Length),
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out int count
+            )
+            && jewelsEnd > 0
+            && int.TryParse(
+                jewelsText.Substring(0, jewelsEnd),
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out int jewels
+            )
+            ? (count, text.Substring(countEnd + 1, jewelsAt - countEnd - 1).Trim(), jewels)
+            : null;
+    }
+
+    // ".../pdg/gift/assets/sparkles_v2_320x320.png=w480-h480" -> "sparkles"; "gold_coin.png" -> "gold_coin".
+    // The file names the gift in every interface language; its displayed name is translated.
+    private static string? GiftKeyFromImage(string? url)
+    {
+        const string marker = "/gift/assets/";
+        int at = url?.IndexOf(marker, StringComparison.Ordinal) ?? -1;
+        if (at < 0)
+        {
+            return null;
+        }
+
+        string file = url!.Substring(at + marker.Length);
+        int end = file.IndexOfAny(['.', '=', '?']);
+        string name = end < 0 ? file : file.Substring(0, end);
+        string[] parts = name.Split('_');
+        int keep = parts.Length;
+        while (keep > 1 && IsVariantSuffix(parts[keep - 1]))
+        {
+            keep--;
+        }
+
+        return string.Join("_", parts, 0, keep);
+    }
+
+    // "v2" (asset revision) or "320x320" (size) at the end of an asset file name.
+    private static bool IsVariantSuffix(string part) =>
+        (part.Length > 1 && part[0] == 'v' && part.Skip(1).All(char.IsDigit))
+        || (
+            part.Contains('x')
+            && part.Split('x').All(static p => p.Length > 0 && p.All(char.IsDigit))
+        );
 
     /// <summary>
     /// The entity updates of a chat response, from <c>frameworkUpdates</c> at the top and inside the continuation.

@@ -2203,9 +2203,11 @@ public class ParserTests
         Assert.AreEqual("ChwKGkNLSEt5ZldtZ3BRREZVc0kxZ0FkTmRVNTBn", gift.Id);
         Assert.AreEqual("@franciscosaranteheredia1890", gift.AuthorHandle);
         Assert.AreEqual("sent Sparkles", gift.Text);
-        // "sent Sparkles" has no "for N Jewels" pattern — regex won't match
-        Assert.IsNull(gift.GiftItemName);
+        // A single gift's text names the gift but not its price.
+        Assert.AreEqual("Sparkles", gift.GiftItemName);
         Assert.IsNull(gift.JewelAmount);
+        Assert.IsNull(gift.ComboCount);
+        Assert.AreEqual("sparkles", gift.GiftKey);
         // No clientResource image in this payload
         Assert.IsNull(gift.GiftImageName);
         Assert.IsNull(gift.GiftImageColor);
