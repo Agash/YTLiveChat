@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using YTLiveChat.Contracts.Models;
 using YTLiveChat.Helpers;
 using YTLiveChat.Models.Response;
@@ -2350,61 +2350,81 @@ public class ParserTests
 
     // ── Creator Goal ─────────────────────────────────────────────────────────────
 
+    // Captured 2026-11-17 (a Super Chat goal at 2 of 15 and a reactions update), tracking data removed.
+    private static LiveChatResponse GoalAndReactionsResponse() =>
+        JsonSerializer.Deserialize<LiveChatResponse>(
+            File.ReadAllText(
+                Path.Combine(AppContext.BaseDirectory, "Entities", "goal-and-reactions.2026-11-17.json")
+            )
+        )!;
+
     [TestMethod]
-    public void ToCreatorGoalItem_ValidAction_ParsesAllFields()
+    public void ExtractEntityMutations_CapturedResponse_ListsEveryUpdateWithItsType()
     {
-        Models.Response.Action? action = JsonSerializer.Deserialize<Models.Response.Action>(
-            ActionTestData.CreatorGoalTickerChip(),
-            s_jsonOptions
+        List<Contracts.Models.EntityMutation> mutations = Parser.ExtractEntityMutations(
+            GoalAndReactionsResponse()
         );
-        Assert.IsNotNull(action);
 
-        Contracts.Models.CreatorGoalItem? goal = Parser.ToCreatorGoalItem(action);
-        Assert.IsNotNull(goal, "ToCreatorGoalItem should return a CreatorGoalItem.");
-
-        Assert.AreEqual("ChwKGkNMYkttOWF4a3BRREZaMjRyZ1VkeXc4a2V3", goal.Id);
-        Assert.AreEqual("EgtPQXFoN0tWLXIzSSD6AygB", goal.EntityKey);
-        Assert.AreEqual("See Super Chat goal", goal.AccessibilityLabel);
-        Assert.AreEqual("Super Chat Goal", goal.GoalType);
-        Assert.AreEqual(
-            "Super Chat goal progress: $0 out of $1",
-            goal.ProgressLabel,
-            "progressCountA11yLabel should be extracted from the deep onClickCommand blob."
+        CollectionAssert.AreEqual(
+            new[] { "creatorGoalEntity", "emojiFountainDataEntity" },
+            mutations.Select(static m => m.PayloadType).ToArray()
         );
+        Assert.IsFalse(mutations[0].IsDelete);
     }
 
     [TestMethod]
-    public void ToCreatorGoalItem_WithTrackingParams_ParsesAllFields()
+    public void ToCreatorGoal_CapturedGoal_ReadsStateCountsAndEnd()
     {
-        Models.Response.Action? action = JsonSerializer.Deserialize<Models.Response.Action>(
-            ActionTestData.CreatorGoalTickerChipWithTrackingParams(),
-            s_jsonOptions
+        Contracts.Models.CreatorGoalItem? goal = Parser.ToCreatorGoal(
+            Parser.ExtractEntityMutations(GoalAndReactionsResponse())[0]
         );
-        Assert.IsNotNull(action);
 
-        Contracts.Models.CreatorGoalItem? goal = Parser.ToCreatorGoalItem(action);
-        Assert.IsNotNull(goal, "ToCreatorGoalItem should return a CreatorGoalItem.");
-
-        Assert.AreEqual("ChwKGkNLZTRpdXJVazVRREZSNjRyZ1VkXzVrM0Rn", goal.Id);
-        Assert.AreEqual("EgtPQXFoN0tWLXIzSSD6AygB", goal.EntityKey);
-        Assert.AreEqual("See Super Chat goal", goal.AccessibilityLabel);
-        Assert.AreEqual("Super Chat Goal", goal.GoalType);
-        Assert.AreEqual(
-            "Super Chat goal progress: $0 out of $1",
-            goal.ProgressLabel,
-            "progressCountA11yLabel should be extracted even when clickTrackingParams are present at every level."
-        );
+        Assert.IsNotNull(goal);
+        Assert.AreEqual("UgkxMD-1Os2kvddjxPUdiIFd8ngVfDoVbScr", goal.GoalId);
+        Assert.AreEqual(Contracts.Models.CreatorGoalState.Active, goal.State);
+        Assert.AreEqual(2L, goal.CurrentCount);
+        Assert.AreEqual(15L, goal.TargetCount);
+        Assert.AreEqual(DateTimeOffset.FromUnixTimeMilliseconds(1794928167288), goal.EndsAt);
+        Assert.AreEqual("SEND 250M ROBUX", goal.Description);
+        Assert.AreEqual("15 Super Chats", goal.TargetText);
+        Assert.IsFalse(goal.IsXpGoal);
     }
 
     [TestMethod]
-    public void ToCreatorGoalItem_UnrelatedAction_ReturnsNull()
+    public void ToReactions_CapturedFountain_ReadsBuckets()
     {
-        Models.Response.Action? action = JsonSerializer.Deserialize<Models.Response.Action>(
-            ActionTestData.RemoveChatItem(),
-            s_jsonOptions
+        Contracts.Models.ReactionsItem? reactions = Parser.ToReactions(
+            Parser.ExtractEntityMutations(GoalAndReactionsResponse())[1]
         );
-        Assert.IsNotNull(action);
 
-        Assert.IsNull(Parser.ToCreatorGoalItem(action));
+        Assert.IsNotNull(reactions);
+        Assert.HasCount(5, reactions.Buckets);
+        Assert.AreEqual(7L, reactions.Buckets[1].TotalReactions);
+        Assert.AreEqual(TimeSpan.FromSeconds(1), reactions.Buckets[1].Duration);
+        Assert.IsNotNull(reactions.UpdatedAt);
     }
+
+    [TestMethod]
+    [DataRow("CREATOR_GOAL_STATE_ACTIVE", CreatorGoalState.Active)]
+    [DataRow("CREATOR_GOAL_STATE_COMPLETE", CreatorGoalState.Achieved)]
+    [DataRow("CREATOR_GOAL_STATE_NOT_ACHIEVED", CreatorGoalState.NotAchieved)]
+    [DataRow("CREATOR_GOAL_STATE_SOMETHING_NEW", CreatorGoalState.Unknown)]
+    public void ToCreatorGoal_ObservedStates_MapToTheEnum(string rawState, CreatorGoalState state)
+    {
+        using JsonDocument payload = JsonDocument.Parse(
+            $$"""{"creatorGoalState":"{{rawState}}","currentGoalCount":"10","totalGoalCount":"10","goalId":"g"}"""
+        );
+        EntityMutation mutation = new()
+        {
+            EntityKey = "k",
+            PayloadType = "creatorGoalEntity",
+            Payload = payload.RootElement.Clone(),
+        };
+
+        Assert.AreEqual(state, Parser.ToCreatorGoal(mutation)!.State);
+    }
+
+    [TestMethod]
+    public void ToCreatorGoal_OtherEntity_ReturnsNull() =>
+        Assert.IsNull(Parser.ToCreatorGoal(Parser.ExtractEntityMutations(GoalAndReactionsResponse())[1]));
 }

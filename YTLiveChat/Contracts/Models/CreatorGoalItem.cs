@@ -1,45 +1,55 @@
 namespace YTLiveChat.Contracts.Models;
 
+/// <summary>Where a creator goal stands.</summary>
+public enum CreatorGoalState
+{
+    /// <summary>A state this version does not know; see <see cref="CreatorGoalItem.RawState"/>.</summary>
+    Unknown,
+
+    /// <summary>The goal is running.</summary>
+    Active,
+
+    /// <summary>The goal was reached (YouTube: <c>CREATOR_GOAL_STATE_COMPLETE</c>).</summary>
+    Achieved,
+
+    /// <summary>The goal ended (its timer ran out) before it was reached.</summary>
+    NotAchieved,
+}
+
 /// <summary>
-/// Represents a Super Chat creator goal ticker chip
-/// (<c>showCreatorGoalTickerChipCommand</c>).
-/// Emitted whenever the live-chat ticker bar shows or refreshes the creator's goal progress chip.
-/// Multiple events for the same goal share the same <see cref="EntityKey"/>.
+/// A creator goal, such as "10 Super Chats", as YouTube sends it in the chat's entity updates
+/// (<c>frameworkUpdates</c> → <c>creatorGoalEntity</c>). Raised whenever the goal changes: when it starts, on each
+/// contribution, and when it is reached or ends.
 /// </summary>
-/// <remarks>
-/// Creator goals are a YouTube feature that lets streamers set a Super Chat donation target
-/// visible to viewers in the ticker. The <c>showCreatorGoalTickerChipCommand</c> action type
-/// fires once per Super Chat received while a goal is active (and occasionally on its own).
-/// </remarks>
 public class CreatorGoalItem
 {
-    /// <summary>
-    /// Unique identifier for this ticker chip action instance.
-    /// Different chip instances for the same goal share <see cref="EntityKey"/> but have distinct <see cref="Id"/> values.
-    /// </summary>
-    public required string Id { get; set; }
+    /// <summary>The goal's id, the same for every update of one goal.</summary>
+    public required string GoalId { get; set; }
 
-    /// <summary>
-    /// Entity key that identifies the specific goal across all related actions.
-    /// Use this to correlate multiple <c>showCreatorGoalTickerChipCommand</c> events for the same goal.
-    /// </summary>
+    /// <summary>The entity key YouTube updates the goal under; the ticker chip names the same key.</summary>
     public required string EntityKey { get; set; }
 
-    /// <summary>
-    /// Human-readable goal type, e.g. <c>"Super Chat Goal"</c>.
-    /// Derived from the accessibility label (<c>a11yLabel</c>: "See Super Chat goal").
-    /// </summary>
-    public string? GoalType { get; set; }
+    /// <summary>Where the goal stands.</summary>
+    public CreatorGoalState State { get; set; }
 
-    /// <summary>
-    /// Progress accessibility label from the engagement panel, e.g.
-    /// <c>"Super Chat goal progress: $0 out of $1"</c>.
-    /// The placeholder tokens (<c>$0</c>, <c>$1</c>) are filled by the YouTube client at display time.
-    /// </summary>
-    public string? ProgressLabel { get; set; }
+    /// <summary>YouTube's state name as sent (for example <c>CREATOR_GOAL_STATE_ACTIVE</c>).</summary>
+    public string? RawState { get; set; }
 
-    /// <summary>
-    /// Screen-reader label from the ticker chip, e.g. <c>"See Super Chat goal"</c>.
-    /// </summary>
-    public string? AccessibilityLabel { get; set; }
+    /// <summary>How many contributions count towards the goal so far (Super Chats for a Super Chat goal).</summary>
+    public long CurrentCount { get; set; }
+
+    /// <summary>How many contributions the goal needs.</summary>
+    public long TargetCount { get; set; }
+
+    /// <summary>When the goal's timer ends, if it has one.</summary>
+    public DateTimeOffset? EndsAt { get; set; }
+
+    /// <summary>The creator's description of the goal, as written.</summary>
+    public string? Description { get; set; }
+
+    /// <summary>YouTube's label for the target, in the requested language (for example "10 Super Chats").</summary>
+    public string? TargetText { get; set; }
+
+    /// <summary>Whether the goal counts XP rather than Super Chats.</summary>
+    public bool IsXpGoal { get; set; }
 }

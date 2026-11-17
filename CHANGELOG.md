@@ -1,3 +1,18 @@
+### Breaking
+- `CreatorGoalItem` is rebuilt on the goal entity YouTube sends in the chat's entity updates
+  (`frameworkUpdates` → `creatorGoalEntity`), which carries the real progress: `GoalId`, `State`
+  (`CreatorGoalState`), `CurrentCount`, `TargetCount`, `EndsAt`, `Description`, `TargetText`, `IsXpGoal`.
+  `Id`, `GoalType`, `ProgressLabel` and `AccessibilityLabel` (read from the ticker chip's localized labels) are
+  removed, and `Parser.ToCreatorGoalItem` with them. `CreatorGoalReceived` now fires on every goal update (start,
+  each contribution, end) rather than per ticker chip.
+- `IYTLiveChat` gains `ReactionsReceived` and `EntityMutationReceived`; custom implementations of the interface
+  must add them.
+
+### Added
+- `EntityMutationReceived`: every entity update of a chat response, raw (`EntityMutation`), so state the library
+  does not type yet (poll state, Super Chat reply counts, the viewer leaderboard) is available.
+- `ReactionsReceived`: the reactions viewers send, per stretch of time (`ReactionsItem`, `ReactionBucket`).
+
 ### Changed
 - `LivestreamStarted` fires when a stream is broadcasting, not when its chat page loads: a scheduled
   stream's waiting room is checked every `LiveCheckFrequency` until its watch page reports it live.

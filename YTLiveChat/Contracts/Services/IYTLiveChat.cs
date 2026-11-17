@@ -147,11 +147,22 @@ public interface IYTLiveChat : IDisposable
     event EventHandler<GiftReceivedEventArgs>? GiftReceived;
 
     /// <summary>
-    /// Fires when the live-chat ticker bar shows or refreshes a Super Chat creator goal chip
-    /// (<c>showCreatorGoalTickerChipCommand</c>).
-    /// Multiple events for the same goal share <see cref="CreatorGoalItem.EntityKey"/>.
+    /// Fires when a creator goal starts, changes or ends, from the chat's entity updates
+    /// (<c>creatorGoalEntity</c>). Every update of one goal carries the same <see cref="CreatorGoalItem.GoalId"/>.
     /// </summary>
     event EventHandler<CreatorGoalReceivedEventArgs>? CreatorGoalReceived;
+
+    /// <summary>
+    /// Fires with the reactions viewers sent (the hearts and emoji over the player), summed by YouTube per stretch of
+    /// time (<c>emojiFountainDataEntity</c>).
+    /// </summary>
+    event EventHandler<ReactionsReceivedEventArgs>? ReactionsReceived;
+
+    /// <summary>
+    /// Fires for every entity update in a chat response (<c>frameworkUpdates</c>), typed or not: creator goals,
+    /// reactions, poll state, Super Chat reply counts, the viewer leaderboard and whatever YouTube adds.
+    /// </summary>
+    event EventHandler<EntityMutationReceivedEventArgs>? EntityMutationReceived;
 
     /// <summary>
     /// Fires on any error from backend or within service
@@ -430,8 +441,20 @@ public class GiftReceivedEventArgs : EventArgs
 /// </summary>
 public class CreatorGoalReceivedEventArgs : EventArgs
 {
-    /// <summary>
-    /// The creator goal ticker chip that was received.
-    /// </summary>
+    /// <summary>The goal as it stands after this update.</summary>
     public required CreatorGoalItem CreatorGoal { get; set; }
+}
+
+/// <summary>EventArgs for the ReactionsReceived event.</summary>
+public class ReactionsReceivedEventArgs : EventArgs
+{
+    /// <summary>The reactions, per stretch of time.</summary>
+    public required ReactionsItem Reactions { get; set; }
+}
+
+/// <summary>EventArgs for the EntityMutationReceived event.</summary>
+public class EntityMutationReceivedEventArgs : EventArgs
+{
+    /// <summary>The entity update as sent.</summary>
+    public required EntityMutation Mutation { get; set; }
 }

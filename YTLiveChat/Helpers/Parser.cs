@@ -2445,55 +2445,168 @@ internal static partial class Parser
     }
 
     /// <summary>
-    /// Extracts a <see cref="Contracts.Models.CreatorGoalItem"/> from a
-    /// <c>showCreatorGoalTickerChipCommand</c> action.
-    /// Returns null for other action types or when required fields are absent.
+    /// The entity updates of a chat response, from <c>frameworkUpdates</c> at the top and inside the continuation.
     /// </summary>
-    public static Contracts.Models.CreatorGoalItem? ToCreatorGoalItem(this Action action)
+    public static List<Contracts.Models.EntityMutation> ExtractEntityMutations(LiveChatResponse? response)
     {
-        Models.Response.LiveChatTickerCreatorGoalViewModel? vm = action
-            .ShowCreatorGoalTickerChipCommand
-            ?.CreatorGoalTickerChip
-            ?.LiveChatTickerCreatorGoalViewModel;
-        if (vm is null)
-            return null;
-
-        string? id = vm.Id;
-        if (string.IsNullOrWhiteSpace(id))
-            return null;
-
-        string? entityKey = vm.CreatorGoalEntityKey;
-        if (string.IsNullOrWhiteSpace(entityKey))
-            return null;
-
-        string? a11yLabel = vm.A11yLabel;
-
-        // Derive GoalType from a11yLabel: "See Super Chat goal" → "Super Chat Goal"
-        string? goalType = null;
-        if (!string.IsNullOrWhiteSpace(a11yLabel))
+        List<Contracts.Models.EntityMutation> result = [];
+        foreach (
+            FrameworkUpdates? updates in new[]
+            {
+                response?.FrameworkUpdates,
+                response?.ContinuationContents?.FrameworkUpdates,
+            }
+        )
         {
-            ReadOnlySpan<char> raw = a11yLabel.AsSpan().Trim();
-            const string prefix = "See ";
-            if (raw.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                raw = raw.Slice(prefix.Length);
-            goalType = System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(
-                raw.ToString().ToLowerInvariant()
+            foreach (Mutation mutation in updates?.EntityBatchUpdate?.Mutations ?? [])
+            {
+                if (string.IsNullOrEmpty(mutation.EntityKey))
+                {
+                    continue;
+                }
+
+                bool isDelete = string.Equals(
+                    mutation.Type,
+                    "ENTITY_MUTATION_TYPE_DELETE",
+                    StringComparison.Ordinal
+                );
+                KeyValuePair<string, JsonElement> payload =
+                    mutation.Payload?.ExtensionData?.FirstOrDefault() ?? default;
+                if (payload.Key is null && !isDelete)
+                {
+                    continue;
+                }
+
+                result.Add(
+                    new Contracts.Models.EntityMutation
+                    {
+                        EntityKey = mutation.EntityKey!,
+                        PayloadType = payload.Key ?? string.Empty,
+                        IsDelete = isDelete,
+                        Payload = payload.Key is null ? default : payload.Value.Clone(),
+                    }
+                );
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// The creator goal in a <c>creatorGoalEntity</c> update. Observed 2026-11-17 over full goal lifetimes: goalId,
+    /// creatorGoalState (CREATOR_GOAL_STATE_ACTIVE, then CREATOR_GOAL_STATE_COMPLETE when reached or
+    /// CREATOR_GOAL_STATE_NOT_ACHIEVED when the timer ran out), currentGoalCount and totalGoalCount as
+    /// strings, endTimestampMs, goalDescription.content, goalTargetText.content and isXpGoal.
+    /// </summary>
+    public static Contracts.Models.CreatorGoalItem? ToCreatorGoal(Contracts.Models.EntityMutation mutation)
+    {
+        if (
+            mutation.IsDelete
+            || mutation.PayloadType != "creatorGoalEntity"
+            || mutation.Payload.ValueKind != JsonValueKind.Object
+        )
+        {
+            return null;
+        }
+
+        JsonElement goal = mutation.Payload;
+        string? rawState = ReadString(goal, "creatorGoalState");
+        return new Contracts.Models.CreatorGoalItem
+        {
+            GoalId = ReadString(goal, "goalId") ?? mutation.EntityKey,
+            EntityKey = mutation.EntityKey,
+            RawState = rawState,
+            State = rawState switch
+            {
+                "CREATOR_GOAL_STATE_ACTIVE" => Contracts.Models.CreatorGoalState.Active,
+                "CREATOR_GOAL_STATE_COMPLETE" or "CREATOR_GOAL_STATE_ACHIEVED" =>
+                    Contracts.Models.CreatorGoalState.Achieved,
+                "CREATOR_GOAL_STATE_NOT_ACHIEVED" => Contracts.Models.CreatorGoalState.NotAchieved,
+                _ => Contracts.Models.CreatorGoalState.Unknown,
+            },
+            CurrentCount = ReadInt64(goal, "currentGoalCount") ?? 0,
+            TargetCount = ReadInt64(goal, "totalGoalCount") ?? 0,
+            EndsAt = ReadInt64(goal, "endTimestampMs") is { } endMs
+                ? DateTimeOffset.FromUnixTimeMilliseconds(endMs)
+                : null,
+            Description = ReadContent(goal, "goalDescription"),
+            TargetText = ReadContent(goal, "goalTargetText"),
+            IsXpGoal = goal.TryGetProperty("isXpGoal", out JsonElement xp) && xp.ValueKind == JsonValueKind.True,
+        };
+    }
+
+    /// <summary>
+    /// The reactions in an <c>emojiFountainDataEntity</c> update: reactionBuckets of totalReactions,
+    /// duration.seconds and intensityScore, and updateTimeUsec.
+    /// </summary>
+    public static Contracts.Models.ReactionsItem? ToReactions(Contracts.Models.EntityMutation mutation)
+    {
+        if (
+            mutation.IsDelete
+            || mutation.PayloadType != "emojiFountainDataEntity"
+            || mutation.Payload.ValueKind != JsonValueKind.Object
+            || !mutation.Payload.TryGetProperty("reactionBuckets", out JsonElement buckets)
+            || buckets.ValueKind != JsonValueKind.Array
+        )
+        {
+            return null;
+        }
+
+        List<Contracts.Models.ReactionBucket> result = [];
+        foreach (JsonElement bucket in buckets.EnumerateArray())
+        {
+            long seconds =
+                bucket.TryGetProperty("duration", out JsonElement duration)
+                    ? ReadInt64(duration, "seconds") ?? 0
+                    : 0;
+            result.Add(
+                new Contracts.Models.ReactionBucket
+                {
+                    TotalReactions = ReadInt64(bucket, "totalReactions") ?? 0,
+                    Duration = TimeSpan.FromSeconds(seconds),
+                    IntensityScore = (int)(ReadInt64(bucket, "intensityScore") ?? 0),
+                }
             );
         }
 
-        string? progressLabel = vm
-            .OnClickCommand?.InnertubeCommand?.ShowEngagementPanelEndpoint?.EngagementPanel?.EngagementPanelSectionListRenderer?.Content?.SectionListRenderer?.Contents?.FirstOrDefault()
-            ?.CreatorGoalProgressFlowViewModel?.ProgressCountA11yLabel;
-
-        return new Contracts.Models.CreatorGoalItem
+        return new Contracts.Models.ReactionsItem
         {
-            Id = id!,
-            EntityKey = entityKey!,
-            GoalType = goalType,
-            ProgressLabel = progressLabel,
-            AccessibilityLabel = a11yLabel,
+            EntityKey = mutation.EntityKey,
+            UpdatedAt = ReadInt64(mutation.Payload, "updateTimeUsec") is { } usec
+                ? DateTimeOffset.FromUnixTimeMilliseconds(usec / 1000)
+                : null,
+            Buckets = result,
         };
     }
+
+    private static string? ReadString(JsonElement element, string name) =>
+        element.TryGetProperty(name, out JsonElement value) && value.ValueKind == JsonValueKind.String
+            ? value.GetString()
+            : null;
+
+    // Innertube writes 64-bit numbers as strings and small ones as numbers; both are read.
+    private static long? ReadInt64(JsonElement element, string name)
+    {
+        if (!element.TryGetProperty(name, out JsonElement value))
+        {
+            return null;
+        }
+
+        return value.ValueKind switch
+        {
+            JsonValueKind.Number when value.TryGetInt64(out long number) => number,
+            JsonValueKind.String when long.TryParse(
+                value.GetString(),
+                System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out long parsed
+            ) => parsed,
+            _ => null,
+        };
+    }
+
+    private static string? ReadContent(JsonElement element, string name) =>
+        element.TryGetProperty(name, out JsonElement text) ? ReadString(text, "content") : null;
 
     /// <summary>
     /// Converts raw streams page HTML into a list of <see cref="Contracts.Models.StreamInfo"/> objects.

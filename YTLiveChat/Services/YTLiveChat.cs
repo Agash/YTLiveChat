@@ -72,6 +72,12 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     public event EventHandler<CreatorGoalReceivedEventArgs>? CreatorGoalReceived;
 
     /// <inheritdoc />
+    public event EventHandler<ReactionsReceivedEventArgs>? ReactionsReceived;
+
+    /// <inheritdoc />
+    public event EventHandler<EntityMutationReceivedEventArgs>? EntityMutationReceived;
+
+    /// <inheritdoc />
     public event EventHandler<ErrorOccurredEventArgs>? ErrorOccurred;
 
     private static readonly Random s_random = new();
@@ -823,6 +829,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     {
         // Fire non-ChatItem events (polls, deletions, banners) for any subscribed handlers.
         EmitActionEvents(response.ContinuationContents?.LiveChatContinuation?.Actions);
+        EmitEntityEvents(response);
 
         bool shouldEmitRawActions = RawActionReceived != null;
 
@@ -1437,6 +1444,54 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     }
 
     /// <summary>Iterates parsed actions and fires poll/delete/banner events for subscribed handlers.</summary>
+    // Live state YouTube keeps outside chat actions: goals, reactions and the rest of frameworkUpdates.
+    private void EmitEntityEvents(LiveChatResponse response)
+    {
+        if (CreatorGoalReceived is null && ReactionsReceived is null && EntityMutationReceived is null)
+        {
+            return;
+        }
+
+        foreach (EntityMutation mutation in Parser.ExtractEntityMutations(response))
+        {
+            OnEntityMutationReceived(new() { Mutation = mutation });
+            if (Parser.ToCreatorGoal(mutation) is { } goal)
+            {
+                OnCreatorGoalReceived(new() { CreatorGoal = goal });
+            }
+            else if (Parser.ToReactions(mutation) is { } reactions)
+            {
+                OnReactionsReceived(new() { Reactions = reactions });
+            }
+        }
+    }
+
+    /// <summary>Invokes the ReactionsReceived event.</summary>
+    protected virtual void OnReactionsReceived(ReactionsReceivedEventArgs e)
+    {
+        try
+        {
+            ReactionsReceived?.Invoke(this, e);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error invoking ReactionsReceived event handler.");
+        }
+    }
+
+    /// <summary>Invokes the EntityMutationReceived event.</summary>
+    protected virtual void OnEntityMutationReceived(EntityMutationReceivedEventArgs e)
+    {
+        try
+        {
+            EntityMutationReceived?.Invoke(this, e);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error invoking EntityMutationReceived event handler.");
+        }
+    }
+
     private void EmitActionEvents(List<Models.Response.Action>? actions)
     {
         if (actions is null)
@@ -1451,7 +1506,6 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         bool hasReplace = ChatItemReplaced != null;
         bool hasEngagement = EngagementMessageReceived != null;
         bool hasGift = GiftReceived != null;
-        bool hasCreatorGoal = CreatorGoalReceived != null;
 
         if (
             !hasPoll
@@ -1463,7 +1517,6 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             && !hasReplace
             && !hasEngagement
             && !hasGift
-            && !hasCreatorGoal
         )
             return;
 
@@ -1533,13 +1586,6 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 Contracts.Models.GiftItem? gift = action.ToGiftItem();
                 if (gift is not null)
                     OnGiftReceived(new() { Gift = gift });
-            }
-
-            if (hasCreatorGoal)
-            {
-                Contracts.Models.CreatorGoalItem? goal = action.ToCreatorGoalItem();
-                if (goal is not null)
-                    OnCreatorGoalReceived(new() { CreatorGoal = goal });
             }
         }
     }
@@ -1708,8 +1754,8 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         {
             _logger.LogError(
                 ex,
-                "Error invoking CreatorGoalReceived event handler for goal {Id}.",
-                e.CreatorGoal?.Id
+                "Error invoking CreatorGoalReceived event handler for goal {GoalId}.",
+                e.CreatorGoal?.GoalId
             );
         }
     }

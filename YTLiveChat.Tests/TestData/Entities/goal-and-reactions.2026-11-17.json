@@ -1,0 +1,96 @@
+{
+  "continuationContents": {
+    "liveChatContinuation": {
+      "continuations": [
+        {
+          "invalidationContinuationData": {
+            "timeoutMs": 10000,
+            "continuation": "next"
+          }
+        }
+      ],
+      "actions": []
+    }
+  },
+  "frameworkUpdates": {
+    "entityBatchUpdate": {
+      "mutations": [
+        {
+          "entityKey": "EgtGRk4tZzZSS1ZzcyD6AygB",
+          "type": "ENTITY_MUTATION_TYPE_REPLACE",
+          "payload": {
+            "creatorGoalEntity": {
+              "key": "EgtGRk4tZzZSS1ZzcyD6AygB",
+              "creatorGoalState": "CREATOR_GOAL_STATE_ACTIVE",
+              "currentGoalCount": "2",
+              "totalGoalCount": "15",
+              "endTimestampMs": "1794928167288",
+              "serverTimestampMs": "1794918864416",
+              "goalDescription": {
+                "content": "SEND 250M ROBUX"
+              },
+              "goalTargetText": {
+                "content": "15 Super Chats",
+                "styleRuns": [
+                  {
+                    "startIndex": 0,
+                    "length": 14
+                  }
+                ]
+              },
+              "goalId": "UgkxMD-1Os2kvddjxPUdiIFd8ngVfDoVbScr",
+              "isXpGoal": false
+            }
+          }
+        },
+        {
+          "entityKey": "EiV5b3V0dWJlL2FwcC9lbW9qaV9mb3VudGFpbl9lbnRpdHlfa2V5IIkDKAE%3D",
+          "type": "ENTITY_MUTATION_TYPE_REPLACE",
+          "payload": {
+            "emojiFountainDataEntity": {
+              "key": "EiV5b3V0dWJlL2FwcC9lbW9qaV9mb3VudGFpbl9lbnRpdHlfa2V5IIkDKAE%3D",
+              "reactionBuckets": [
+                {
+                  "totalReactions": 0,
+                  "duration": {
+                    "seconds": "1"
+                  },
+                  "intensityScore": 1
+                },
+                {
+                  "totalReactions": 7,
+                  "duration": {
+                    "seconds": "1"
+                  },
+                  "intensityScore": 1
+                },
+                {
+                  "totalReactions": 0,
+                  "duration": {
+                    "seconds": "1"
+                  },
+                  "intensityScore": 1
+                },
+                {
+                  "totalReactions": 0,
+                  "duration": {
+                    "seconds": "1"
+                  },
+                  "intensityScore": 1
+                },
+                {
+                  "totalReactions": 0,
+                  "duration": {
+                    "seconds": "1"
+                  },
+                  "intensityScore": 1
+                }
+              ],
+              "updateTimeUsec": "1794918962751136"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

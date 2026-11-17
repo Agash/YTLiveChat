@@ -23,6 +23,10 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>WebSnapshots\%(Filename)%(Extension)</TargetPath>
     </Content>
+    <Content Include="TestData\Entities\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>Entities\%(Filename)%(Extension)</TargetPath>
+    </Content>
     <Content Include="TestData\Player\*.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>Player\%(Filename)%(Extension)</TargetPath>
