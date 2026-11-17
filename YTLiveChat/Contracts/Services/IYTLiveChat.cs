@@ -159,6 +159,12 @@ public interface IYTLiveChat : IDisposable
     event EventHandler<ReactionsReceivedEventArgs>? ReactionsReceived;
 
     /// <summary>
+    /// Fires when the number of replies to a Super Chat changes (<c>replyCountEntity</c>); match it to the Super Chat
+    /// by <see cref="Superchat.ReplyCountEntityKey"/>.
+    /// </summary>
+    event EventHandler<ReplyCountReceivedEventArgs>? ReplyCountReceived;
+
+    /// <summary>
     /// Fires with what the watch page shows around the stream as YouTube updates it (<c>updated_metadata</c>): viewer
     /// count, title, description, date line and likes. Read beside the chat at YouTube's own pace (every 5 seconds
     /// while live), and only while this event has a subscriber.
@@ -476,6 +482,13 @@ public class ChatModeChangedEventArgs : EventArgs
 {
     /// <summary>The mode change.</summary>
     public required ChatModeChangeItem Change { get; set; }
+}
+
+/// <summary>EventArgs for the ReplyCountReceived event.</summary>
+public class ReplyCountReceivedEventArgs : EventArgs
+{
+    /// <summary>The reply count.</summary>
+    public required ReplyCountItem ReplyCount { get; set; }
 }
 
 /// <summary>EventArgs for the ReactionsReceived event.</summary>

@@ -425,6 +425,10 @@ public record LiveChatPaidMessageRenderer : MessageRendererBase
     [JsonPropertyName("leaderboardBadge")]
     public LeaderboardBadge? LeaderboardBadge { get; init; }
 
+    /// <summary>The reply button; its view model names the entity the Super Chat's reply count is updated under.</summary>
+    [JsonPropertyName("replyButton")]
+    public PaidMessageReplyButton? ReplyButton { get; init; }
+
     // Interactive client-side UI buttons (creatorHeartButton, replyButton, pdgLikeButton)
     // are intentionally not modelled — they carry no read-only data for consumers.
 }
@@ -837,6 +841,18 @@ public record TickerShowItemEndpoint
 {
     [JsonPropertyName("showLiveChatItemEndpoint")]
     public ShowLiveChatItemEndpoint? ShowLiveChatItemEndpoint { get; init; }
+}
+
+public record PaidMessageReplyButton
+{
+    [JsonPropertyName("pdgReplyButtonViewModel")]
+    public PdgReplyButtonViewModel? PdgReplyButtonViewModel { get; init; }
+}
+
+public record PdgReplyButtonViewModel
+{
+    [JsonPropertyName("replyCountEntityKey")]
+    public string? ReplyCountEntityKey { get; init; }
 }
 
 public record LeaderboardBadgeButtonViewModel

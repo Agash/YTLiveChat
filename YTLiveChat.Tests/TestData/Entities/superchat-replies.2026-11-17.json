@@ -1,0 +1,70 @@
+{
+ "continuationContents": {
+  "liveChatContinuation": {
+   "continuations": [
+    {
+     "invalidationContinuationData": {
+      "timeoutMs": 10000,
+      "continuation": "next"
+     }
+    }
+   ],
+   "actions": [
+    {
+     "addChatItemAction": {
+      "item": {
+       "liveChatPaidMessageRenderer": {
+        "id": "ChwKGkNJR3RnNENDajVnREZTZ1lyUVlkcFFreEZR",
+        "timestampUsec": "1794918948140448",
+        "authorName": {
+         "simpleText": "@viewer"
+        },
+        "authorExternalChannelId": "UCviewer",
+        "purchaseAmountText": {
+         "simpleText": "₹100.00"
+        },
+        "message": {
+         "runs": [
+          {
+           "text": "Thanks for the stream"
+          }
+         ]
+        },
+        "headerBackgroundColor": 4278239141,
+        "headerTextColor": 4278190080,
+        "bodyBackgroundColor": 4280150454,
+        "bodyTextColor": 4278190080,
+        "authorNameTextColor": 2315255808,
+        "replyButton": {
+         "pdgReplyButtonViewModel": {
+          "replyCountEntityKey": "EiNVZ3hfSVF6Yk43N0VEbkVlVFZkNEFhQUJEcWdCd2RLV2x3SSDxAygB"
+         }
+        }
+       }
+      },
+      "clientId": "x"
+     }
+    }
+   ]
+  }
+ },
+ "frameworkUpdates": {
+  "entityBatchUpdate": {
+   "mutations": [
+    {
+     "entityKey": "EiNVZ3hfSVF6Yk43N0VEbkVlVFZkNEFhQUJEcWdCd2RLV2x3SSDxAygB",
+     "type": "ENTITY_MUTATION_TYPE_REPLACE",
+     "payload": {
+      "replyCountEntity": {
+       "key": "EiNVZ3hfSVF6Yk43N0VEbkVlVFZkNEFhQUJEcWdCd2RLV2x3SSDxAygB",
+       "replyCount": {
+        "content": "0"
+       },
+       "replyCountNumber": "0"
+      }
+     }
+    }
+   ]
+  }
+ }
+}

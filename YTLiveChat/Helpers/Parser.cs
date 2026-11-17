@@ -1188,6 +1188,10 @@ internal static partial class Parser
                 BodyTextColor = paidRenderer.BodyTextColor.ToHex6Color(),
                 AuthorNameTextColor = paidRenderer.AuthorNameTextColor.ToHex6Color(),
                 Sticker = null,
+                ReplyCountEntityKey = paidRenderer
+                    .ReplyButton
+                    ?.PdgReplyButtonViewModel
+                    ?.ReplyCountEntityKey,
             };
         }
         else if (item.LiveChatPaidStickerRenderer != null)
@@ -2729,6 +2733,21 @@ internal static partial class Parser
 
         return builder.ToString();
     }
+
+    /// <summary>
+    /// The reply count in a <c>replyCountEntity</c> update. Observed 2026-11-17: replyCountNumber as a string, beside
+    /// a localized replyCount text.
+    /// </summary>
+    public static Contracts.Models.ReplyCountItem? ToReplyCount(Contracts.Models.EntityMutation mutation) =>
+        mutation.IsDelete
+        || mutation.PayloadType != "replyCountEntity"
+        || mutation.Payload.ValueKind != JsonValueKind.Object
+            ? null
+            : new Contracts.Models.ReplyCountItem
+            {
+                EntityKey = mutation.EntityKey,
+                Count = ReadInt64(mutation.Payload, "replyCountNumber") ?? 0,
+            };
 
     private static string? ReadString(JsonElement element, string name) =>
         element.TryGetProperty(name, out JsonElement value) && value.ValueKind == JsonValueKind.String

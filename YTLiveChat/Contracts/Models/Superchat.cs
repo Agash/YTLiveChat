@@ -1,4 +1,4 @@
-﻿namespace YTLiveChat.Contracts.Models;
+namespace YTLiveChat.Contracts.Models;
 
 /// <summary>
 /// Represents a Super Chat or Super Sticker event.
@@ -51,4 +51,10 @@ public class Superchat
     /// If the event is a Super Sticker, contains an ImagePart with sticker details. Null otherwise.
     /// </summary>
     public ImagePart? Sticker { get; set; }
+
+    /// <summary>
+    /// The entity key this Super Chat's reply count is updated under (<see cref="ReplyCountItem.EntityKey"/>), when
+    /// viewers can reply to it.
+    /// </summary>
+    public string? ReplyCountEntityKey { get; set; }
 }

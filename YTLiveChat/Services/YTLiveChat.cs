@@ -75,6 +75,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     public event EventHandler<ReactionsReceivedEventArgs>? ReactionsReceived;
 
     /// <inheritdoc />
+    public event EventHandler<ReplyCountReceivedEventArgs>? ReplyCountReceived;
+
+    /// <inheritdoc />
     public event EventHandler<ChatModeChangedEventArgs>? ChatModeChanged;
 
     /// <inheritdoc />
@@ -1473,7 +1476,12 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     // Live state YouTube keeps outside chat actions: goals, reactions and the rest of frameworkUpdates.
     private void EmitEntityEvents(LiveChatResponse response)
     {
-        if (CreatorGoalReceived is null && ReactionsReceived is null && EntityMutationReceived is null)
+        if (
+            CreatorGoalReceived is null
+            && ReactionsReceived is null
+            && ReplyCountReceived is null
+            && EntityMutationReceived is null
+        )
         {
             return;
         }
@@ -1488,6 +1496,10 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             else if (Parser.ToReactions(mutation) is { } reactions)
             {
                 OnReactionsReceived(new() { Reactions = reactions });
+            }
+            else if (Parser.ToReplyCount(mutation) is { } replies)
+            {
+                OnReplyCountReceived(new() { ReplyCount = replies });
             }
         }
     }
@@ -1587,6 +1599,19 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error invoking ChatModeChanged event handler.");
+        }
+    }
+
+    /// <summary>Invokes the ReplyCountReceived event.</summary>
+    protected virtual void OnReplyCountReceived(ReplyCountReceivedEventArgs e)
+    {
+        try
+        {
+            ReplyCountReceived?.Invoke(this, e);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error invoking ReplyCountReceived event handler.");
         }
     }
 

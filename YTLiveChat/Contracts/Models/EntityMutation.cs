@@ -51,3 +51,16 @@ public class ReactionBucket
     /// <summary>YouTube's intensity score for the bucket (how lively the player overlay shows it).</summary>
     public int IntensityScore { get; set; }
 }
+
+/// <summary>
+/// How many viewers replied to a Super Chat (<c>replyCountEntity</c>); <see cref="EntityKey"/> matches the Super
+/// Chat's <see cref="Superchat.ReplyCountEntityKey"/>.
+/// </summary>
+public class ReplyCountItem
+{
+    /// <summary>The entity key, the same as on the Super Chat.</summary>
+    public required string EntityKey { get; set; }
+
+    /// <summary>The number of replies.</summary>
+    public long Count { get; set; }
+}

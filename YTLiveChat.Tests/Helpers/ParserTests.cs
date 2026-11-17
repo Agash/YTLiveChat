@@ -2425,6 +2425,23 @@ public class ParserTests
     }
 
     [TestMethod]
+    public void SuperChatReplies_CapturedPair_KeyLinksTheSuperChatToItsReplyCount()
+    {
+        // A Super Chat and the reply-count update for it, captured 2026-11-17 (author and message anonymized).
+        LiveChatResponse response = JsonSerializer.Deserialize<LiveChatResponse>(
+            File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Entities", "superchat-replies.2026-11-17.json"))
+        )!;
+
+        Contracts.Models.ChatItem superChat = Parser.ParseLiveChatResponse(response).Items.Single();
+        ReplyCountItem? replies = Parser.ToReplyCount(Parser.ExtractEntityMutations(response).Single());
+
+        Assert.IsNotNull(superChat.Superchat);
+        Assert.IsNotNull(replies);
+        Assert.AreEqual(replies.EntityKey, superChat.Superchat.ReplyCountEntityKey);
+        Assert.AreEqual(0L, replies.Count);
+    }
+
+    [TestMethod]
     public void ToCreatorGoal_OtherEntity_ReturnsNull() =>
         Assert.IsNull(Parser.ToCreatorGoal(Parser.ExtractEntityMutations(GoalAndReactionsResponse())[1]));
 }
