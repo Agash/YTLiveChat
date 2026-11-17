@@ -1,0 +1,80 @@
+{
+ "continuation": {
+  "timedContinuationData": {
+   "timeoutMs": 60000,
+   "continuation": "-of5rQMZGgthOFBRMlZBb2hYZyCQhPHXBjgAQAFaAA%3D%3D"
+  }
+ },
+ "actions": [
+  {
+   "updateViewershipAction": {
+    "isEmpty": true,
+    "viewCount": {
+     "videoViewCountRenderer": {
+      "isLive": false
+     }
+    }
+   }
+  },
+  {
+   "updateDateTextAction": {
+    "dateText": {
+     "simpleText": "Streamed live on Nov 7, 2026"
+    }
+   }
+  }
+ ],
+ "frameworkUpdates": {
+  "entityBatchUpdate": {
+   "mutations": [
+    {
+     "entityKey": "EgthOFBRMlZBb2hYZyC9AygB",
+     "type": "ENTITY_MUTATION_TYPE_REPLACE",
+     "payload": {
+      "likeCountEntity": {
+       "key": "EgthOFBRMlZBb2hYZyC9AygB",
+       "likeCountIfLiked": {
+        "content": "3.5K"
+       },
+       "likeCountIfDisliked": {
+        "content": "3.5K"
+       },
+       "likeCountIfIndifferent": {
+        "content": "3.5K"
+       },
+       "expandedLikeCountIfLiked": {
+        "content": "3,566"
+       },
+       "expandedLikeCountIfDisliked": {
+        "content": "3,565"
+       },
+       "expandedLikeCountIfIndifferent": {
+        "content": "3,565"
+       },
+       "likeCountLabel": {
+        "content": "Likes"
+       },
+       "likeButtonA11yText": {
+        "content": "like this video along with 3,565 other people"
+       },
+       "likeCountIfLikedNumber": "3566",
+       "likeCountIfDislikedNumber": "3565",
+       "likeCountIfIndifferentNumber": "3565",
+       "shouldExpandLikeCount": false,
+       "sentimentFactoidA11yTextIfLiked": {
+        "content": "3,566 likes"
+       },
+       "sentimentFactoidA11yTextIfDisliked": {
+        "content": "3,565 likes"
+       }
+      }
+     }
+    }
+   ],
+   "timestamp": {
+    "seconds": "1794916880",
+    "nanos": 194544561
+   }
+  }
+ }
+}

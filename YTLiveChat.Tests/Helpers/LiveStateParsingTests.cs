@@ -112,4 +112,44 @@ public class LiveStateParsingTests
         Assert.HasCount(3, change.Subtext);
         Assert.AreEqual(DateTimeOffset.FromUnixTimeMilliseconds(1794911252203), change.Timestamp);
     }
+
+    private static string Metadata(string name) =>
+        File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Metadata", name + ".2026-11-17.json"));
+
+    [TestMethod]
+    public void ParseUpdatedMetadata_LiveStream_ReadsViewersTitleAndPace()
+    {
+        (StreamMetadataItem metadata, string? continuation, int timeoutMs) = Parser.ParseUpdatedMetadata(
+            Metadata("live"),
+            "rUEyequT3ro"
+        );
+
+        Assert.IsTrue(metadata.IsLive);
+        Assert.AreEqual(2310L, metadata.ViewerCount);
+        Assert.IsNull(metadata.ViewCount);
+        Assert.IsFalse(string.IsNullOrEmpty(metadata.Title));
+        Assert.IsNotNull(metadata.Description);
+        Assert.IsNotNull(metadata.DateText);
+        Assert.IsNotNull(continuation);
+        Assert.AreEqual(5000, timeoutMs);
+    }
+
+    [TestMethod]
+    public void ParseUpdatedMetadata_EndedStream_IsNotLiveAndSlowsDown()
+    {
+        (StreamMetadataItem metadata, _, int timeoutMs) = Parser.ParseUpdatedMetadata(Metadata("ended"), "a8PQ2VAohXg");
+
+        Assert.IsFalse(metadata.IsLive);
+        Assert.IsNull(metadata.ViewerCount);
+        Assert.AreEqual(60000, timeoutMs);
+    }
+
+    [TestMethod]
+    public void ParseUpdatedMetadata_WaitingRoom_ReadsLikesFromTheEntity()
+    {
+        (StreamMetadataItem metadata, _, int timeoutMs) = Parser.ParseUpdatedMetadata(Metadata("waiting"), "197OEpjj8RI");
+
+        Assert.AreEqual(6235L, metadata.LikeCount);
+        Assert.AreEqual(30000, timeoutMs);
+    }
 }

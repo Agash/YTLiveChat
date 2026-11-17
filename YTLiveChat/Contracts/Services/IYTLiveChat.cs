@@ -159,6 +159,13 @@ public interface IYTLiveChat : IDisposable
     event EventHandler<ReactionsReceivedEventArgs>? ReactionsReceived;
 
     /// <summary>
+    /// Fires with what the watch page shows around the stream as YouTube updates it (<c>updated_metadata</c>): viewer
+    /// count, title, description, date line and likes. Read beside the chat at YouTube's own pace (every 5 seconds
+    /// while live), and only while this event has a subscriber.
+    /// </summary>
+    event EventHandler<StreamMetadataUpdatedEventArgs>? StreamMetadataUpdated;
+
+    /// <summary>
     /// Fires when the chat's mode changes (subscribers-only, live commentary, open again), from the notice YouTube
     /// shows in chat (<c>liveChatModeChangeMessageRenderer</c>).
     /// </summary>
@@ -455,6 +462,13 @@ public class CreatorGoalReceivedEventArgs : EventArgs
 {
     /// <summary>The goal as it stands after this update.</summary>
     public required CreatorGoalItem CreatorGoal { get; set; }
+}
+
+/// <summary>EventArgs for the StreamMetadataUpdated event.</summary>
+public class StreamMetadataUpdatedEventArgs : EventArgs
+{
+    /// <summary>The update; fields YouTube did not send are null.</summary>
+    public required StreamMetadataItem Metadata { get; set; }
 }
 
 /// <summary>EventArgs for the ChatModeChanged event.</summary>

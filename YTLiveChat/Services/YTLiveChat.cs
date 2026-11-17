@@ -78,6 +78,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     public event EventHandler<ChatModeChangedEventArgs>? ChatModeChanged;
 
     /// <inheritdoc />
+    public event EventHandler<StreamMetadataUpdatedEventArgs>? StreamMetadataUpdated;
+
+    /// <inheritdoc />
     public event EventHandler<EntityMutationReceivedEventArgs>? EntityMutationReceived;
 
     /// <inheritdoc />
@@ -355,8 +358,20 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                     _fetchOptionsInternal.LiveId
                 );
 
-                // --- Polling Loop (Conditional Timer/Delay) ---
-                await PollingLoopAsync(cancellationToken);
+                // The watch page's metadata (viewers, title, likes) runs beside the chat for as long as it does.
+                using (
+                    CancellationTokenSource metadataCancellation =
+                        CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
+                )
+                {
+                    Task metadata = MetadataLoopAsync(
+                        _fetchOptionsInternal,
+                        metadataCancellation.Token
+                    );
+                    await PollingLoopAsync(cancellationToken);
+                    metadataCancellation.Cancel();
+                    await metadata.ConfigureAwait(false);
+                }
 
                 if (!_continuousMonitorEnabledForSession)
                 {
@@ -1470,6 +1485,61 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             {
                 OnReactionsReceived(new() { Reactions = reactions });
             }
+        }
+    }
+
+    private static readonly TimeSpan s_metadataFloor = TimeSpan.FromSeconds(5);
+
+    // Polled at the pace YouTube names in each response; idle (no request) while nobody subscribes.
+    private async Task MetadataLoopAsync(FetchOptions options, CancellationToken cancellationToken)
+    {
+        string? continuation = null;
+        TimeSpan wait = s_metadataFloor;
+        try
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                if (StreamMetadataUpdated is not null)
+                {
+                    try
+                    {
+                        string json = await _ytHttpClient
+                            .GetUpdatedMetadataAsync(options, continuation, cancellationToken)
+                            .ConfigureAwait(false);
+                        (StreamMetadataItem metadata, string? next, int timeoutMs) =
+                            Parser.ParseUpdatedMetadata(json, options.LiveId);
+                        continuation = next ?? continuation;
+                        wait = TimeSpan.FromMilliseconds(
+                            Math.Max(s_metadataFloor.TotalMilliseconds, timeoutMs)
+                        );
+                        OnStreamMetadataUpdated(new() { Metadata = metadata });
+                    }
+                    catch (Exception ex)
+                        when (ex is HttpRequestException or JsonException)
+                    {
+                        _logger.LogWarning(ex, "Stream metadata for {LiveId} could not be read.", options.LiveId);
+                    }
+                }
+
+                await DelayAsync(wait, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // The chat stopped; the metadata stops with it.
+        }
+    }
+
+    /// <summary>Invokes the StreamMetadataUpdated event.</summary>
+    protected virtual void OnStreamMetadataUpdated(StreamMetadataUpdatedEventArgs e)
+    {
+        try
+        {
+            StreamMetadataUpdated?.Invoke(this, e);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error invoking StreamMetadataUpdated event handler.");
         }
     }
 

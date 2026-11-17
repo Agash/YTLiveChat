@@ -2616,6 +2616,120 @@ internal static partial class Parser
         };
     }
 
+    /// <summary>
+    /// Reads an <c>updated_metadata</c> response. Observed 2026-11-17: updateViewershipAction
+    /// (videoViewCountRenderer.isLive and originalViewCount; isEmpty once ended), updateDateTextAction,
+    /// updateTitleAction, updateDescriptionAction, and likeCountEntity (likeCountIfIndifferentNumber) in
+    /// frameworkUpdates; the next request is due after continuation.timedContinuationData.timeoutMs (5 s live,
+    /// 30 s waiting, 60 s ended).
+    /// </summary>
+    public static (Contracts.Models.StreamMetadataItem Metadata, string? Continuation, int TimeoutMs) ParseUpdatedMetadata(
+        string json,
+        string liveId
+    )
+    {
+        Contracts.Models.StreamMetadataItem metadata = new() { LiveId = liveId };
+        using JsonDocument document = JsonDocument.Parse(json);
+        JsonElement root = document.RootElement;
+        if (root.TryGetProperty("actions", out JsonElement actions) && actions.ValueKind == JsonValueKind.Array)
+        {
+            foreach (JsonElement action in actions.EnumerateArray())
+            {
+                if (
+                    action.TryGetProperty("updateViewershipAction", out JsonElement viewership)
+                    && viewership.TryGetProperty("viewCount", out JsonElement viewCount)
+                    && viewCount.TryGetProperty("videoViewCountRenderer", out JsonElement renderer)
+                )
+                {
+                    bool isLive =
+                        renderer.TryGetProperty("isLive", out JsonElement live)
+                        && live.ValueKind == JsonValueKind.True;
+                    metadata.IsLive = isLive;
+                    long? count = ReadInt64(renderer, "originalViewCount");
+                    if (isLive)
+                    {
+                        metadata.ViewerCount = count;
+                    }
+                    else
+                    {
+                        metadata.ViewCount = count;
+                    }
+                }
+                else if (action.TryGetProperty("updateDateTextAction", out JsonElement date))
+                {
+                    metadata.DateText = PlainText(date, "dateText");
+                }
+                else if (action.TryGetProperty("updateTitleAction", out JsonElement title))
+                {
+                    metadata.Title = PlainText(title, "title");
+                }
+                else if (action.TryGetProperty("updateDescriptionAction", out JsonElement description))
+                {
+                    metadata.Description = PlainText(description, "description");
+                }
+            }
+        }
+
+        if (
+            root.TryGetProperty("frameworkUpdates", out JsonElement updates)
+            && updates.TryGetProperty("entityBatchUpdate", out JsonElement batch)
+            && batch.TryGetProperty("mutations", out JsonElement mutations)
+            && mutations.ValueKind == JsonValueKind.Array
+        )
+        {
+            foreach (JsonElement mutation in mutations.EnumerateArray())
+            {
+                if (
+                    mutation.TryGetProperty("payload", out JsonElement payload)
+                    && payload.TryGetProperty("likeCountEntity", out JsonElement likes)
+                )
+                {
+                    metadata.LikeCount = ReadInt64(likes, "likeCountIfIndifferentNumber");
+                }
+            }
+        }
+
+        string? continuation = null;
+        int timeoutMs = 0;
+        if (
+            root.TryGetProperty("continuation", out JsonElement next)
+            && next.TryGetProperty("timedContinuationData", out JsonElement timed)
+        )
+        {
+            continuation = ReadString(timed, "continuation");
+            timeoutMs = (int)(ReadInt64(timed, "timeoutMs") ?? 0);
+        }
+
+        return (metadata, continuation, timeoutMs);
+    }
+
+    // A text node as plain text: simpleText, or the runs joined.
+    private static string? PlainText(JsonElement parent, string name)
+    {
+        if (!parent.TryGetProperty(name, out JsonElement text))
+        {
+            return null;
+        }
+
+        if (ReadString(text, "simpleText") is { } simple)
+        {
+            return simple;
+        }
+
+        if (!text.TryGetProperty("runs", out JsonElement runs) || runs.ValueKind != JsonValueKind.Array)
+        {
+            return null;
+        }
+
+        System.Text.StringBuilder builder = new();
+        foreach (JsonElement run in runs.EnumerateArray())
+        {
+            _ = builder.Append(ReadString(run, "text"));
+        }
+
+        return builder.ToString();
+    }
+
     private static string? ReadString(JsonElement element, string name) =>
         element.TryGetProperty(name, out JsonElement value) && value.ValueKind == JsonValueKind.String
             ? value.GetString()

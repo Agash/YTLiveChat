@@ -1,0 +1,119 @@
+{
+ "continuation": {
+  "timedContinuationData": {
+   "timeoutMs": 30000,
+   "continuation": "-of5rQMZGgsxOTdPRXBqajhSSSCLhPHXBjgBQABaAA%3D%3D"
+  }
+ },
+ "actions": [
+  {
+   "updateViewershipAction": {
+    "viewCount": {
+     "videoViewCountRenderer": {
+      "viewCount": {
+       "simpleText": "1 waiting"
+      },
+      "isLive": true,
+      "extraShortViewCount": {
+       "accessibility": {
+        "accessibilityData": {
+         "label": "1"
+        }
+       },
+       "simpleText": "1"
+      },
+      "unlabeledViewCountValue": {
+       "simpleText": "1"
+      },
+      "originalViewCount": "1"
+     }
+    }
+   }
+  },
+  {
+   "updateDateTextAction": {
+    "dateText": {
+     "simpleText": "Scheduled for Aug 31, 2027"
+    }
+   }
+  },
+  {
+   "updateTitleAction": {
+    "title": {
+     "runs": [
+      {
+       "text": "≪FREE CHAT/VSPACER CHAT≫ WAZZUP!"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "updateDescriptionAction": {
+    "description": {
+     "runs": [
+      {
+       "text": "free chat space for schedule/ twitter space chat/ hang out\n\n≪ FIRST ORIGINAL「PLAY DICE!」≫\n"
+      },
+      {
+       "text": "https://youtu.be/na6bysYNuS0"
+      }
+     ]
+    }
+   }
+  }
+ ],
+ "frameworkUpdates": {
+  "entityBatchUpdate": {
+   "mutations": [
+    {
+     "entityKey": "EgsxOTdPRXBqajhSSSC9AygB",
+     "type": "ENTITY_MUTATION_TYPE_REPLACE",
+     "payload": {
+      "likeCountEntity": {
+       "key": "EgsxOTdPRXBqajhSSSC9AygB",
+       "likeCountIfLiked": {
+        "content": "6.2K"
+       },
+       "likeCountIfDisliked": {
+        "content": "6.2K"
+       },
+       "likeCountIfIndifferent": {
+        "content": "6.2K"
+       },
+       "expandedLikeCountIfLiked": {
+        "content": "6,236"
+       },
+       "expandedLikeCountIfDisliked": {
+        "content": "6,235"
+       },
+       "expandedLikeCountIfIndifferent": {
+        "content": "6,235"
+       },
+       "likeCountLabel": {
+        "content": "Likes"
+       },
+       "likeButtonA11yText": {
+        "content": "like this video along with 6,235 other people"
+       },
+       "likeCountIfLikedNumber": "6236",
+       "likeCountIfDislikedNumber": "6235",
+       "likeCountIfIndifferentNumber": "6235",
+       "shouldExpandLikeCount": false,
+       "sentimentFactoidA11yTextIfLiked": {
+        "content": "6,236 likes"
+       },
+       "sentimentFactoidA11yTextIfDisliked": {
+        "content": "6,235 likes"
+       }
+      }
+     }
+    }
+   ],
+   "timestamp": {
+    "seconds": "1794916875",
+    "nanos": 637509700
+   }
+  }
+ }
+}

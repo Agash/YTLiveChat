@@ -1,0 +1,119 @@
+{
+ "continuation": {
+  "timedContinuationData": {
+   "timeoutMs": 5000,
+   "continuation": "-of5rQMZGgtyVUV5ZXF1VDNybyDOhPHXBjgBQAFaAA%3D%3D"
+  }
+ },
+ "actions": [
+  {
+   "updateViewershipAction": {
+    "viewCount": {
+     "videoViewCountRenderer": {
+      "viewCount": {
+       "simpleText": "2,310 watching now"
+      },
+      "isLive": true,
+      "extraShortViewCount": {
+       "accessibility": {
+        "accessibilityData": {
+         "label": "2.3K"
+        }
+       },
+       "simpleText": "2.3K"
+      },
+      "unlabeledViewCountValue": {
+       "simpleText": "2,310"
+      },
+      "originalViewCount": "2310"
+     }
+    }
+   }
+  },
+  {
+   "updateDateTextAction": {
+    "dateText": {
+     "simpleText": "Started streaming less than 1 minute ago"
+    }
+   }
+  },
+  {
+   "updateTitleAction": {
+    "title": {
+     "runs": [
+      {
+       "text": "【ホロじゃん】うちは鳴かないみぉ～～～ん（たぶん）【大神ミオ視点】"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "updateDescriptionAction": {
+    "description": {
+     "runs": [
+      {
+       "text": "🌟参加メンバー🌟\n白上フブキ "
+      },
+      {
+       "text": "‪@ShirakamiFubuki‬"
+      }
+     ]
+    }
+   }
+  }
+ ],
+ "frameworkUpdates": {
+  "entityBatchUpdate": {
+   "mutations": [
+    {
+     "entityKey": "EgtyVUV5ZXF1VDNybyC9AygB",
+     "type": "ENTITY_MUTATION_TYPE_REPLACE",
+     "payload": {
+      "likeCountEntity": {
+       "key": "EgtyVUV5ZXF1VDNybyC9AygB",
+       "likeCountIfLiked": {
+        "content": "922"
+       },
+       "likeCountIfDisliked": {
+        "content": "921"
+       },
+       "likeCountIfIndifferent": {
+        "content": "921"
+       },
+       "expandedLikeCountIfLiked": {
+        "content": "922"
+       },
+       "expandedLikeCountIfDisliked": {
+        "content": "921"
+       },
+       "expandedLikeCountIfIndifferent": {
+        "content": "921"
+       },
+       "likeCountLabel": {
+        "content": "Likes"
+       },
+       "likeButtonA11yText": {
+        "content": "like this video along with 921 other people"
+       },
+       "likeCountIfLikedNumber": "922",
+       "likeCountIfDislikedNumber": "921",
+       "likeCountIfIndifferentNumber": "921",
+       "shouldExpandLikeCount": false,
+       "sentimentFactoidA11yTextIfLiked": {
+        "content": "922 likes"
+       },
+       "sentimentFactoidA11yTextIfDisliked": {
+        "content": "921 likes"
+       }
+      }
+     }
+    }
+   ],
+   "timestamp": {
+    "seconds": "1794916942",
+    "nanos": 119132802
+   }
+  }
+ }
+}

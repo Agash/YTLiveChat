@@ -12,6 +12,21 @@ public sealed record LiveChatRequest
     public string? Continuation { get; init; }
 }
 
+/// <summary>The innertube <c>updated_metadata</c> request: the video first, then the continuation.</summary>
+public sealed record MetadataRequest
+{
+    [JsonPropertyName("context")]
+    public required RequestContext Context { get; init; }
+
+    [JsonPropertyName("videoId")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? VideoId { get; init; }
+
+    [JsonPropertyName("continuation")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Continuation { get; init; }
+}
+
 /// <summary>The innertube <c>player</c> request: the video whose playback state is asked for.</summary>
 public sealed record PlayerRequest
 {

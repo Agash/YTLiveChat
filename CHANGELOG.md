@@ -5,10 +5,14 @@
   `Id`, `GoalType`, `ProgressLabel` and `AccessibilityLabel` (read from the ticker chip's localized labels) are
   removed, and `Parser.ToCreatorGoalItem` with them. `CreatorGoalReceived` now fires on every goal update (start,
   each contribution, end) rather than per ticker chip.
-- `IYTLiveChat` gains `ReactionsReceived`, `ChatModeChanged` and `EntityMutationReceived`; custom implementations of the interface
+- `IYTLiveChat` gains `ReactionsReceived`, `ChatModeChanged`, `StreamMetadataUpdated` and
+  `EntityMutationReceived`; custom implementations of the interface
   must add them.
 
 ### Added
+- `StreamMetadataUpdated`: what the watch page shows around the stream as YouTube updates it (`updated_metadata`):
+  viewers (or people waiting), total views once ended, likes, title, description and the date line, read beside the
+  chat at YouTube's own pace and only while subscribed. No sign-in, no API quota.
 - `ChatModeChanged`: the chat's mode changed (subscribers-only, live commentary, open again), with the mode read
   from the notice's icon (`ChatModeChangeItem`, `ChatMode`).
 - `PollClosedEventArgs.FinalPoll`: the poll's last state (question, choices, vote ratios) when it closed.

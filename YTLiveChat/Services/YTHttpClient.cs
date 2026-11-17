@@ -157,6 +157,50 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
     }
 
     /// <summary>
+    /// Fetches the innertube <c>updated_metadata</c> response for the stream in <paramref name="options"/>: the
+    /// first request names the video, later ones pass the continuation the previous response returned.
+    /// </summary>
+    /// <returns>The raw JSON.</returns>
+    /// <exception cref="HttpRequestException">The request failed or returned a non-success status.</exception>
+    public virtual async Task<string> GetUpdatedMetadataAsync(
+        FetchOptions options,
+        string? continuation,
+        CancellationToken cancellationToken = default
+    )
+    {
+        string url =
+            $"/youtubei/v1/updated_metadata?key={options.ApiKey}&prettyPrint={PrettyPrintQueryValue}";
+        MetadataRequest payload = new()
+        {
+            Context = new RequestContext
+            {
+                Client = new ClientInfo
+                {
+                    ClientVersion = options.ClientVersion,
+                    ClientName = "WEB",
+                    Hl = InterfaceLanguage,
+                },
+            },
+            VideoId = continuation is null ? options.LiveId : null,
+            Continuation = continuation,
+        };
+        using StringContent content = new(
+            JsonSerializer.Serialize(payload, YTLiveChatJsonSerializerContext.Default.MetadataRequest),
+            System.Text.Encoding.UTF8,
+            "application/json"
+        );
+        using HttpResponseMessage response = await _httpClient
+            .PostAsync(url, content, cancellationToken)
+            .ConfigureAwait(false);
+        _ = response.EnsureSuccessStatusCode();
+#if NETSTANDARD2_1 || NETSTANDARD2_0
+        return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+#else
+        return await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+#endif
+    }
+
+    /// <summary>
     /// Fetches the innertube <c>player</c> response for the stream in <paramref name="options"/>: about 15 KB of
     /// JSON carrying its live state (<c>liveBroadcastDetails</c>), where the watch page is over a megabyte.
     /// </summary>
