@@ -32,6 +32,10 @@
 - `ReactionsReceived`: the reactions viewers send, per stretch of time (`ReactionsItem`, `ReactionBucket`).
 
 ### Changed
+- YouTube's own texts are requested in English (`hl=en`). Without it YouTube answered in the language of the
+  request's location, and membership types, tiers, milestone months, gift counts and gifters are read out of those
+  texts. The numbers and handles are also read from the runs YouTube keeps them in, which hold in every language;
+  applications show these events in their own language from the parsed values.
 - `LivestreamStarted` fires when a stream is broadcasting, not when its chat page loads: a scheduled
   stream's waiting room is checked every `LiveCheckFrequency` until its watch page reports it live.
   `LivestreamEnded` fires only for a stream that started. Both events and `LiveCheckFrequency` apply to

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using YTLiveChat.Contracts.Models; // Use the contract namespace
@@ -950,6 +951,85 @@ internal static partial class Parser
     private static (decimal AmountValue, string? Currency) ParseAmount(string? amountString) =>
         CurrencyParser.Parse(amountString);
 
+    // YouTube keeps numbers and handles in runs of their own in every language (checked in en, es, ja and de on
+    // 2026-11-17): "Member for ", "68", " months"; "Sent ", "5", " … gift memberships" / "… を ", "5", " 個贈りました";
+    // "received a gift membership by ", "@name" / "さんが ", "@name", " さんから…". Reading those runs instead of
+    // the sentence keeps the values right whatever language the texts come in.
+    // The value is the one run made only of digits; separators and bidi controls around it are ignored, digits in
+    // any script count (Bengali, Persian, Devanagari and Burmese texts use their own). With two such runs (a channel
+    // named only with digits) the runs cannot tell which one is the value, so null.
+    private static int? NumberFromRuns(IEnumerable<Models.Response.MessageRun>? runs)
+    {
+        int? found = null;
+        foreach (Models.Response.MessageText run in runs?.OfType<Models.Response.MessageText>() ?? [])
+        {
+            if (ParseWholeNumber(run.Text, wholeText: true) is not { } value)
+            {
+                continue;
+            }
+
+            if (found is not null)
+            {
+                return null;
+            }
+
+            found = value;
+        }
+
+        return found;
+    }
+
+    // The first number written anywhere in a text, in any script: "Member for 1 month", "عضو به‌مدت ۱ ماه".
+    private static int? FirstNumberInText(string? text) => ParseWholeNumber(text, wholeText: false);
+
+    private static int? ParseWholeNumber(string? text, bool wholeText)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return null;
+        }
+
+        long value = 0;
+        bool inNumber = false;
+        bool done = false;
+        foreach (char c in text!)
+        {
+            double digit = char.IsDigit(c) ? char.GetNumericValue(c) : -1;
+            if (digit >= 0 && !done)
+            {
+                value = (value * 10) + (long)digit;
+                inNumber = true;
+                if (value > int.MaxValue)
+                {
+                    return null;
+                }
+            }
+            else if (inNumber && c is ',' or '.' or '\'' or '\u00a0' or '\u202f' or ' ' or '\u066c')
+            {
+                // Group separator inside a number; a separator after the last digit ends nothing.
+            }
+            else if (char.IsWhiteSpace(c) || char.GetUnicodeCategory(c) == UnicodeCategory.Format)
+            {
+                done |= inNumber;
+            }
+            else if (wholeText)
+            {
+                return null;
+            }
+            else if (inNumber)
+            {
+                done = true;
+            }
+        }
+
+        return inNumber ? (int)value : null;
+    }
+
+    private static string? HandleFromRuns(IEnumerable<Models.Response.MessageRun>? runs) =>
+        runs?.OfType<Models.Response.MessageText>()
+            .Select(static run => run.Text?.Trim())
+            .FirstOrDefault(static text => text is { Length: > 1 } && text[0] == '@');
+
     private static string? TryExtractTierNameFromHeaderSubtextRuns(
         IEnumerable<Models.Response.MessageRun>? runs
     )
@@ -1369,6 +1449,8 @@ internal static partial class Parser
                         "member for",
                         StringComparison.OrdinalIgnoreCase
                     ) >= 0
+                    // In any language, only a milestone carries a primary header line ("Member for 1 month").
+                    || !string.IsNullOrWhiteSpace(membershipInfo.HeaderPrimaryText)
                 )
                 {
                     membershipInfo.EventType = Contracts.Models.MembershipEventType.Milestone;
@@ -1379,8 +1461,18 @@ internal static partial class Parser
                     }
 
                     Match monthsMatch = MilestoneMonthsRegex()
-                        .Match(membershipInfo.HeaderPrimaryText);
+                        .Match(membershipInfo.HeaderPrimaryText ?? string.Empty);
                     if (
+                        (
+                            NumberFromRuns(membershipItem.HeaderPrimaryText?.Runs)
+                            ?? FirstNumberInText(membershipInfo.HeaderPrimaryText)
+                        )
+                        is { } monthsFromRuns
+                    )
+                    {
+                        membershipInfo.MilestoneMonths = monthsFromRuns;
+                    }
+                    else if (
                         monthsMatch.Success
                         && int.TryParse(monthsMatch.Groups[1].Value, out int months)
                     )
@@ -1484,8 +1576,11 @@ internal static partial class Parser
                         giftMatch = GiftedCountRegex().Match(membershipInfo.HeaderPrimaryText);
                     }
 
-                    // Process if either regex matched
-                    if (giftMatch.Success)
+                    if (NumberFromRuns(gifterHeader?.PrimaryText?.Runs) is { } countFromRuns)
+                    {
+                        giftCount = countFromRuns;
+                    }
+                    else if (giftMatch.Success)
                     {
                         string countStr = giftMatch.Groups[1].Value;
                         if (countStr.Equals("a", StringComparison.OrdinalIgnoreCase))
@@ -1557,7 +1652,8 @@ internal static partial class Parser
                     }
                 }
 
-                membershipInfo.GifterUsername = gifterName;
+                membershipInfo.GifterUsername =
+                    HandleFromRuns(giftRedemption.Message?.Runs) ?? gifterName;
                 break;
         }
 
