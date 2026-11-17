@@ -202,11 +202,16 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
             Continuation = options.Continuation,
             CurrentPlayerState = new PlayerState
             {
-                PlayerOffsetMs = playerOffsetMs.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                PlayerOffsetMs = playerOffsetMs.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture
+                ),
             },
         };
         using StringContent content = new(
-            JsonSerializer.Serialize(payload, YTLiveChatJsonSerializerContext.Default.ReplayRequest),
+            JsonSerializer.Serialize(
+                payload,
+                YTLiveChatJsonSerializerContext.Default.ReplayRequest
+            ),
             System.Text.Encoding.UTF8,
             "application/json"
         );
@@ -250,7 +255,10 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
             Continuation = continuation,
         };
         using StringContent content = new(
-            JsonSerializer.Serialize(payload, YTLiveChatJsonSerializerContext.Default.MetadataRequest),
+            JsonSerializer.Serialize(
+                payload,
+                YTLiveChatJsonSerializerContext.Default.MetadataRequest
+            ),
             System.Text.Encoding.UTF8,
             "application/json"
         );
@@ -292,7 +300,10 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
             VideoId = options.LiveId,
         };
         using StringContent content = new(
-            JsonSerializer.Serialize(payload, YTLiveChatJsonSerializerContext.Default.PlayerRequest),
+            JsonSerializer.Serialize(
+                payload,
+                YTLiveChatJsonSerializerContext.Default.PlayerRequest
+            ),
             System.Text.Encoding.UTF8,
             "application/json"
         );

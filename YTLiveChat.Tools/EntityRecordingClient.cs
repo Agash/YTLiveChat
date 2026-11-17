@@ -17,15 +17,17 @@ internal sealed class EntityRecordingClient(
     string tag,
     EntityRecorder recorder,
     SchemaRecorder schema
-)
-    : YTHttpClient(httpClient, NullLogger<YTHttpClient>.Instance)
+) : YTHttpClient(httpClient, NullLogger<YTHttpClient>.Instance)
 {
     public override async Task<(LiveChatResponse? Response, string? RawJson)> GetLiveChatAsync(
         FetchOptions options,
         CancellationToken cancellationToken = default
     )
     {
-        (LiveChatResponse? response, string? rawJson) = await base.GetLiveChatAsync(options, cancellationToken)
+        (LiveChatResponse? response, string? rawJson) = await base.GetLiveChatAsync(
+                options,
+                cancellationToken
+            )
             .ConfigureAwait(false);
         if (rawJson is not null)
         {
@@ -63,7 +65,10 @@ internal sealed class EntityRecorder(StreamWriter writer)
 
         JsonArray? mutations =
             root?["frameworkUpdates"]?["entityBatchUpdate"]?["mutations"] as JsonArray
-            ?? root?["continuationContents"]?["frameworkUpdates"]?["entityBatchUpdate"]?["mutations"] as JsonArray;
+            ?? root?["continuationContents"]
+                ?["frameworkUpdates"]
+                ?["entityBatchUpdate"]
+                ?["mutations"] as JsonArray;
         if (mutations is null)
         {
             return;
@@ -71,9 +76,10 @@ internal sealed class EntityRecorder(StreamWriter writer)
 
         foreach (JsonNode? mutation in mutations)
         {
-            string payloadType = mutation?["payload"] is JsonObject payload && payload.Count > 0
-                ? string.Join('+', payload.Select(static p => p.Key))
-                : "(none)";
+            string payloadType =
+                mutation?["payload"] is JsonObject payload && payload.Count > 0
+                    ? string.Join('+', payload.Select(static p => p.Key))
+                    : "(none)";
             string type = mutation?["type"]?.GetValue<string>() ?? "(no type)";
             _ = _counts.AddOrUpdate($"{payloadType} {type}", 1, static (_, n) => n + 1);
             JsonObject line = new()

@@ -2354,7 +2354,11 @@ public class ParserTests
     private static LiveChatResponse GoalAndReactionsResponse() =>
         JsonSerializer.Deserialize<LiveChatResponse>(
             File.ReadAllText(
-                Path.Combine(AppContext.BaseDirectory, "Entities", "goal-and-reactions.2026-11-17.json")
+                Path.Combine(
+                    AppContext.BaseDirectory,
+                    "Entities",
+                    "goal-and-reactions.2026-11-17.json"
+                )
             )
         )!;
 
@@ -2429,11 +2433,19 @@ public class ParserTests
     {
         // A Super Chat and the reply-count update for it, captured 2026-11-17 (author and message anonymized).
         LiveChatResponse response = JsonSerializer.Deserialize<LiveChatResponse>(
-            File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Entities", "superchat-replies.2026-11-17.json"))
+            File.ReadAllText(
+                Path.Combine(
+                    AppContext.BaseDirectory,
+                    "Entities",
+                    "superchat-replies.2026-11-17.json"
+                )
+            )
         )!;
 
         Contracts.Models.ChatItem superChat = Parser.ParseLiveChatResponse(response).Items.Single();
-        ReplyCountItem? replies = Parser.ToReplyCount(Parser.ExtractEntityMutations(response).Single());
+        ReplyCountItem? replies = Parser.ToReplyCount(
+            Parser.ExtractEntityMutations(response).Single()
+        );
 
         Assert.IsNotNull(superChat.Superchat);
         Assert.IsNotNull(replies);
@@ -2443,5 +2455,7 @@ public class ParserTests
 
     [TestMethod]
     public void ToCreatorGoal_OtherEntity_ReturnsNull() =>
-        Assert.IsNull(Parser.ToCreatorGoal(Parser.ExtractEntityMutations(GoalAndReactionsResponse())[1]));
+        Assert.IsNull(
+            Parser.ToCreatorGoal(Parser.ExtractEntityMutations(GoalAndReactionsResponse())[1])
+        );
 }

@@ -60,15 +60,28 @@ internal static partial class LiveStateMode
                     )
                     .ConfigureAwait(false);
                 Console.WriteLine($"== {target}: {streams.Count} entries on the streams page");
-                foreach (StreamInfo s in streams.Where(s => s.Status is StreamStatus.Live or StreamStatus.Upcoming))
+                foreach (
+                    StreamInfo s in streams.Where(s =>
+                        s.Status is StreamStatus.Live or StreamStatus.Upcoming
+                    )
+                )
                 {
-                    videos.Add((s.LiveId, $"streams:{s.Status} scheduled={s.ScheduledAt:O} viewers={s.ViewerCount}"));
+                    videos.Add(
+                        (
+                            s.LiveId,
+                            $"streams:{s.Status} scheduled={s.ScheduledAt:O} viewers={s.ViewerCount}"
+                        )
+                    );
                 }
 
-                StreamInfo? past = streams.FirstOrDefault(s => s.Status is not (StreamStatus.Live or StreamStatus.Upcoming));
+                StreamInfo? past = streams.FirstOrDefault(s =>
+                    s.Status is not (StreamStatus.Live or StreamStatus.Upcoming)
+                );
                 if (past is not null)
                 {
-                    videos.Add((past.LiveId, $"streams:{past.Status} published='{past.PublishedTimeText}'"));
+                    videos.Add(
+                        (past.LiveId, $"streams:{past.Status} published='{past.PublishedTimeText}'")
+                    );
                 }
             }
             else
@@ -78,7 +91,8 @@ internal static partial class LiveStateMode
 
             foreach ((string id, string source) in videos)
             {
-                await ProbeAsync(httpClient, ytHttpClient, id, source, outputDir).ConfigureAwait(false);
+                await ProbeAsync(httpClient, ytHttpClient, id, source, outputDir)
+                    .ConfigureAwait(false);
             }
         }
 
@@ -96,53 +110,90 @@ internal static partial class LiveStateMode
     {
         Console.WriteLine($"-- {videoId} ({source})");
         string html = await ytHttpClient.GetOptionsAsync(null, null, videoId).ConfigureAwait(false);
-        await File.WriteAllTextAsync(Path.Combine(outputDir, $"{videoId}.watch.html"), html).ConfigureAwait(false);
+        await File.WriteAllTextAsync(Path.Combine(outputDir, $"{videoId}.watch.html"), html)
+            .ConfigureAwait(false);
 
-        Console.WriteLine("   watch:"
-            + $" isLiveNow={Values(html, "isLiveNow")} isUpcoming={Values(html, "isUpcoming")}"
-            + $" isLive={Values(html, "isLive")} isLiveContent={Values(html, "isLiveContent")}"
-            + $" isReplay={Values(html, "isReplay")} offlineSlate={html.Contains("liveStreamOfflineSlateRenderer", StringComparison.Ordinal)}");
+        Console.WriteLine(
+            "   watch:"
+                + $" isLiveNow={Values(html, "isLiveNow")} isUpcoming={Values(html, "isUpcoming")}"
+                + $" isLive={Values(html, "isLive")} isLiveContent={Values(html, "isLiveContent")}"
+                + $" isReplay={Values(html, "isReplay")} offlineSlate={html.Contains("liveStreamOfflineSlateRenderer", StringComparison.Ordinal)}"
+        );
         Match details = LiveBroadcastDetailsRegex().Match(html);
         if (details.Success)
         {
             Console.WriteLine($"   watch liveBroadcastDetails: {details.Value}");
         }
 
-        string? apiKey = ApiKeyRegex().Match(html) is { Success: true } k ? k.Groups[1].Value : null;
-        string? clientVersion = ClientVersionRegex().Match(html) is { Success: true } v ? v.Groups[1].Value : null;
+        string? apiKey = ApiKeyRegex().Match(html) is { Success: true } k
+            ? k.Groups[1].Value
+            : null;
+        string? clientVersion = ClientVersionRegex().Match(html) is { Success: true } v
+            ? v.Groups[1].Value
+            : null;
         if (apiKey is null || clientVersion is null)
         {
             Console.WriteLine("   no innertube key or client version on the page");
             return;
         }
 
-        JsonNode? player = await PostAsync(http, "player", apiKey, clientVersion, videoId, outputDir).ConfigureAwait(false);
+        JsonNode? player = await PostAsync(
+                http,
+                "player",
+                apiKey,
+                clientVersion,
+                videoId,
+                outputDir
+            )
+            .ConfigureAwait(false);
         if (player is not null)
         {
             JsonNode? vd = player["videoDetails"];
             JsonNode? ps = player["playabilityStatus"];
-            JsonNode? lbd = player["microformat"]?["playerMicroformatRenderer"]?["liveBroadcastDetails"];
-            JsonNode? slate = ps?["liveStreamability"]?["liveStreamabilityRenderer"]?["offlineSlate"];
-            Console.WriteLine($"   player: status={ps?["status"]} isLive={vd?["isLive"]} isUpcoming={vd?["isUpcoming"]}"
-                + $" isLiveContent={vd?["isLiveContent"]} liveStreamability={ps?["liveStreamability"] is not null}"
-                + $" offlineSlate={slate is not null}");
+            JsonNode? lbd = player["microformat"]
+                ?["playerMicroformatRenderer"]
+                ?["liveBroadcastDetails"];
+            JsonNode? slate = ps
+                ?["liveStreamability"]
+                ?["liveStreamabilityRenderer"]
+                ?["offlineSlate"];
+            Console.WriteLine(
+                $"   player: status={ps?["status"]} isLive={vd?["isLive"]} isUpcoming={vd?["isUpcoming"]}"
+                    + $" isLiveContent={vd?["isLiveContent"]} liveStreamability={ps?["liveStreamability"] is not null}"
+                    + $" offlineSlate={slate is not null}"
+            );
             Console.WriteLine($"   player liveBroadcastDetails: {lbd?.ToJsonString() ?? "(none)"}");
-            string? scheduled = slate?["liveStreamOfflineSlateRenderer"]?["scheduledStartTime"]?.ToString();
+            string? scheduled = slate?["liveStreamOfflineSlateRenderer"]?[
+                "scheduledStartTime"
+            ]?.ToString();
             if (scheduled is not null)
             {
                 Console.WriteLine($"   player offlineSlate.scheduledStartTime: {scheduled}");
             }
         }
 
-        JsonNode? metadata = await PostAsync(http, "updated_metadata", apiKey, clientVersion, videoId, outputDir).ConfigureAwait(false);
+        JsonNode? metadata = await PostAsync(
+                http,
+                "updated_metadata",
+                apiKey,
+                clientVersion,
+                videoId,
+                outputDir
+            )
+            .ConfigureAwait(false);
         if (metadata?["actions"] is JsonArray actions)
         {
             foreach (JsonNode? action in actions)
             {
-                if (action?["updateViewershipAction"]?["viewCount"]?["videoViewCountRenderer"] is { } views)
+                if (
+                    action?["updateViewershipAction"]?["viewCount"]?["videoViewCountRenderer"] is
+                    { } views
+                )
                 {
-                    Console.WriteLine($"   updated_metadata viewership: isLive={views["isLive"]} text={Runs(views["viewCount"])}"
-                        + $" original={views["originalViewCount"]}");
+                    Console.WriteLine(
+                        $"   updated_metadata viewership: isLive={views["isLive"]} text={Runs(views["viewCount"])}"
+                            + $" original={views["originalViewCount"]}"
+                    );
                 }
 
                 if (action?["updateDateTextAction"]?["dateText"] is { } date)
@@ -151,7 +202,9 @@ internal static partial class LiveStateMode
                 }
             }
 
-            Console.WriteLine($"   updated_metadata timeoutMs: {metadata["continuation"]?["timedContinuationData"]?["timeoutMs"]}");
+            Console.WriteLine(
+                $"   updated_metadata timeoutMs: {metadata["continuation"]?["timedContinuationData"]?["timeoutMs"]}"
+            );
         }
     }
 
@@ -164,18 +217,33 @@ internal static partial class LiveStateMode
         string outputDir
     )
     {
-        string body = JsonSerializer.Serialize(new
-        {
-            context = new { client = new { clientName = "WEB", clientVersion, hl = "en", gl = "US" } },
-            videoId,
-        });
-        using HttpRequestMessage request = new(HttpMethod.Post, $"/youtubei/v1/{endpoint}?key={apiKey}&prettyPrint=false")
+        string body = JsonSerializer.Serialize(
+            new
+            {
+                context = new
+                {
+                    client = new
+                    {
+                        clientName = "WEB",
+                        clientVersion,
+                        hl = "en",
+                        gl = "US",
+                    },
+                },
+                videoId,
+            }
+        );
+        using HttpRequestMessage request = new(
+            HttpMethod.Post,
+            $"/youtubei/v1/{endpoint}?key={apiKey}&prettyPrint=false"
+        )
         {
             Content = new StringContent(body, Encoding.UTF8, "application/json"),
         };
         using HttpResponseMessage response = await http.SendAsync(request).ConfigureAwait(false);
         string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-        await File.WriteAllTextAsync(Path.Combine(outputDir, $"{videoId}.{endpoint}.json"), json).ConfigureAwait(false);
+        await File.WriteAllTextAsync(Path.Combine(outputDir, $"{videoId}.{endpoint}.json"), json)
+            .ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
             Console.WriteLine($"   {endpoint}: HTTP {(int)response.StatusCode}");
@@ -193,7 +261,10 @@ internal static partial class LiveStateMode
     {
         string[] values =
         [
-            .. Regex.Matches(html, $"\"{key}\":\\s*(true|false)").Select(m => m.Groups[1].Value).Distinct(),
+            .. Regex
+                .Matches(html, $"\"{key}\":\\s*(true|false)")
+                .Select(m => m.Groups[1].Value)
+                .Distinct(),
         ];
         return values.Length == 0 ? "-" : string.Join('/', values);
     }

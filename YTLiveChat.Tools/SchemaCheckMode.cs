@@ -30,7 +30,9 @@ internal static class SchemaCheckMode
             }
         }
 
-        Dictionary<string, (long Count, string Sample, int Paths)> dropped = new(StringComparer.Ordinal);
+        Dictionary<string, (long Count, string Sample, int Paths)> dropped = new(
+            StringComparer.Ordinal
+        );
         Dictionary<string, (long Count, int Paths)> raw = new(StringComparer.Ordinal);
         foreach (string line in File.ReadLines(args[0]))
         {
@@ -55,24 +57,38 @@ internal static class SchemaCheckMode
             }
             else if (outcome == Outcome.Raw)
             {
-                raw[prefix] = raw.TryGetValue(prefix, out var r) ? (r.Count + count, r.Paths + 1) : (count, 1);
+                raw[prefix] = raw.TryGetValue(prefix, out var r)
+                    ? (r.Count + count, r.Paths + 1)
+                    : (count, 1);
             }
         }
 
         Console.WriteLine($"DROPPED (first unmapped key; values, paths beneath, sample)");
-        foreach ((string prefix, (long count, string sample, int paths)) in dropped.OrderBy(static d => d.Key, StringComparer.Ordinal))
+        foreach (
+            (string prefix, (long count, string sample, int paths)) in dropped.OrderBy(
+                static d => d.Key,
+                StringComparer.Ordinal
+            )
+        )
         {
             if (count >= minCount)
             {
-                Console.WriteLine($"{count,9} {paths,5}  {prefix}\n                  e.g. {sample}");
+                Console.WriteLine(
+                    $"{count, 9} {paths, 5}  {prefix}\n                  e.g. {sample}"
+                );
             }
         }
 
         Console.WriteLine();
         Console.WriteLine("KEPT RAW (JsonExtensionData)");
-        foreach ((string prefix, (long count, int paths)) in raw.OrderBy(static r => r.Key, StringComparer.Ordinal))
+        foreach (
+            (string prefix, (long count, int paths)) in raw.OrderBy(
+                static r => r.Key,
+                StringComparer.Ordinal
+            )
+        )
         {
-            Console.WriteLine($"{count,9} {paths,5}  {prefix}");
+            Console.WriteLine($"{count, 9} {paths, 5}  {prefix}");
         }
 
         return 0;
@@ -97,19 +113,26 @@ internal static class SchemaCheckMode
 
             PropertyInfo? property = current
                 .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .FirstOrDefault(p => p.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name == key);
+                .FirstOrDefault(p =>
+                    p.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name == key
+                );
             if (property is null)
             {
                 bool hasExtension = current
                     .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                    .Any(static p => p.GetCustomAttribute<JsonExtensionDataAttribute>() is not null);
+                    .Any(static p =>
+                        p.GetCustomAttribute<JsonExtensionDataAttribute>() is not null
+                    );
                 return (hasExtension ? Outcome.Raw : Outcome.Dropped, walked);
             }
 
             // A custom converter reads the value itself (message runs, for example); what it reads is not visible here.
             if (
                 property.GetCustomAttribute<JsonConverterAttribute>() is not null
-                || (ElementType(property.PropertyType) ?? property.PropertyType).GetCustomAttribute<JsonConverterAttribute>() is not null
+                || (
+                    ElementType(property.PropertyType) ?? property.PropertyType
+                ).GetCustomAttribute<JsonConverterAttribute>()
+                    is not null
             )
             {
                 return (Outcome.Mapped, walked);
@@ -122,7 +145,12 @@ internal static class SchemaCheckMode
             }
 
             current = Nullable.GetUnderlyingType(next) ?? next;
-            if (current.IsPrimitive || current == typeof(string) || current.IsEnum || current == typeof(System.Text.Json.JsonElement))
+            if (
+                current.IsPrimitive
+                || current == typeof(string)
+                || current.IsEnum
+                || current == typeof(System.Text.Json.JsonElement)
+            )
             {
                 return (Outcome.Mapped, walked);
             }
@@ -138,9 +166,14 @@ internal static class SchemaCheckMode
             return type.GetElementType();
         }
 
-        Type? enumerable = type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>)
-            ? type
-            : type.GetInterfaces().FirstOrDefault(static i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
-        return enumerable?.GetGenericArguments()[0] ?? (typeof(IEnumerable).IsAssignableFrom(type) ? typeof(object) : null);
+        Type? enumerable =
+            type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>)
+                ? type
+                : type.GetInterfaces()
+                    .FirstOrDefault(static i =>
+                        i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>)
+                    );
+        return enumerable?.GetGenericArguments()[0]
+            ?? (typeof(IEnumerable).IsAssignableFrom(type) ? typeof(object) : null);
     }
 }

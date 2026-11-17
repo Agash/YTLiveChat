@@ -45,9 +45,17 @@ internal sealed class SchemaRecorder : IDisposable
     public void Flush()
     {
         StringBuilder builder = new();
-        _ = builder.AppendLine(CultureInfo.InvariantCulture, $"# responses\t{Interlocked.Read(ref _responses)}");
+        _ = builder.AppendLine(
+            CultureInfo.InvariantCulture,
+            $"# responses\t{Interlocked.Read(ref _responses)}"
+        );
         _ = builder.AppendLine("path\tcount\tsample");
-        foreach (KeyValuePair<string, PathStats> entry in _paths.OrderBy(static p => p.Key, StringComparer.Ordinal))
+        foreach (
+            KeyValuePair<string, PathStats> entry in _paths.OrderBy(
+                static p => p.Key,
+                StringComparer.Ordinal
+            )
+        )
         {
             _ = builder.AppendLine(
                 CultureInfo.InvariantCulture,
@@ -73,7 +81,10 @@ internal sealed class SchemaRecorder : IDisposable
             case JsonValueKind.Object:
                 foreach (JsonProperty property in element.EnumerateObject())
                 {
-                    Walk(property.Value, path.Length == 0 ? property.Name : path + "." + property.Name);
+                    Walk(
+                        property.Value,
+                        path.Length == 0 ? property.Name : path + "." + property.Name
+                    );
                 }
 
                 break;

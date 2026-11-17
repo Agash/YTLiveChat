@@ -25,7 +25,6 @@ public record FetchOptions
     /// </summary>
     public required string Continuation { get; set; }
 
-
     /// <summary>
     /// Whether the page the options came from showed the stream broadcasting (not a waiting room or a replay).
     /// </summary>

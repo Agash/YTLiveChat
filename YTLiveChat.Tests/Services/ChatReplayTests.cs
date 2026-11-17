@@ -40,7 +40,9 @@ public class ChatReplayTests
     public void GetReplayOptions_LivePage_IsNull()
     {
         Assert.IsNull(
-            Parser.GetReplayOptions(WebSnapshotTestData.LoadWebSnapshot("HimemoriLuna.live.2026-02-17.html"))
+            Parser.GetReplayOptions(
+                WebSnapshotTestData.LoadWebSnapshot("HimemoriLuna.live.2026-02-17.html")
+            )
         );
     }
 
@@ -52,8 +54,11 @@ public class ChatReplayTests
             ?.ContinuationContents?.LiveChatContinuation;
 
         Assert.IsNotNull(chat);
-        List<Models.Response.SubMenuItem>? views = chat
-            .Header?.LiveChatHeaderRenderer?.ViewSelector?.SortFilterSubMenuRenderer?.SubMenuItems;
+        List<Models.Response.SubMenuItem>? views = chat.Header
+            ?.LiveChatHeaderRenderer
+            ?.ViewSelector
+            ?.SortFilterSubMenuRenderer
+            ?.SubMenuItems;
         Assert.AreEqual(2, views?.Count);
         Assert.IsNotNull(views![1].Continuation?.ReloadContinuationData?.Continuation);
         Assert.IsTrue(chat.Actions!.All(a => a.ReplayChatItemAction is not null));
@@ -63,15 +68,25 @@ public class ChatReplayTests
     public async Task StreamChatReplayAsync_AllMessages_ReadsFromTheLiveChatReplayView()
     {
         Mock<YTHttpClient> http = new(Mock.Of<HttpClient>(), null!);
-        http.Setup(h => h.GetOptionsAsync(null, null, VideoId, It.IsAny<CancellationToken>())).ReturnsAsync(WatchPage);
-        http.Setup(h => h.GetReplayPageAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(ReplayPage);
+        http.Setup(h => h.GetOptionsAsync(null, null, VideoId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WatchPage);
+        http.Setup(h => h.GetReplayPageAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ReplayPage);
         List<(string Continuation, long Offset)> calls = [];
-        http.Setup(h => h.GetLiveChatReplayAsync(It.IsAny<FetchOptions>(), It.IsAny<long>(), It.IsAny<CancellationToken>()))
+        http.Setup(h =>
+                h.GetLiveChatReplayAsync(
+                    It.IsAny<FetchOptions>(),
+                    It.IsAny<long>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
             .ReturnsAsync(
                 (FetchOptions o, long offset, CancellationToken _) =>
                 {
                     calls.Add((o.Continuation, offset));
-                    return calls.Count == 1 ? ReplayApi : """{"continuationContents":{"liveChatContinuation":{}}}""";
+                    return calls.Count == 1
+                        ? ReplayApi
+                        : """{"continuationContents":{"liveChatContinuation":{}}}""";
                 }
             );
         using YTLiveChat.Services.YTLiveChat chat = new(new YTLiveChatOptions(), http.Object);
@@ -82,16 +97,35 @@ public class ChatReplayTests
             items.Add(item);
         }
 
-        Models.Response.LiveChatContinuation page = Parser.ParseReplayPage(ReplayPage)!.ContinuationContents!.LiveChatContinuation!;
-        string liveView = page.Header!.LiveChatHeaderRenderer!.ViewSelector!.SortFilterSubMenuRenderer!.SubMenuItems![1]
-            .Continuation!.ReloadContinuationData!.Continuation!;
-        Assert.AreEqual(liveView, calls[0].Continuation, "the replay page opens in Top chat; reading starts from the other view");
+        Models.Response.LiveChatContinuation page = Parser
+            .ParseReplayPage(ReplayPage)!
+            .ContinuationContents!.LiveChatContinuation!;
+        string liveView = page.Header!
+            .LiveChatHeaderRenderer!
+            .ViewSelector!
+            .SortFilterSubMenuRenderer!
+            .SubMenuItems![1]
+            .Continuation!
+            .ReloadContinuationData!
+            .Continuation!;
+        Assert.AreEqual(
+            liveView,
+            calls[0].Continuation,
+            "the replay page opens in Top chat; reading starts from the other view"
+        );
         Assert.AreEqual(0L, calls[0].Offset);
         Assert.AreEqual(2, calls.Count);
-        Assert.IsTrue(calls[1].Offset >= 5_981_623L, "the next page continues after the last entry read");
+        Assert.IsTrue(
+            calls[1].Offset >= 5_981_623L,
+            "the next page continues after the last entry read"
+        );
 
         Assert.IsTrue(items.Count >= 5);
-        ReplayChatItem message = items.First(i => i.ChatItem?.Message.Length > 0 && i.VideoOffset > TimeSpan.Zero && i.ChatItem.Superchat is null);
+        ReplayChatItem message = items.First(i =>
+            i.ChatItem?.Message.Length > 0
+            && i.VideoOffset > TimeSpan.Zero
+            && i.ChatItem.Superchat is null
+        );
         Assert.AreEqual(TimeSpan.FromMilliseconds(5_968_286), message.VideoOffset);
         Assert.AreNotEqual(default, message.ChatItem!.Timestamp);
         ReplayChatItem sticker = items.Single(i => i.ChatItem?.Superchat?.Sticker is not null);
@@ -102,15 +136,25 @@ public class ChatReplayTests
     public async Task StreamChatReplayAsync_From_SkipsEarlierEntriesAndSeeksThere()
     {
         Mock<YTHttpClient> http = new(Mock.Of<HttpClient>(), null!);
-        http.Setup(h => h.GetOptionsAsync(null, null, VideoId, It.IsAny<CancellationToken>())).ReturnsAsync(WatchPage);
-        http.Setup(h => h.GetReplayPageAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(ReplayPage);
+        http.Setup(h => h.GetOptionsAsync(null, null, VideoId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WatchPage);
+        http.Setup(h => h.GetReplayPageAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ReplayPage);
         List<long> offsets = [];
-        http.Setup(h => h.GetLiveChatReplayAsync(It.IsAny<FetchOptions>(), It.IsAny<long>(), It.IsAny<CancellationToken>()))
+        http.Setup(h =>
+                h.GetLiveChatReplayAsync(
+                    It.IsAny<FetchOptions>(),
+                    It.IsAny<long>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
             .ReturnsAsync(
                 (FetchOptions _, long offset, CancellationToken _) =>
                 {
                     offsets.Add(offset);
-                    return offsets.Count == 1 ? ReplayApi : """{"continuationContents":{"liveChatContinuation":{}}}""";
+                    return offsets.Count == 1
+                        ? ReplayApi
+                        : """{"continuationContents":{"liveChatContinuation":{}}}""";
                 }
             );
         using YTLiveChat.Services.YTLiveChat chat = new(new YTLiveChatOptions(), http.Object);
@@ -137,9 +181,7 @@ public class ChatReplayTests
 
         await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
         {
-            await foreach (ReplayChatItem _ in chat.StreamChatReplayAsync("x"))
-            {
-            }
+            await foreach (ReplayChatItem _ in chat.StreamChatReplayAsync("x")) { }
         });
     }
 }

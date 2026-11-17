@@ -88,7 +88,10 @@ public class LiveStateParsingTests
     [DataRow("LIVE", ChatMode.LiveCommentary)]
     [DataRow("QUESTION_ANSWER", ChatMode.Open)]
     [DataRow("SOMETHING_NEW", ChatMode.Unknown)]
-    public void ToChatModeChange_CapturedNotice_ReadsTheModeFromTheIcon(string iconType, ChatMode mode)
+    public void ToChatModeChange_CapturedNotice_ReadsTheModeFromTheIcon(
+        string iconType,
+        ChatMode mode
+    )
     {
         string json = """
             {"addChatItemAction":{"item":{"liveChatModeChangeMessageRenderer":{
@@ -114,15 +117,15 @@ public class LiveStateParsingTests
     }
 
     private static string Metadata(string name) =>
-        File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Metadata", name + ".2026-11-17.json"));
+        File.ReadAllText(
+            Path.Combine(AppContext.BaseDirectory, "Metadata", name + ".2026-11-17.json")
+        );
 
     [TestMethod]
     public void ParseUpdatedMetadata_LiveStream_ReadsViewersTitleAndPace()
     {
-        (StreamMetadataItem metadata, string? continuation, int timeoutMs) = Parser.ParseUpdatedMetadata(
-            Metadata("live"),
-            "rUEyequT3ro"
-        );
+        (StreamMetadataItem metadata, string? continuation, int timeoutMs) =
+            Parser.ParseUpdatedMetadata(Metadata("live"), "rUEyequT3ro");
 
         Assert.IsTrue(metadata.IsLive);
         Assert.AreEqual(2310L, metadata.ViewerCount);
@@ -137,7 +140,10 @@ public class LiveStateParsingTests
     [TestMethod]
     public void ParseUpdatedMetadata_EndedStream_IsNotLiveAndSlowsDown()
     {
-        (StreamMetadataItem metadata, _, int timeoutMs) = Parser.ParseUpdatedMetadata(Metadata("ended"), "a8PQ2VAohXg");
+        (StreamMetadataItem metadata, _, int timeoutMs) = Parser.ParseUpdatedMetadata(
+            Metadata("ended"),
+            "a8PQ2VAohXg"
+        );
 
         Assert.IsFalse(metadata.IsLive);
         Assert.IsNull(metadata.ViewerCount);
@@ -147,7 +153,10 @@ public class LiveStateParsingTests
     [TestMethod]
     public void ParseUpdatedMetadata_WaitingRoom_ReadsLikesFromTheEntity()
     {
-        (StreamMetadataItem metadata, _, int timeoutMs) = Parser.ParseUpdatedMetadata(Metadata("waiting"), "197OEpjj8RI");
+        (StreamMetadataItem metadata, _, int timeoutMs) = Parser.ParseUpdatedMetadata(
+            Metadata("waiting"),
+            "197OEpjj8RI"
+        );
 
         Assert.AreEqual(6235L, metadata.LikeCount);
         Assert.AreEqual(30000, timeoutMs);

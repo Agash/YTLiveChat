@@ -454,14 +454,20 @@ internal static partial class Parser
                 foreach (JsonElement overlay in overlays.EnumerateArray())
                 {
                     if (
-                        overlay.TryGetProperty("thumbnailBottomOverlayViewModel", out JsonElement bottom)
+                        overlay.TryGetProperty(
+                            "thumbnailBottomOverlayViewModel",
+                            out JsonElement bottom
+                        )
                         && bottom.TryGetProperty("badges", out JsonElement badges)
                         && badges.ValueKind == JsonValueKind.Array
                         && badges.GetArrayLength() > 0
-                        && badges[0].TryGetProperty("thumbnailBadgeViewModel", out JsonElement badge)
+                        && badges[0]
+                            .TryGetProperty("thumbnailBadgeViewModel", out JsonElement badge)
                     )
                     {
-                        badgeText = badge.TryGetProperty("text", out JsonElement t) ? t.GetString() : null;
+                        badgeText = badge.TryGetProperty("text", out JsonElement t)
+                            ? t.GetString()
+                            : null;
                         badgeStyle = badge.TryGetProperty("badgeStyle", out JsonElement st)
                             ? st.GetString()
                             : null;
@@ -475,7 +481,10 @@ internal static partial class Parser
         List<string> metadata = [];
         if (
             lockup.TryGetProperty("metadata", out JsonElement metadataElement)
-            && metadataElement.TryGetProperty("lockupMetadataViewModel", out JsonElement lockupMetadata)
+            && metadataElement.TryGetProperty(
+                "lockupMetadataViewModel",
+                out JsonElement lockupMetadata
+            )
         )
         {
             if (
@@ -546,9 +555,7 @@ internal static partial class Parser
     private static string? LeadingWholeNumber(string text)
     {
         Match match = LeadingWholeNumberRegex().Match(text);
-        return match.Success
-            ? new string([.. match.Groups[1].Value.Where(char.IsDigit)])
-            : null;
+        return match.Success ? new string([.. match.Groups[1].Value.Where(char.IsDigit)]) : null;
     }
 
     private static string? ExtractOverlayStyle(JsonElement videoRenderer)
@@ -625,7 +632,10 @@ internal static partial class Parser
         // conversation bar carries an availability message ("Chat is disabled for this live stream.") where a live
         // chat has its liveChatRenderer. A members-only page carries the same message and is caught above.
         if (
-            raw.IndexOf("\"conversationBarRenderer\":{\"availabilityMessage\"", StringComparison.Ordinal) >= 0
+            raw.IndexOf(
+                "\"conversationBarRenderer\":{\"availabilityMessage\"",
+                StringComparison.Ordinal
+            ) >= 0
             && raw.IndexOf("\"liveChatRenderer\"", StringComparison.Ordinal) < 0
         )
         {
@@ -961,7 +971,9 @@ internal static partial class Parser
     private static int? NumberFromRuns(IEnumerable<Models.Response.MessageRun>? runs)
     {
         int? found = null;
-        foreach (Models.Response.MessageText run in runs?.OfType<Models.Response.MessageText>() ?? [])
+        foreach (
+            Models.Response.MessageText run in runs?.OfType<Models.Response.MessageText>() ?? []
+        )
         {
             if (ParseWholeNumber(run.Text, wholeText: true) is not { } value)
             {
@@ -1026,7 +1038,8 @@ internal static partial class Parser
     }
 
     private static string? HandleFromRuns(IEnumerable<Models.Response.MessageRun>? runs) =>
-        runs?.OfType<Models.Response.MessageText>()
+        runs
+            ?.OfType<Models.Response.MessageText>()
             .Select(static run => run.Text?.Trim())
             .FirstOrDefault(static text => text is { Length: > 1 } && text[0] == '@');
 
@@ -1466,8 +1479,8 @@ internal static partial class Parser
                         (
                             NumberFromRuns(membershipItem.HeaderPrimaryText?.Runs)
                             ?? FirstNumberInText(membershipInfo.HeaderPrimaryText)
-                        )
-                        is { } monthsFromRuns
+                        ) is
+                        { } monthsFromRuns
                     )
                     {
                         membershipInfo.MilestoneMonths = monthsFromRuns;
@@ -2594,7 +2607,9 @@ internal static partial class Parser
     /// <summary>
     /// The entity updates of a chat response, from <c>frameworkUpdates</c> at the top and inside the continuation.
     /// </summary>
-    public static List<Contracts.Models.EntityMutation> ExtractEntityMutations(LiveChatResponse? response)
+    public static List<Contracts.Models.EntityMutation> ExtractEntityMutations(
+        LiveChatResponse? response
+    )
     {
         List<Contracts.Models.EntityMutation> result = [];
         foreach (
@@ -2645,7 +2660,9 @@ internal static partial class Parser
     /// CREATOR_GOAL_STATE_NOT_ACHIEVED when the timer ran out), currentGoalCount and totalGoalCount as
     /// strings, endTimestampMs, goalDescription.content, goalTargetText.content and isXpGoal.
     /// </summary>
-    public static Contracts.Models.CreatorGoalItem? ToCreatorGoal(Contracts.Models.EntityMutation mutation)
+    public static Contracts.Models.CreatorGoalItem? ToCreatorGoal(
+        Contracts.Models.EntityMutation mutation
+    )
     {
         if (
             mutation.IsDelete
@@ -2666,8 +2683,10 @@ internal static partial class Parser
             State = rawState switch
             {
                 "CREATOR_GOAL_STATE_ACTIVE" => Contracts.Models.CreatorGoalState.Active,
-                "CREATOR_GOAL_STATE_COMPLETE" or "CREATOR_GOAL_STATE_ACHIEVED" =>
-                    Contracts.Models.CreatorGoalState.Achieved,
+                "CREATOR_GOAL_STATE_COMPLETE" or "CREATOR_GOAL_STATE_ACHIEVED" => Contracts
+                    .Models
+                    .CreatorGoalState
+                    .Achieved,
                 "CREATOR_GOAL_STATE_NOT_ACHIEVED" => Contracts.Models.CreatorGoalState.NotAchieved,
                 _ => Contracts.Models.CreatorGoalState.Unknown,
             },
@@ -2678,7 +2697,9 @@ internal static partial class Parser
                 : null,
             Description = ReadContent(goal, "goalDescription"),
             TargetText = ReadContent(goal, "goalTargetText"),
-            IsXpGoal = goal.TryGetProperty("isXpGoal", out JsonElement xp) && xp.ValueKind == JsonValueKind.True,
+            IsXpGoal =
+                goal.TryGetProperty("isXpGoal", out JsonElement xp)
+                && xp.ValueKind == JsonValueKind.True,
         };
     }
 
@@ -2686,7 +2707,9 @@ internal static partial class Parser
     /// The reactions in an <c>emojiFountainDataEntity</c> update: reactionBuckets of totalReactions,
     /// duration.seconds and intensityScore, and updateTimeUsec.
     /// </summary>
-    public static Contracts.Models.ReactionsItem? ToReactions(Contracts.Models.EntityMutation mutation)
+    public static Contracts.Models.ReactionsItem? ToReactions(
+        Contracts.Models.EntityMutation mutation
+    )
     {
         if (
             mutation.IsDelete
@@ -2702,10 +2725,9 @@ internal static partial class Parser
         List<Contracts.Models.ReactionBucket> result = [];
         foreach (JsonElement bucket in buckets.EnumerateArray())
         {
-            long seconds =
-                bucket.TryGetProperty("duration", out JsonElement duration)
-                    ? ReadInt64(duration, "seconds") ?? 0
-                    : 0;
+            long seconds = bucket.TryGetProperty("duration", out JsonElement duration)
+                ? ReadInt64(duration, "seconds") ?? 0
+                : 0;
             result.Add(
                 new Contracts.Models.ReactionBucket
                 {
@@ -2733,15 +2755,19 @@ internal static partial class Parser
     /// frameworkUpdates; the next request is due after continuation.timedContinuationData.timeoutMs (5 s live,
     /// 30 s waiting, 60 s ended).
     /// </summary>
-    public static (Contracts.Models.StreamMetadataItem Metadata, string? Continuation, int TimeoutMs) ParseUpdatedMetadata(
-        string json,
-        string liveId
-    )
+    public static (
+        Contracts.Models.StreamMetadataItem Metadata,
+        string? Continuation,
+        int TimeoutMs
+    ) ParseUpdatedMetadata(string json, string liveId)
     {
         Contracts.Models.StreamMetadataItem metadata = new() { LiveId = liveId };
         using JsonDocument document = JsonDocument.Parse(json);
         JsonElement root = document.RootElement;
-        if (root.TryGetProperty("actions", out JsonElement actions) && actions.ValueKind == JsonValueKind.Array)
+        if (
+            root.TryGetProperty("actions", out JsonElement actions)
+            && actions.ValueKind == JsonValueKind.Array
+        )
         {
             foreach (JsonElement action in actions.EnumerateArray())
             {
@@ -2773,7 +2799,9 @@ internal static partial class Parser
                 {
                     metadata.Title = PlainText(title, "title");
                 }
-                else if (action.TryGetProperty("updateDescriptionAction", out JsonElement description))
+                else if (
+                    action.TryGetProperty("updateDescriptionAction", out JsonElement description)
+                )
                 {
                     metadata.Description = PlainText(description, "description");
                 }
@@ -2841,7 +2869,10 @@ internal static partial class Parser
             || !contents.TryGetProperty("twoColumnWatchNextResults", out JsonElement results)
             || !results.TryGetProperty("conversationBar", out JsonElement bar)
             || !bar.TryGetProperty("liveChatRenderer", out JsonElement chat)
-            || !(chat.TryGetProperty("isReplay", out JsonElement replay) && replay.ValueKind == JsonValueKind.True)
+            || !(
+                chat.TryGetProperty("isReplay", out JsonElement replay)
+                && replay.ValueKind == JsonValueKind.True
+            )
             || !chat.TryGetProperty("continuations", out JsonElement continuations)
             || continuations.ValueKind != JsonValueKind.Array
             || continuations.GetArrayLength() == 0
@@ -2868,7 +2899,10 @@ internal static partial class Parser
         string? json = ExtractJsonObjectAfterMarker(html, "ytInitialData");
         return string.IsNullOrWhiteSpace(json)
             ? null
-            : JsonSerializer.Deserialize(json!, YTLiveChatJsonSerializerContext.Default.LiveChatResponse);
+            : JsonSerializer.Deserialize(
+                json!,
+                YTLiveChatJsonSerializerContext.Default.LiveChatResponse
+            );
     }
 
     /// <summary>
@@ -2902,9 +2936,11 @@ internal static partial class Parser
             Title = ReadString(channel, "title") ?? string.Empty,
             Description = ReadString(channel, "description"),
             Keywords = ReadString(channel, "keywords"),
-            Handle = ReadString(channel, "vanityChannelUrl") is { } vanity && vanity.LastIndexOf('/') is int slash and >= 0
-                ? vanity.Substring(slash + 1)
-                : null,
+            Handle =
+                ReadString(channel, "vanityChannelUrl") is { } vanity
+                && vanity.LastIndexOf('/') is int slash and >= 0
+                    ? vanity.Substring(slash + 1)
+                    : null,
         };
 
         if (
@@ -2920,25 +2956,43 @@ internal static partial class Parser
                 {
                     info.Handle ??= part;
                 }
-                else if (part.EndsWith("subscribers", StringComparison.Ordinal) || part.EndsWith("subscriber", StringComparison.Ordinal))
+                else if (
+                    part.EndsWith("subscribers", StringComparison.Ordinal)
+                    || part.EndsWith("subscriber", StringComparison.Ordinal)
+                )
                 {
                     info.SubscriberCountText = part;
                     info.SubscriberCount = AbbreviatedCount(part);
                 }
-                else if (part.EndsWith("videos", StringComparison.Ordinal) || part.EndsWith("video", StringComparison.Ordinal))
+                else if (
+                    part.EndsWith("videos", StringComparison.Ordinal)
+                    || part.EndsWith("video", StringComparison.Ordinal)
+                )
                 {
                     info.VideoCount = AbbreviatedCount(part);
                 }
             }
 
-            info.AvatarUrl = LargestSource(view, "image", "decoratedAvatarViewModel", "avatar", "avatarViewModel", "image");
+            info.AvatarUrl = LargestSource(
+                view,
+                "image",
+                "decoratedAvatarViewModel",
+                "avatar",
+                "avatarViewModel",
+                "image"
+            );
             info.BannerUrl = LargestSource(view, "banner", "imageBannerViewModel", "image");
-            string badges = view.TryGetProperty("title", out JsonElement title) ? title.GetRawText() : string.Empty;
+            string badges = view.TryGetProperty("title", out JsonElement title)
+                ? title.GetRawText()
+                : string.Empty;
             info.IsVerified = badges.Contains("CHECK_CIRCLE_FILLED", StringComparison.Ordinal);
             info.IsOfficialArtist = badges.Contains("AUDIO_BADGE", StringComparison.Ordinal);
             if (
                 view.TryGetProperty("attribution", out JsonElement attribution)
-                && attribution.TryGetProperty("attributionViewModel", out JsonElement attributionView)
+                && attribution.TryGetProperty(
+                    "attributionViewModel",
+                    out JsonElement attributionView
+                )
                 && attributionView.TryGetProperty("text", out JsonElement attributionText)
             )
             {
@@ -2963,7 +3017,10 @@ internal static partial class Parser
 
         foreach (JsonElement row in rows.EnumerateArray())
         {
-            if (!row.TryGetProperty("metadataParts", out JsonElement parts) || parts.ValueKind != JsonValueKind.Array)
+            if (
+                !row.TryGetProperty("metadataParts", out JsonElement parts)
+                || parts.ValueKind != JsonValueKind.Array
+            )
             {
                 continue;
             }
@@ -3019,7 +3076,10 @@ internal static partial class Parser
             }
         }
 
-        if (!current.TryGetProperty("sources", out JsonElement sources) || sources.ValueKind != JsonValueKind.Array)
+        if (
+            !current.TryGetProperty("sources", out JsonElement sources)
+            || sources.ValueKind != JsonValueKind.Array
+        )
         {
             return null;
         }
@@ -3052,7 +3112,10 @@ internal static partial class Parser
             return simple;
         }
 
-        if (!text.TryGetProperty("runs", out JsonElement runs) || runs.ValueKind != JsonValueKind.Array)
+        if (
+            !text.TryGetProperty("runs", out JsonElement runs)
+            || runs.ValueKind != JsonValueKind.Array
+        )
         {
             return null;
         }
@@ -3070,7 +3133,9 @@ internal static partial class Parser
     /// The reply count in a <c>replyCountEntity</c> update. Observed 2026-11-17: replyCountNumber as a string, beside
     /// a localized replyCount text.
     /// </summary>
-    public static Contracts.Models.ReplyCountItem? ToReplyCount(Contracts.Models.EntityMutation mutation) =>
+    public static Contracts.Models.ReplyCountItem? ToReplyCount(
+        Contracts.Models.EntityMutation mutation
+    ) =>
         mutation.IsDelete
         || mutation.PayloadType != "replyCountEntity"
         || mutation.Payload.ValueKind != JsonValueKind.Object
@@ -3082,7 +3147,8 @@ internal static partial class Parser
             };
 
     private static string? ReadString(JsonElement element, string name) =>
-        element.TryGetProperty(name, out JsonElement value) && value.ValueKind == JsonValueKind.String
+        element.TryGetProperty(name, out JsonElement value)
+        && value.ValueKind == JsonValueKind.String
             ? value.GetString()
             : null;
 
@@ -3097,12 +3163,13 @@ internal static partial class Parser
         return value.ValueKind switch
         {
             JsonValueKind.Number when value.TryGetInt64(out long number) => number,
-            JsonValueKind.String when long.TryParse(
-                value.GetString(),
-                System.Globalization.NumberStyles.Integer,
-                System.Globalization.CultureInfo.InvariantCulture,
-                out long parsed
-            ) => parsed,
+            JsonValueKind.String
+                when long.TryParse(
+                    value.GetString(),
+                    System.Globalization.NumberStyles.Integer,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out long parsed
+                ) => parsed,
             _ => null,
         };
     }

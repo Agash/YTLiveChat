@@ -16,17 +16,28 @@ public class MembershipLanguageTests
     private static readonly Lazy<JsonDocument> Fixture = new(() =>
         JsonDocument.Parse(
             File.ReadAllText(
-                Path.Combine(AppContext.BaseDirectory, "Languages", "membership-items.2026-11-17.json")
+                Path.Combine(
+                    AppContext.BaseDirectory,
+                    "Languages",
+                    "membership-items.2026-11-17.json"
+                )
             )
         )
     );
 
     // Every item of a group: item id, then (language, raw item) pairs.
-    private static IEnumerable<(string Id, Dictionary<string, JsonElement> Languages)> Items(string group)
+    private static IEnumerable<(string Id, Dictionary<string, JsonElement> Languages)> Items(
+        string group
+    )
     {
-        foreach (JsonProperty item in Fixture.Value.RootElement.GetProperty(group).EnumerateObject())
+        foreach (
+            JsonProperty item in Fixture.Value.RootElement.GetProperty(group).EnumerateObject()
+        )
         {
-            yield return (item.Name, item.Value.EnumerateObject().ToDictionary(l => l.Name, l => l.Value));
+            yield return (
+                item.Name,
+                item.Value.EnumerateObject().ToDictionary(l => l.Name, l => l.Value)
+            );
         }
     }
 
@@ -65,7 +76,9 @@ public class MembershipLanguageTests
             int? english = Parse(languages["en"]).MilestoneMonths;
             if (english is null)
             {
-                _ = failures.AppendLine($"{id} en: no months in \"{PrimaryText(languages["en"])}\"");
+                _ = failures.AppendLine(
+                    $"{id} en: no months in \"{PrimaryText(languages["en"])}\""
+                );
                 continue;
             }
 
@@ -75,7 +88,10 @@ public class MembershipLanguageTests
                 MembershipDetails details = Parse(item);
                 string text = PrimaryText(item);
                 int? expected = text.Any(char.IsDigit) ? english : null;
-                if (details.EventType != MembershipEventType.Milestone || details.MilestoneMonths != expected)
+                if (
+                    details.EventType != MembershipEventType.Milestone
+                    || details.MilestoneMonths != expected
+                )
                 {
                     _ = failures.AppendLine(
                         $"{id} {language}: {details.EventType} {details.MilestoneMonths?.ToString() ?? "null"}, expected {expected?.ToString() ?? "null"} from \"{text}\""
@@ -151,7 +167,9 @@ public class MembershipLanguageTests
                 .GetString()!;
             if (english.EventType != MembershipEventType.New || english.LevelName != tier)
             {
-                _ = failures.AppendLine($"{id} en: {english.EventType} {english.LevelName}, expected New {tier}");
+                _ = failures.AppendLine(
+                    $"{id} en: {english.EventType} {english.LevelName}, expected New {tier}"
+                );
             }
 
             foreach ((string language, JsonElement item) in languages)
@@ -186,7 +204,9 @@ public class MembershipLanguageTests
                 .GetString()!;
             if (english.EventType != MembershipEventType.Upgraded || english.LevelName != tier)
             {
-                _ = failures.AppendLine($"{id} en: {english.EventType} {english.LevelName}, expected Upgraded {tier}");
+                _ = failures.AppendLine(
+                    $"{id} en: {english.EventType} {english.LevelName}, expected Upgraded {tier}"
+                );
             }
 
             foreach ((string language, JsonElement item) in languages)

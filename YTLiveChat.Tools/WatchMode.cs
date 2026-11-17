@@ -182,7 +182,12 @@ internal static class WatchMode
 #pragma warning restore CS0618
 
             HttpClient httpClient = new() { BaseAddress = new Uri("https://www.youtube.com") };
-            YTHttpClient ytHttpClient = new EntityRecordingClient(httpClient, target.Tag, entityRecorder, schemaRecorder);
+            YTHttpClient ytHttpClient = new EntityRecordingClient(
+                httpClient,
+                target.Tag,
+                entityRecorder,
+                schemaRecorder
+            );
             IYTLiveChat chat = new YTLiveChat.Services.YTLiveChat(
                 ytOptions,
                 ytHttpClient,
@@ -221,9 +226,11 @@ internal static class WatchMode
         Console.WriteLine();
         Console.WriteLine($"Stopped. {capturedCount[0]} event(s) captured → {outputPath}");
         Console.WriteLine($"Entity mutations → {entitiesPath}");
-        foreach ((string type, int count) in entityRecorder.Counts.OrderByDescending(static c => c.Value))
+        foreach (
+            (string type, int count) in entityRecorder.Counts.OrderByDescending(static c => c.Value)
+        )
         {
-            Console.WriteLine($"  {count,7}  {type}");
+            Console.WriteLine($"  {count, 7}  {type}");
         }
 
         if (capturedCount[0] > 0)
@@ -571,7 +578,10 @@ internal static class WatchMode
             const string requestFrequencyPrefix = "--request-frequency=";
             if (arg.StartsWith(requestFrequencyPrefix, StringComparison.OrdinalIgnoreCase))
             {
-                if (int.TryParse(arg[requestFrequencyPrefix.Length..], out int parsed) && parsed > 0)
+                if (
+                    int.TryParse(arg[requestFrequencyPrefix.Length..], out int parsed)
+                    && parsed > 0
+                )
                 {
                     requestFrequencyMs = parsed;
                 }

@@ -13,7 +13,9 @@ public class PollBackoffTests
     public void NextPollWait_ResponseWithActions_GoesBackToTheFastest()
     {
         string json = UtilityTestData.WrapItemsInLiveChatResponse(
-            [$$"""{ "liveChatTextMessageRenderer": {{TextMessageTestData.SimpleTextMessage1()}} }"""],
+            [
+                $$"""{ "liveChatTextMessageRenderer": {{TextMessageTestData.SimpleTextMessage1()}} }""",
+            ],
             "next"
         );
 
@@ -39,7 +41,10 @@ public class PollBackoffTests
             waits.Add(wait.TotalMilliseconds);
         }
 
-        CollectionAssert.AreEqual(new double[] { 1500, 2250, 3375, 5000, 5000, 5000, 5000, 5000 }, waits);
+        CollectionAssert.AreEqual(
+            new double[] { 1500, 2250, 3375, 5000, 5000, 5000, 5000, 5000 },
+            waits
+        );
     }
 
     [TestMethod]

@@ -19,7 +19,10 @@ internal static class ViewCompareMode
         {
             if (arg.StartsWith("--duration=", StringComparison.Ordinal))
             {
-                durationSeconds = int.Parse(arg["--duration=".Length..], CultureInfo.InvariantCulture);
+                durationSeconds = int.Parse(
+                    arg["--duration=".Length..],
+                    CultureInfo.InvariantCulture
+                );
             }
             else
             {
@@ -48,7 +51,9 @@ internal static class ViewCompareMode
 
         string[] onlyAll = [.. all.Keys.Except(top.Keys)];
         string[] onlyTop = [.. top.Keys.Except(all.Keys)];
-        Console.WriteLine($"{liveId}: all messages {all.Count}, top chat {top.Count}, only in all {onlyAll.Length}, only in top {onlyTop.Length}");
+        Console.WriteLine(
+            $"{liveId}: all messages {all.Count}, top chat {top.Count}, only in all {onlyAll.Length}, only in top {onlyTop.Length}"
+        );
         foreach (string id in onlyAll.Take(10))
         {
             Console.WriteLine($"  only in all: {all[id]}");
@@ -69,10 +74,12 @@ internal static class ViewCompareMode
         );
         chat.ChatReceived += (_, e) =>
             received[e.ChatItem.Id] =
-                $"{e.ChatItem.Author.Name}: {string.Concat(e.ChatItem.Message.Select(static p => p.ToString()))}"[..Math.Min(
-                    80,
-                    $"{e.ChatItem.Author.Name}: {string.Concat(e.ChatItem.Message.Select(static p => p.ToString()))}".Length
-                )];
+                $"{e.ChatItem.Author.Name}: {string.Concat(e.ChatItem.Message.Select(static p => p.ToString()))}"[
+                    ..Math.Min(
+                        80,
+                        $"{e.ChatItem.Author.Name}: {string.Concat(e.ChatItem.Message.Select(static p => p.ToString()))}".Length
+                    )
+                ];
         return chat;
     }
 }
@@ -83,14 +90,19 @@ internal sealed class ContinuationRecordingClient(HttpClient http, ChatView view
 {
     private int _requests;
 
-    public override Task<(YTLiveChat.Models.Response.LiveChatResponse? Response, string? RawJson)> GetLiveChatAsync(
+    public override Task<(
+        YTLiveChat.Models.Response.LiveChatResponse? Response,
+        string? RawJson
+    )> GetLiveChatAsync(
         YTLiveChat.Models.FetchOptions options,
         CancellationToken cancellationToken = default
     )
     {
         if (Interlocked.Increment(ref _requests) <= 3)
         {
-            Console.WriteLine($"  {view}: request {_requests} chat type {ChatTypeOf(options.Continuation)}");
+            Console.WriteLine(
+                $"  {view}: request {_requests} chat type {ChatTypeOf(options.Continuation)}"
+            );
         }
 
         return base.GetLiveChatAsync(options, cancellationToken);
@@ -101,10 +113,13 @@ internal sealed class ContinuationRecordingClient(HttpClient http, ChatView view
     {
         try
         {
-            string padded = Uri.UnescapeDataString(continuation).Replace('-', '+').Replace('_', '/');
+            string padded = Uri.UnescapeDataString(continuation)
+                .Replace('-', '+')
+                .Replace('_', '/');
             padded += new string('=', (4 - (padded.Length % 4)) % 4);
             byte[] bytes = Convert.FromBase64String(padded);
-            return FindChatType(bytes, 0, bytes.Length)?.ToString(CultureInfo.InvariantCulture) ?? "?";
+            return FindChatType(bytes, 0, bytes.Length)?.ToString(CultureInfo.InvariantCulture)
+                ?? "?";
         }
         catch (FormatException)
         {

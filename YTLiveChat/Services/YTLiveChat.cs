@@ -743,8 +743,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
 
                     await DelayAsync(waitAfterPoll, cancellationToken);
                 }
-                catch (HttpRequestException httpEx)
-                    when (IsForbidden(httpEx))
+                catch (HttpRequestException httpEx) when (IsForbidden(httpEx))
                 {
                     // --- Handle Forbidden (403) ---
                     _logger.LogError(
@@ -823,7 +822,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
 
         Continuation? next = chat?.Continuations?.FirstOrDefault();
         int timeoutMs =
-            next?.InvalidationContinuationData?.TimeoutMs ?? next?.TimedContinuationData?.TimeoutMs ?? 0;
+            next?.InvalidationContinuationData?.TimeoutMs
+            ?? next?.TimedContinuationData?.TimeoutMs
+            ?? 0;
         double ceilingMs = Math.Max(fastest.TotalMilliseconds, idleMs);
         if (timeoutMs > 0)
         {
@@ -1017,7 +1018,8 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             }
 
             fs.Dispose();
-            string legacyPath = $"{_debugLogFilePath}.{_timeProvider.GetUtcNow():yyyyMMddHHmmss}.legacy";
+            string legacyPath =
+                $"{_debugLogFilePath}.{_timeProvider.GetUtcNow():yyyyMMddHHmmss}.legacy";
             File.Move(_debugLogFilePath, legacyPath);
             File.WriteAllBytes(_debugLogFilePath, s_debugLogArrayStart);
 
@@ -1518,7 +1520,13 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
 
         _chatViewPending = false;
         List<SubMenuItem>? views = response
-            .ContinuationContents?.LiveChatContinuation?.Header?.LiveChatHeaderRenderer?.ViewSelector?.SortFilterSubMenuRenderer?.SubMenuItems;
+            .ContinuationContents
+            ?.LiveChatContinuation
+            ?.Header
+            ?.LiveChatHeaderRenderer
+            ?.ViewSelector
+            ?.SortFilterSubMenuRenderer
+            ?.SubMenuItems;
         if (views is not { Count: >= 2 } || views[1].Selected)
         {
             return null;
@@ -1560,10 +1568,13 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                         );
                         OnStreamMetadataUpdated(new() { Metadata = metadata });
                     }
-                    catch (Exception ex)
-                        when (ex is HttpRequestException or JsonException)
+                    catch (Exception ex) when (ex is HttpRequestException or JsonException)
                     {
-                        _logger.LogWarning(ex, "Stream metadata for {LiveId} could not be read.", options.LiveId);
+                        _logger.LogWarning(
+                            ex,
+                            "Stream metadata for {LiveId} could not be read.",
+                            options.LiveId
+                        );
                     }
                 }
 
@@ -1732,7 +1743,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
 
             if (hasEngagement)
             {
-                Contracts.Models.EngagementItem? engagement = action.ToEngagementItem(_timeProvider);
+                Contracts.Models.EngagementItem? engagement = action.ToEngagementItem(
+                    _timeProvider
+                );
                 if (engagement is not null)
                     OnEngagementMessageReceived(new() { Engagement = engagement });
             }
@@ -2062,14 +2075,20 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         string replayToken = page.Continuation;
 
         LiveChatResponse? first = Parser.ParseReplayPage(
-            await _ytHttpClient.GetReplayPageAsync(replayToken, cancellationToken).ConfigureAwait(false)
+            await _ytHttpClient
+                .GetReplayPageAsync(replayToken, cancellationToken)
+                .ConfigureAwait(false)
         );
         LiveChatContinuation? chat = first?.ContinuationContents?.LiveChatContinuation;
         if (chat is null)
             throw new InvalidOperationException($"The chat replay of {liveId} could not be read.");
 
         // As live, the replay page opens in Top chat; the second view of its header is every message.
-        List<SubMenuItem>? views = chat.Header?.LiveChatHeaderRenderer?.ViewSelector?.SortFilterSubMenuRenderer?.SubMenuItems;
+        List<SubMenuItem>? views = chat.Header
+            ?.LiveChatHeaderRenderer
+            ?.ViewSelector
+            ?.SortFilterSubMenuRenderer
+            ?.SubMenuItems;
         string? continuation =
             _options.ChatView == ChatView.AllMessages && views is { Count: >= 2 }
                 ? views[1].Continuation?.ReloadContinuationData?.Continuation
@@ -2086,7 +2105,14 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         {
             cancellationToken.ThrowIfCancellationRequested();
             string json = await _ytHttpClient
-                .GetLiveChatReplayAsync(page with { Continuation = continuation! }, offsetMs, cancellationToken)
+                .GetLiveChatReplayAsync(
+                    page with
+                    {
+                        Continuation = continuation!,
+                    },
+                    offsetMs,
+                    cancellationToken
+                )
                 .ConfigureAwait(false);
             chat = JsonSerializer
                 .Deserialize(json, YTLiveChatJsonSerializerContext.Default.LiveChatResponse)
@@ -2110,15 +2136,23 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     }
 
     private static long LastReplayOffsetMs(List<Models.Response.Action>? actions) =>
-        actions?.Select(static a => long.TryParse(a.ReplayChatItemAction?.VideoOffsetTimeMsec, out long ms) ? ms : 0)
+        actions
+            ?.Select(static a =>
+                long.TryParse(a.ReplayChatItemAction?.VideoOffsetTimeMsec, out long ms) ? ms : 0
+            )
             .DefaultIfEmpty(0)
-            .Max() ?? 0;
+            .Max()
+        ?? 0;
 
     private static string? NextReplayContinuation(LiveChatContinuation chat) =>
-        chat.Continuations?.Select(static c => c.LiveChatReplayContinuationData?.Continuation)
+        chat
+            .Continuations?.Select(static c => c.LiveChatReplayContinuationData?.Continuation)
             .FirstOrDefault(static c => !string.IsNullOrEmpty(c));
 
-    private IEnumerable<ReplayChatItem> ToReplayItems(List<Models.Response.Action>? actions, TimeSpan? from)
+    private IEnumerable<ReplayChatItem> ToReplayItems(
+        List<Models.Response.Action>? actions,
+        TimeSpan? from
+    )
     {
         foreach (Models.Response.Action action in actions ?? [])
         {

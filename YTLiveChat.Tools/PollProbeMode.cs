@@ -27,7 +27,10 @@ internal static class PollProbeMode
             }
             else if (arg.StartsWith("--duration=", StringComparison.Ordinal))
             {
-                durationSeconds = int.Parse(arg["--duration=".Length..], CultureInfo.InvariantCulture);
+                durationSeconds = int.Parse(
+                    arg["--duration=".Length..],
+                    CultureInfo.InvariantCulture
+                );
             }
             else if (arg.StartsWith("--output=", StringComparison.Ordinal))
             {
@@ -41,14 +44,20 @@ internal static class PollProbeMode
 
         if (videoIds.Count == 0)
         {
-            Console.WriteLine("Usage: pollprobe [--interval=ms] [--duration=s] [--output=file.tsv] <videoId>...");
+            Console.WriteLine(
+                "Usage: pollprobe [--interval=ms] [--duration=s] [--output=file.tsv] <videoId>..."
+            );
             return 1;
         }
 
         using HttpClient http = new() { BaseAddress = new Uri("https://www.youtube.com") };
         YTHttpClient client = new(http, NullLogger<YTHttpClient>.Instance);
-        await using StreamWriter output = new(outputPath ?? Path.Combine(Path.GetTempPath(), "pollprobe.tsv"));
-        await output.WriteLineAsync("videoId\telapsedMs\tkind\ttimeoutMs\tactions\tnewestAgeMs").ConfigureAwait(false);
+        await using StreamWriter output = new(
+            outputPath ?? Path.Combine(Path.GetTempPath(), "pollprobe.tsv")
+        );
+        await output
+            .WriteLineAsync("videoId\telapsedMs\tkind\ttimeoutMs\tactions\tnewestAgeMs")
+            .ConfigureAwait(false);
 
         using CancellationTokenSource cts = new(TimeSpan.FromSeconds(durationSeconds));
         Task[] probes =
@@ -97,16 +106,26 @@ internal static class PollProbeMode
                 break;
             }
 
-            Continuation? next = response?.ContinuationContents?.LiveChatContinuation?.Continuations?.FirstOrDefault();
-            string kind = next?.InvalidationContinuationData is not null ? "invalidation"
+            Continuation? next =
+                response?.ContinuationContents?.LiveChatContinuation?.Continuations?.FirstOrDefault();
+            string kind =
+                next?.InvalidationContinuationData is not null ? "invalidation"
                 : next?.TimedContinuationData is not null ? "timed"
                 : "none";
-            int timeout = next?.InvalidationContinuationData?.TimeoutMs ?? next?.TimedContinuationData?.TimeoutMs ?? 0;
+            int timeout =
+                next?.InvalidationContinuationData?.TimeoutMs
+                ?? next?.TimedContinuationData?.TimeoutMs
+                ?? 0;
             int actions = response?.ContinuationContents?.LiveChatContinuation?.Actions?.Count ?? 0;
-            (List<YTLiveChat.Contracts.Models.ChatItem> items, string? continuation) = Parser.ParseLiveChatResponse(response);
-            long newestAge = items.Count == 0
-                ? -1
-                : (long)(DateTimeOffset.UtcNow - items.Max(static i => i.Timestamp)).TotalMilliseconds;
+            (List<YTLiveChat.Contracts.Models.ChatItem> items, string? continuation) =
+                Parser.ParseLiveChatResponse(response);
+            long newestAge =
+                items.Count == 0
+                    ? -1
+                    : (long)
+                        (
+                            DateTimeOffset.UtcNow - items.Max(static i => i.Timestamp)
+                        ).TotalMilliseconds;
 
             polls++;
             empty += actions == 0 ? 1 : 0;
@@ -114,7 +133,9 @@ internal static class PollProbeMode
             timeouts.Add(timeout);
             lock (output)
             {
-                output.WriteLine($"{videoId}\t{clock.ElapsedMilliseconds}\t{kind}\t{timeout}\t{actions}\t{newestAge}");
+                output.WriteLine(
+                    $"{videoId}\t{clock.ElapsedMilliseconds}\t{kind}\t{timeout}\t{actions}\t{newestAge}"
+                );
             }
 
             if (string.IsNullOrEmpty(continuation))
