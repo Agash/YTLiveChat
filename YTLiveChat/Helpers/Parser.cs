@@ -620,6 +620,17 @@ internal static partial class Parser
             return "error";
         }
 
+        // Observed 2026-11-17 on live streams with chat turned off: the page is playable (status OK) and the
+        // conversation bar carries an availability message ("Chat is disabled for this live stream.") where a live
+        // chat has its liveChatRenderer. A members-only page carries the same message and is caught above.
+        if (
+            raw.IndexOf("\"conversationBarRenderer\":{\"availabilityMessage\"", StringComparison.Ordinal) >= 0
+            && raw.IndexOf("\"liveChatRenderer\"", StringComparison.Ordinal) < 0
+        )
+        {
+            return "chat-disabled";
+        }
+
         return null;
     }
 

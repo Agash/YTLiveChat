@@ -67,4 +67,18 @@ public class LiveStateParsingTests
 
         Assert.AreEqual(broadcasting, Parser.IsBroadcastingPlayerResponse(json));
     }
+
+    [TestMethod]
+    public void DetectInaccessibleLiveReason_ChatTurnedOff_IsChatDisabled()
+    {
+        // The shape of a live watch page with chat turned off, as served on 2026-11-17.
+        const string page = """
+            <script>var ytInitialPlayerResponse = {"playabilityStatus":{"status":"OK"}};</script>
+            <script>var ytInitialData = {"contents":{"twoColumnWatchNextResults":{"conversationBar":
+            {"conversationBarRenderer":{"availabilityMessage":{"messageRenderer":{"text":{"runs":
+            [{"text":"Chat is disabled for this live stream."}]}}}}}}}};</script>
+            """;
+
+        Assert.AreEqual("chat-disabled", Parser.DetectInaccessibleLiveReason(page));
+    }
 }
