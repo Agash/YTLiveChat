@@ -12,6 +12,16 @@ public sealed record LiveChatRequest
     public string? Continuation { get; init; }
 }
 
+/// <summary>The innertube <c>player</c> request: the video whose playback state is asked for.</summary>
+public sealed record PlayerRequest
+{
+    [JsonPropertyName("context")]
+    public required RequestContext Context { get; init; }
+
+    [JsonPropertyName("videoId")]
+    public required string VideoId { get; init; }
+}
+
 public sealed record RequestContext
 {
     [JsonPropertyName("client")]

@@ -1,4 +1,4 @@
-﻿namespace YTLiveChat.Models;
+namespace YTLiveChat.Models;
 
 /// <summary>
 /// Represents options for fetching live chat data.
@@ -24,4 +24,10 @@ public record FetchOptions
     /// The continuation token for pagination.
     /// </summary>
     public required string Continuation { get; set; }
+
+
+    /// <summary>
+    /// Whether the page the options came from showed the stream broadcasting (not a waiting room or a replay).
+    /// </summary>
+    public bool IsBroadcasting { get; set; }
 }

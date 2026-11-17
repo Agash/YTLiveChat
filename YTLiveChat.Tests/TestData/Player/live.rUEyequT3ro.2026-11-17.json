@@ -1,0 +1,23 @@
+{
+  "playabilityStatus": {
+    "status": "UNPLAYABLE",
+    "reason": "The page needs to be reloaded."
+  },
+  "videoDetails": {
+    "videoId": "rUEyequT3ro",
+    "isLive": true,
+    "isLiveContent": true,
+    "isLowLatencyLiveStream": true,
+    "latencyClass": "MDE_STREAM_OPTIMIZATIONS_RENDERER_LATENCY_LOW"
+  },
+  "microformat": {
+    "playerMicroformatRenderer": {
+      "liveBroadcastDetails": {
+        "isLiveNow": true,
+        "startTimestamp": "2026-11-17T12:01:35+00:00"
+      },
+      "publishDate": "2026-11-17T00:57:55-08:00",
+      "uploadDate": "2026-11-17T00:57:55-08:00"
+    }
+  }
+}

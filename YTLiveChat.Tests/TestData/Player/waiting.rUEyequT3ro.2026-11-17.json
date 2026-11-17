@@ -1,0 +1,76 @@
+{
+  "playabilityStatus": {
+    "status": "LIVE_STREAM_OFFLINE",
+    "reason": "This live event will begin in a few moments.",
+    "liveStreamability": {
+      "liveStreamabilityRenderer": {
+        "videoId": "rUEyequT3ro",
+        "broadcastId": "1",
+        "offlineSlate": {
+          "liveStreamOfflineSlateRenderer": {
+            "scheduledStartTime": "1794916800",
+            "mainText": {
+              "runs": [
+                {
+                  "text": "Waiting for "
+                },
+                {
+                  "text": "Mio Channel 大神ミオ"
+                }
+              ]
+            },
+            "subtitleText": {
+              "simpleText": "November 17, 2026 at 9:00 PM GMT+9"
+            },
+            "thumbnail": {
+              "thumbnails": [
+                {
+                  "url": "https://i.ytimg.com/vi/rUEyequT3ro/hqdefault.jpg?v=6afc1715&sqp=CMCD8dcG-oaymwEiCKgBEF5IWvKriqkDFQgBFQAAAAAYASUAAMhCPQCAokN4AQ==&rs=AOn4CLALQQNcpc83j-vEmHNxORzBJshGnA&usqp=CBQ",
+                  "width": 168,
+                  "height": 94
+                },
+                {
+                  "url": "https://i.ytimg.com/vi/rUEyequT3ro/hqdefault.jpg?v=6afc1715&sqp=CMCD8dcG-oaymwEiCMQBEG5IWvKriqkDFQgBFQAAAAAYASUAAMhCPQCAokN4AQ==&rs=AOn4CLD1YPuUgz53niYFbW58rmK40pShEg&usqp=CBQ",
+                  "width": 196,
+                  "height": 110
+                },
+                {
+                  "url": "https://i.ytimg.com/vi/rUEyequT3ro/hqdefault.jpg?v=6afc1715&sqp=CMCD8dcG-oaymwEjCPYBEIoBSFryq4qpAxUIARUAAAAAGAElAADIQj0AgKJDeAE=&rs=AOn4CLBd8SUNm2u1YpfCB8bj_MgmTe2YEA&usqp=CBQ",
+                  "width": 246,
+                  "height": 138
+                },
+                {
+                  "url": "https://i.ytimg.com/vi/rUEyequT3ro/hqdefault.jpg?v=6afc1715&sqp=CMCD8dcG-oaymwEjCNACELwBSFryq4qpAxUIARUAAAAAGAElAADIQj0AgKJDeAE=&rs=AOn4CLBM-kKF7EB97063898ZkvMMIAzIOg&usqp=CBQ",
+                  "width": 336,
+                  "height": 188
+                },
+                {
+                  "url": "https://i.ytimg.com/vi/rUEyequT3ro/maxresdefault.jpg?v=6afc1715",
+                  "width": 1920,
+                  "height": 1080
+                }
+              ]
+            }
+          }
+        },
+        "pollDelayMs": "15000"
+      }
+    }
+  },
+  "videoDetails": {
+    "videoId": "rUEyequT3ro",
+    "isUpcoming": true,
+    "isLiveContent": true,
+    "isLowLatencyLiveStream": true,
+    "latencyClass": "MDE_STREAM_OPTIMIZATIONS_RENDERER_LATENCY_LOW"
+  },
+  "microformat": {
+    "playerMicroformatRenderer": {
+      "liveBroadcastDetails": {
+        "isLiveNow": false
+      },
+      "publishDate": "2026-11-17T00:57:55-08:00",
+      "uploadDate": "2026-11-17T00:57:55-08:00"
+    }
+  }
+}

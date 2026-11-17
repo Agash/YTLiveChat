@@ -75,14 +75,18 @@ dotnet add package Agash.YTLiveChat.DependencyInjection
 Continuous livestream monitor mode is currently **BETA/UNSUPPORTED** and can change or break at any time:
 
 - `YTLiveChatOptions.EnableContinuousLivestreamMonitor`
-- `YTLiveChatOptions.LiveCheckFrequency`
-- `IYTLiveChat.LivestreamStarted`
-- `IYTLiveChat.LivestreamEnded`
 - `IYTLiveChat.LivestreamInaccessible`
 
 These members intentionally emit compiler warnings via `[Obsolete]` to signal unstable API status.
 
 Monitor note: channel/watch page resolution is fetched via stateless (no-cookie) requests inside the library to reduce consent-interstitial loops during long-running monitor sessions.
+
+## Going live and ending
+
+`LivestreamStarted` fires once per stream when it is broadcasting: at once for a stream that is already live,
+and for a scheduled stream, whose waiting-room chat opens early, when its watch page first reports it live
+(checked every `LiveCheckFrequency` milliseconds, 10 seconds by default). `LivestreamEnded` follows when the
+chat of a started stream stops; a waiting room that closes without going live raises neither.
 
 ## Quick Start (DI)
 

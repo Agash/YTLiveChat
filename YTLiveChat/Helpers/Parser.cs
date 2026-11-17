@@ -103,6 +103,44 @@ internal static partial class Parser
     }
 
     /// <summary>
+    /// Whether an innertube <c>player</c> response shows the stream broadcasting. Observed 2026-11-17: a live
+    /// stream has <c>liveBroadcastDetails.isLiveNow</c> true (and <c>videoDetails.isLive</c>); a waiting room has
+    /// it false with <c>videoDetails.isUpcoming</c> and an offline slate; an ended one false with an
+    /// <c>endTimestamp</c>.
+    /// </summary>
+    public static bool IsBroadcastingPlayerResponse(string json)
+    {
+        try
+        {
+            using JsonDocument document = JsonDocument.Parse(json);
+            JsonElement root = document.RootElement;
+            if (
+                root.TryGetProperty("microformat", out JsonElement microformat)
+                && microformat.TryGetProperty("playerMicroformatRenderer", out JsonElement renderer)
+                && renderer.TryGetProperty("liveBroadcastDetails", out JsonElement details)
+                && details.TryGetProperty("isLiveNow", out JsonElement isLiveNow)
+                && isLiveNow.ValueKind is JsonValueKind.True or JsonValueKind.False
+            )
+            {
+                return isLiveNow.ValueKind == JsonValueKind.True;
+            }
+
+            return root.TryGetProperty("videoDetails", out JsonElement video)
+                && video.TryGetProperty("isLive", out JsonElement isLive)
+                && isLive.ValueKind == JsonValueKind.True
+                && !(
+                    video.TryGetProperty("isUpcoming", out JsonElement isUpcoming)
+                    && isUpcoming.ValueKind == JsonValueKind.True
+                );
+        }
+        catch (JsonException)
+        {
+            // An unreadable response says nothing about the stream; the next check asks again.
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Extracts stream candidates from a channel streams page.
     /// </summary>
     public static IReadOnlyList<StreamPageCandidate> ExtractStreamCandidatesFromStreamsPage(

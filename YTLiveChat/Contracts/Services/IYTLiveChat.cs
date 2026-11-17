@@ -24,19 +24,16 @@ public interface IYTLiveChat : IDisposable
     event EventHandler<ChatReceivedEventArgs>? ChatReceived;
 
     /// <summary>
-    /// Fires when a livestream becomes active for the monitored target.
+    /// Fires once per stream when it is broadcasting: as the page loads for a stream already live, or, for a
+    /// scheduled stream whose waiting-room chat is open, when its watch page first reports it live (checked every
+    /// <see cref="YTLiveChatOptions.LiveCheckFrequency"/> milliseconds).
     /// </summary>
-    [Obsolete(
-        "BETA/UNSUPPORTED: Continuous livestream monitor mode may change or break at any time and is not covered by semver stability guarantees."
-    )]
     event EventHandler<LivestreamStartedEventArgs>? LivestreamStarted;
 
     /// <summary>
-    /// Fires when the current livestream ends for the monitored target.
+    /// Fires when a stream that raised <see cref="LivestreamStarted"/> ends (its chat stops). A waiting room that
+    /// closes without going live raises neither.
     /// </summary>
-    [Obsolete(
-        "BETA/UNSUPPORTED: Continuous livestream monitor mode may change or break at any time and is not covered by semver stability guarantees."
-    )]
     event EventHandler<LivestreamEndedEventArgs>? LivestreamEnded;
 
     /// <summary>

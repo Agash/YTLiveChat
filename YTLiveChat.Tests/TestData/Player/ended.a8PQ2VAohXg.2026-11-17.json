@@ -1,0 +1,23 @@
+{
+  "playabilityStatus": {
+    "status": "UNPLAYABLE",
+    "reason": "Join this channel to get access to members-only content like this video, and other exclusive perks."
+  },
+  "videoDetails": {
+    "videoId": "a8PQ2VAohXg",
+    "isLiveContent": true,
+    "isLowLatencyLiveStream": true,
+    "latencyClass": "MDE_STREAM_OPTIMIZATIONS_RENDERER_LATENCY_LOW"
+  },
+  "microformat": {
+    "playerMicroformatRenderer": {
+      "liveBroadcastDetails": {
+        "isLiveNow": false,
+        "startTimestamp": "2026-11-07T11:59:50+00:00",
+        "endTimestamp": "2026-11-07T15:08:33+00:00"
+      },
+      "publishDate": "2026-11-07T00:37:55-08:00",
+      "uploadDate": "2026-11-07T00:37:55-08:00"
+    }
+  }
+}

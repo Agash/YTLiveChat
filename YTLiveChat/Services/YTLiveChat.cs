@@ -85,6 +85,8 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     private Task? _pollingTask; // Keep track of the polling task
     private bool _continuousMonitorEnabledForSession;
     private string? _activeLiveId;
+    private bool _activeLiveBroadcasting;
+    private DateTimeOffset _nextBroadcastCheck;
     private string? _lastInaccessibleLiveId;
     private bool _terminateCurrentSession;
     private readonly Dictionary<string, DateTimeOffset> _temporaryInaccessibleAutoDetectedLiveIds =
@@ -334,7 +336,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                     continue;
                 }
 
-                BeginActiveLivestream(_fetchOptionsInternal.LiveId);
+                BeginActiveLivestream(_fetchOptionsInternal);
                 OnInitialPageLoaded(new() { LiveId = _fetchOptionsInternal.LiveId });
                 _logger.LogInformation(
                     "Initial page loaded for Live ID: {LiveId}. Starting polling loop...",
@@ -518,12 +520,70 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         );
     }
 
-    private void BeginActiveLivestream(string liveId)
+    // A waiting room's chat opens before the stream goes live, so the stream counts as started only once its page
+    // says it is broadcasting; until then the watch page is checked again every LiveCheckFrequency.
+    private void BeginActiveLivestream(FetchOptions options)
     {
-        _activeLiveId = liveId;
+        _activeLiveId = options.LiveId;
+        _activeLiveBroadcasting = false;
         _lastInaccessibleLiveId = null;
         _temporaryInaccessibleAutoDetectedLiveIds.Clear();
+        if (options.IsBroadcasting)
+        {
+            AnnounceBroadcast(options.LiveId);
+        }
+        else
+        {
+            _logger.LogInformation(
+                "Live ID {LiveId} is not broadcasting yet; checking every {DelayMs} ms.",
+                options.LiveId,
+                LiveCheckFrequencySetting
+            );
+            _nextBroadcastCheck =
+                _timeProvider.GetUtcNow() + TimeSpan.FromMilliseconds(LiveCheckFrequencySetting);
+        }
+    }
+
+    private void AnnounceBroadcast(string liveId)
+    {
+        _activeLiveBroadcasting = true;
         OnLivestreamStarted(new() { LiveId = liveId });
+    }
+
+    private async Task CheckBroadcastStartedAsync(CancellationToken cancellationToken)
+    {
+        string? liveId = _activeLiveId;
+        FetchOptions? options = _fetchOptionsInternal;
+        DateTimeOffset now = _timeProvider.GetUtcNow();
+        if (
+            liveId is null
+            || options is null
+            || _activeLiveBroadcasting
+            || now < _nextBroadcastCheck
+        )
+        {
+            return;
+        }
+
+        _nextBroadcastCheck = now + TimeSpan.FromMilliseconds(LiveCheckFrequencySetting);
+        string playerJson;
+        try
+        {
+            playerJson = await _ytHttpClient
+                .GetPlayerAsync(options, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning(ex, "Whether {LiveId} is broadcasting could not be read.", liveId);
+            return;
+        }
+
+        if (liveId == _activeLiveId && Parser.IsBroadcastingPlayerResponse(playerJson))
+        {
+            _logger.LogInformation("Live ID {LiveId} is broadcasting.", liveId);
+            AnnounceBroadcast(liveId);
+        }
     }
 
     private void EndActiveLivestream(string? reason)
@@ -534,9 +594,14 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         }
 
         string endedLiveId = _activeLiveId!;
+        bool wasBroadcasting = _activeLiveBroadcasting;
         _activeLiveId = null;
+        _activeLiveBroadcasting = false;
         _fetchOptionsInternal = null;
-        OnLivestreamEnded(new() { LiveId = endedLiveId, Reason = reason });
+        if (wasBroadcasting)
+        {
+            OnLivestreamEnded(new() { LiveId = endedLiveId, Reason = reason });
+        }
     }
 
     private void EndActiveLivestreamAndStopChat(string reason)
@@ -606,6 +671,8 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                                 Continuation = continuation!,
                             };
                             currentRetryAttempt = 0; // Reset retries on success
+                            await CheckBroadcastStartedAsync(cancellationToken)
+                                .ConfigureAwait(false);
                         }
                         else
                         {
@@ -1659,6 +1726,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                     cancellationToken
                 );
                 FetchOptions newOptions = Parser.GetOptionsFromLivePage(pageHtml); // Can throw
+                newOptions.IsBroadcasting = Parser.IsActivelyBroadcastingLivePage(pageHtml);
                 if (
                     ShouldSkipAutoDetectedLiveStreamCandidate(
                         handle,

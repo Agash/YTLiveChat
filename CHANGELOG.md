@@ -1,4 +1,12 @@
 ### Changed
+- `LivestreamStarted` fires when a stream is broadcasting, not when its chat page loads: a scheduled
+  stream's waiting room is checked every `LiveCheckFrequency` until its watch page reports it live.
+  `LivestreamEnded` fires only for a stream that started. Both events and `LiveCheckFrequency` apply to
+  every session and are no longer marked `[Obsolete]`.
+- Timing goes through a `TimeProvider` (constructor parameter, resolved from DI when registered).
+- net9.0 is no longer a target.
+
+### Changed
 - `Superchat.Currency` is nullable and always an ISO 4217 code: a bare "$" is USD and "¥" is JPY, and an
   amount whose currency the parser does not recognize reports null. There is no USD fallback.
 

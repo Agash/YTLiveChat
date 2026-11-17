@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Moq;
 using YTLiveChat.Contracts;
@@ -202,6 +202,105 @@ public class YTLiveChatServiceTests
             "First GetLiveChatAsync call was not made with expected FetchOptions."
         );
     }
+
+    [TestMethod]
+    public async Task Start_WaitingRoomThatGoesLive_StartsWhenBroadcastingAndEnds()
+    {
+        _ytLiveChatOptions.LiveCheckFrequency = 50;
+        string liveId = "WaitRoom001";
+        string continuation = "cont_waiting_01";
+        string livePage = UtilityTestData.GetSampleLivePageHtml(liveId, "key", "cv", continuation);
+        string waitingPage = WaitingRoomPage(livePage);
+
+        _ = _mockYtHttpClient
+            .Setup(c => c.GetOptionsAsync(null, null, liveId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(waitingPage);
+        _ = _mockYtHttpClient
+            .SetupSequence(c => c.GetPlayerAsync(It.IsAny<FetchOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PlayerFixture("waiting.rUEyequT3ro.2026-11-17.json"))
+            .ReturnsAsync(PlayerFixture("live.rUEyequT3ro.2026-11-17.json"));
+
+        bool started = false;
+        string continuingJson = UtilityTestData.WrapItemsInLiveChatResponse([], continuation);
+        LiveChatResponse? continuing = JsonSerializer.Deserialize<LiveChatResponse>(continuingJson);
+        string endedJson = UtilityTestData.EmptyLiveChatResponse();
+        LiveChatResponse? ended = JsonSerializer.Deserialize<LiveChatResponse>(endedJson);
+        _ = _mockYtHttpClient
+            .Setup(c => c.GetLiveChatAsync(It.IsAny<FetchOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => Volatile.Read(ref started) ? (ended, endedJson) : (continuing, continuingJson));
+
+        TaskCompletionSource<LivestreamStartedEventArgs> startedTcs = new(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        TaskCompletionSource<LivestreamEndedEventArgs> endedTcs = new(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        int playerChecksAtStart = -1;
+        _service.LivestreamStarted += (_, e) =>
+        {
+            playerChecksAtStart = _mockYtHttpClient.Invocations.Count(i =>
+                i.Method.Name == nameof(YTHttpClient.GetPlayerAsync)
+            );
+            Volatile.Write(ref started, true);
+            _ = startedTcs.TrySetResult(e);
+        };
+        _service.LivestreamEnded += (_, e) => _ = endedTcs.TrySetResult(e);
+
+        _service.Start(liveId: liveId);
+
+        LivestreamStartedEventArgs startedArgs = await WaitForTcsResult(startedTcs, "LivestreamStarted");
+        LivestreamEndedEventArgs endedArgs = await WaitForTcsResult(endedTcs, "LivestreamEnded");
+
+        Assert.AreEqual(liveId, startedArgs.LiveId);
+        Assert.AreEqual(liveId, endedArgs.LiveId);
+        Assert.AreEqual(2, playerChecksAtStart, "Started before the player reported the stream live.");
+    }
+
+    [TestMethod]
+    public async Task Start_WaitingRoomThatCloses_RaisesNeitherStartNorEnd()
+    {
+        _ytLiveChatOptions.LiveCheckFrequency = 50;
+        string liveId = "WaitRoom002";
+        string continuation = "cont_waiting_02";
+        string waitingPage = WaitingRoomPage(
+            UtilityTestData.GetSampleLivePageHtml(liveId, "key", "cv", continuation)
+        );
+        _ = _mockYtHttpClient
+            .Setup(c => c.GetOptionsAsync(null, null, liveId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(waitingPage);
+        _ = _mockYtHttpClient
+            .Setup(c => c.GetPlayerAsync(It.IsAny<FetchOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PlayerFixture("waiting.rUEyequT3ro.2026-11-17.json"));
+
+        string continuingJson = UtilityTestData.WrapItemsInLiveChatResponse([], continuation);
+        string endedJson = UtilityTestData.EmptyLiveChatResponse();
+        _ = _mockYtHttpClient
+            .SetupSequence(c => c.GetLiveChatAsync(It.IsAny<FetchOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((JsonSerializer.Deserialize<LiveChatResponse>(continuingJson), continuingJson))
+            .ReturnsAsync((JsonSerializer.Deserialize<LiveChatResponse>(continuingJson), continuingJson))
+            .ReturnsAsync((JsonSerializer.Deserialize<LiveChatResponse>(endedJson), endedJson));
+
+        int lifecycleEvents = 0;
+        TaskCompletionSource<ChatStoppedEventArgs> stoppedTcs = new(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        _service.LivestreamStarted += (_, _) => Interlocked.Increment(ref lifecycleEvents);
+        _service.LivestreamEnded += (_, _) => Interlocked.Increment(ref lifecycleEvents);
+        _service.ChatStopped += (_, e) => _ = stoppedTcs.TrySetResult(e);
+
+        _service.Start(liveId: liveId);
+
+        _ = await WaitForTcsResult(stoppedTcs, "ChatStopped");
+        Assert.AreEqual(0, Volatile.Read(ref lifecycleEvents));
+    }
+
+    private static string PlayerFixture(string fileName) =>
+        File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Player", fileName));
+
+    private static string WaitingRoomPage(string livePage) =>
+        livePage
+            .Replace("\"isLiveNow\": true", "\"isLiveNow\": false", StringComparison.Ordinal)
+            .Replace("\"isUpcoming\": false", "\"isUpcoming\": true", StringComparison.Ordinal);
 
     [TestMethod]
     public async Task Start_ContinuousMonitorMode_WaitsForLiveAndEmitsLifecycleEvents()
@@ -545,20 +644,24 @@ public class YTLiveChatServiceTests
             )
             .ReturnsAsync((endedResponse, endedResponseJson));
 
-        TaskCompletionSource<LivestreamStartedEventArgs> startedTcs = new(
+        TaskCompletionSource<InitialPageLoadedEventArgs> loadedTcs = new(
             TaskCreationOptions.RunContinuationsAsynchronously
         );
-        _service.LivestreamStarted += (_, e) => _ = startedTcs.TrySetResult(e);
+        int started = 0;
+        _service.InitialPageLoaded += (_, e) => _ = loadedTcs.TrySetResult(e);
+        _service.LivestreamStarted += (_, _) => Interlocked.Increment(ref started);
 
         _service.Start(handle: "monitorTarget");
 
-        LivestreamStartedEventArgs startedArgs = await WaitForTcsResult(
-            startedTcs,
-            "LivestreamStarted_UpcomingSnapshot"
+        InitialPageLoadedEventArgs loadedArgs = await WaitForTcsResult(
+            loadedTcs,
+            "InitialPageLoaded_UpcomingSnapshot"
         );
-        Assert.AreEqual(expectedUpcomingLiveId, startedArgs.LiveId);
-
         _service.Stop();
+
+        // The upcoming stream's chat is attached, but it is not broadcasting, so it has not started.
+        Assert.AreEqual(expectedUpcomingLiveId, loadedArgs.LiveId);
+        Assert.AreEqual(0, Volatile.Read(ref started));
     }
 
     [TestMethod]

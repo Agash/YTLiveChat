@@ -26,12 +26,9 @@ public class YTLiveChatOptions
     public bool EnableContinuousLivestreamMonitor { get; set; } = false;
 
     /// <summary>
-    /// Frequency in milliseconds for checking whether a channel handle/channelId is currently live
-    /// while waiting for a stream to start in continuous monitor mode.
+    /// Frequency in milliseconds for checking whether a stream is live: a scheduled stream waiting to start, and
+    /// in continuous monitor mode the channel between streams.
     /// </summary>
-    [Obsolete(
-        "BETA/UNSUPPORTED: Continuous livestream monitor mode may change or break at any time and is not covered by semver stability guarantees."
-    )]
     public int LiveCheckFrequency { get; set; } = 10000;
 
     /// <summary>
