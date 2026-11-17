@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "YTLiveChat.Tools": {
+      "commandName": "Project",
+      "commandLineArgs": "watch --all-events '@TokinoSora' '@Robocosan' '@AZKi' '@SakuraMiko' '@HoshimachiSuisei' '@MoriCalliope' '@TakanashiKiara' '@NinomaeInanis' '@NatsuiroMatsuri' '@AkiRosenthal' '@AkaiHaato' '@IRyS' '@OuroKronii' '@HakosBaelz' '@NakiriAyame' '@YuzukiChoco' '@OozoraSubaru' '@ShioriNovella' '@KosekiBijou' '@NerissaRavencroft' '@FUWAMOCOch' '@ShirakamiFubuki' '@OokamiMio' '@NekomataOkayu' '@InugamiKorone' '@holoen_erbloodflame' '@holoen_gigimurin' '@holoen_ceciliaimmergreen' '@holoen_raorapanthera' '@KoboKanaeru' '@KikiraraVivi' '@OtonoseKanade' '@HoushouMarine' '@RindoChihaya' '@HakuiKoyori' '@TokoyamiTowa' '@TsunomakiWatame' '@PavoliaReine' '@ShiroganeNoel' '@usadapekora' '@HimemoriLuna' '@KureijiOllie' '@VestiaZeta' '@IShowSpeed' '@penguinz0' '@Original151' '@Vintendo' '@UnitedGamer' '@shadypenguinn' '@hotspanishvlogs' '@Alofokeradioshow' '@RaidAwayPlus'"
+    }
+  }
+}

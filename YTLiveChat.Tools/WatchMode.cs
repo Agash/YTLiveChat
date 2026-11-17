@@ -34,6 +34,7 @@ internal static class WatchMode
         // Banner lifecycle
         "addBannerToLiveChatCommand", // → BannerAdded
         "removeBannerForLiveChatCommand", // → BannerRemoved
+        "showCreatorGoalTickerChipCommand", // → CreatorGoalReceived
     };
 
     // Action types the library recognizes but intentionally discards with no public event.
@@ -147,6 +148,19 @@ internal static class WatchMode
         {
             AutoFlush = true,
         };
+        // Entity mutations (frameworkUpdates) go beside the actions: YouTube sends state such as creator goals there.
+        string entitiesPath = Path.ChangeExtension(outputPath, ".entities.jsonl");
+        using StreamWriter entityWriter = new(
+            entitiesPath,
+            append: false,
+            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)
+        )
+        {
+            AutoFlush = true,
+        };
+        EntityRecorder entityRecorder = new(entityWriter);
+        // The shape of every response, regular chat included, to compare against what the library models.
+        using SchemaRecorder schemaRecorder = new(Path.ChangeExtension(outputPath, ".schema.tsv"));
         int[] capturedCount = [0];
         object fileLock = new();
         object consoleLock = new();
@@ -161,13 +175,14 @@ internal static class WatchMode
                 YoutubeBaseUrl = "https://www.youtube.com",
                 EnableContinuousLivestreamMonitor = target.IsHandleOrChannel,
                 LiveCheckFrequency = options.CheckIntervalMs,
+                RequestFrequency = options.RequestFrequencyMs,
                 RequireActiveBroadcastForAutoDetectedStream = !options.IncludeScheduled,
                 IgnoredAutoDetectedLiveIds = [.. options.SkippedLiveIds],
             };
 #pragma warning restore CS0618
 
             HttpClient httpClient = new() { BaseAddress = new Uri("https://www.youtube.com") };
-            YTHttpClient ytHttpClient = new(httpClient, NullLogger<YTHttpClient>.Instance);
+            YTHttpClient ytHttpClient = new EntityRecordingClient(httpClient, target.Tag, entityRecorder, schemaRecorder);
             IYTLiveChat chat = new YTLiveChat.Services.YTLiveChat(
                 ytOptions,
                 ytHttpClient,
@@ -205,6 +220,11 @@ internal static class WatchMode
 
         Console.WriteLine();
         Console.WriteLine($"Stopped. {capturedCount[0]} event(s) captured → {outputPath}");
+        Console.WriteLine($"Entity mutations → {entitiesPath}");
+        foreach ((string type, int count) in entityRecorder.Counts.OrderByDescending(static c => c.Value))
+        {
+            Console.WriteLine($"  {count,7}  {type}");
+        }
 
         if (capturedCount[0] > 0)
         {
@@ -499,6 +519,7 @@ internal static class WatchMode
         List<WatchTarget> targets = [];
         List<string> skippedLiveIds = [];
         int checkIntervalMs = 10000;
+        int requestFrequencyMs = 1000;
         bool includeScheduled = false;
         bool allMembership = false;
         bool allEvents = false;
@@ -547,6 +568,32 @@ internal static class WatchMode
                 continue;
             }
 
+            const string requestFrequencyPrefix = "--request-frequency=";
+            if (arg.StartsWith(requestFrequencyPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                if (int.TryParse(arg[requestFrequencyPrefix.Length..], out int parsed) && parsed > 0)
+                {
+                    requestFrequencyMs = parsed;
+                }
+
+                continue;
+            }
+
+            const string targetsFilePrefix = "--targets-file=";
+            if (arg.StartsWith(targetsFilePrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                foreach (string line in File.ReadLines(arg[targetsFilePrefix.Length..]))
+                {
+                    string target = line.Split(['\t', ' '])[0].Trim();
+                    if (target.Length > 0 && !target.StartsWith('#'))
+                    {
+                        targets.Add(ParseTarget(target));
+                    }
+                }
+
+                continue;
+            }
+
             const string outputPrefix = "--output=";
             if (arg.StartsWith(outputPrefix, StringComparison.OrdinalIgnoreCase))
             {
@@ -561,6 +608,7 @@ internal static class WatchMode
             targets,
             skippedLiveIds,
             checkIntervalMs,
+            requestFrequencyMs,
             includeScheduled,
             allMembership,
             allEvents,
@@ -685,6 +733,7 @@ internal static class WatchMode
         IReadOnlyList<WatchTarget> Targets,
         IReadOnlyList<string> SkippedLiveIds,
         int CheckIntervalMs,
+        int RequestFrequencyMs,
         bool IncludeScheduled,
         bool AllMembership,
         bool AllEvents,

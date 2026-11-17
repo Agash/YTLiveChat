@@ -11,6 +11,26 @@ if (args.Length > 0 && args[0].Equals("snapshot", StringComparison.OrdinalIgnore
     return await SnapshotMode.RunAsync(args[1..]);
 }
 
+if (args.Length > 0 && args[0].Equals("viewcompare", StringComparison.OrdinalIgnoreCase))
+{
+    return await ViewCompareMode.RunAsync(args[1..]);
+}
+
+if (args.Length > 0 && args[0].Equals("schemacheck", StringComparison.OrdinalIgnoreCase))
+{
+    return SchemaCheckMode.Run(args[1..]);
+}
+
+if (args.Length > 0 && args[0].Equals("pollprobe", StringComparison.OrdinalIgnoreCase))
+{
+    return await PollProbeMode.RunAsync(args[1..]);
+}
+
+if (args.Length > 0 && args[0].Equals("livestate", StringComparison.OrdinalIgnoreCase))
+{
+    return await LiveStateMode.RunAsync(args[1..]);
+}
+
 if (args.Length > 0 && args[0].Equals("analyze", StringComparison.OrdinalIgnoreCase))
 {
     return AnalyzeMode.Run(args[1..]);
