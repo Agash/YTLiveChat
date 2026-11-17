@@ -285,6 +285,10 @@ internal static partial class Parser
                     {
                         AddStreamCandidateFromVideoRenderer(property.Value, byId, order);
                     }
+                    else if (property.NameEquals("lockupViewModel"))
+                    {
+                        AddStreamCandidateFromLockup(property.Value, byId, order);
+                    }
 
                     CollectVideoRenderers(property.Value, byId, order);
                 }
@@ -391,6 +395,159 @@ internal static partial class Parser
             existing.PublishedTimeText ?? candidate.PublishedTimeText,
             existing.LengthText ?? candidate.LengthText
         );
+    }
+
+    // The streams tab as YouTube serves it since 2026: one lockupViewModel per entry. Its texts follow the
+    // requester's location (the page is fetched without hl), so the state is read from markers that do not
+    // depend on language: a live entry carries the LIVE badge style, a past one a duration as its badge text,
+    // and an upcoming one any other badge text ("Upcoming", "Anstehend", ...). The scheduled time of an
+    // upcoming entry is only given as localized text there, so it is left out.
+    private static void AddStreamCandidateFromLockup(
+        JsonElement lockup,
+        Dictionary<string, StreamPageCandidate> byId,
+        List<string> order
+    )
+    {
+        if (
+            !lockup.TryGetProperty("contentId", out JsonElement idElement)
+            || idElement.ValueKind != JsonValueKind.String
+            || (
+                lockup.TryGetProperty("contentType", out JsonElement typeElement)
+                && typeElement.GetString() != "LOCKUP_CONTENT_TYPE_VIDEO"
+            )
+        )
+        {
+            return;
+        }
+
+        string? liveId = idElement.GetString();
+        if (string.IsNullOrWhiteSpace(liveId) || byId.ContainsKey(liveId!))
+        {
+            return;
+        }
+
+        string? badgeText = null;
+        string? badgeStyle = null;
+        string? thumbnailUrl = null;
+        if (
+            lockup.TryGetProperty("contentImage", out JsonElement image)
+            && image.TryGetProperty("thumbnailViewModel", out JsonElement thumbnail)
+        )
+        {
+            if (
+                thumbnail.TryGetProperty("image", out JsonElement thumbnailImage)
+                && thumbnailImage.TryGetProperty("sources", out JsonElement sources)
+                && sources.ValueKind == JsonValueKind.Array
+                && sources.GetArrayLength() > 0
+                && sources[sources.GetArrayLength() - 1].TryGetProperty("url", out JsonElement url)
+            )
+            {
+                thumbnailUrl = url.GetString();
+            }
+
+            if (
+                thumbnail.TryGetProperty("overlays", out JsonElement overlays)
+                && overlays.ValueKind == JsonValueKind.Array
+            )
+            {
+                foreach (JsonElement overlay in overlays.EnumerateArray())
+                {
+                    if (
+                        overlay.TryGetProperty("thumbnailBottomOverlayViewModel", out JsonElement bottom)
+                        && bottom.TryGetProperty("badges", out JsonElement badges)
+                        && badges.ValueKind == JsonValueKind.Array
+                        && badges.GetArrayLength() > 0
+                        && badges[0].TryGetProperty("thumbnailBadgeViewModel", out JsonElement badge)
+                    )
+                    {
+                        badgeText = badge.TryGetProperty("text", out JsonElement t) ? t.GetString() : null;
+                        badgeStyle = badge.TryGetProperty("badgeStyle", out JsonElement st)
+                            ? st.GetString()
+                            : null;
+                        break;
+                    }
+                }
+            }
+        }
+
+        string? title = null;
+        List<string> metadata = [];
+        if (
+            lockup.TryGetProperty("metadata", out JsonElement metadataElement)
+            && metadataElement.TryGetProperty("lockupMetadataViewModel", out JsonElement lockupMetadata)
+        )
+        {
+            if (
+                lockupMetadata.TryGetProperty("title", out JsonElement titleElement)
+                && titleElement.TryGetProperty("content", out JsonElement titleContent)
+            )
+            {
+                title = titleContent.GetString();
+            }
+
+            if (
+                lockupMetadata.TryGetProperty("metadata", out JsonElement inner)
+                && inner.TryGetProperty("contentMetadataViewModel", out JsonElement content)
+                && content.TryGetProperty("metadataRows", out JsonElement rows)
+                && rows.ValueKind == JsonValueKind.Array
+            )
+            {
+                foreach (JsonElement row in rows.EnumerateArray())
+                {
+                    if (
+                        !row.TryGetProperty("metadataParts", out JsonElement parts)
+                        || parts.ValueKind != JsonValueKind.Array
+                    )
+                    {
+                        continue;
+                    }
+
+                    foreach (JsonElement part in parts.EnumerateArray())
+                    {
+                        if (
+                            part.TryGetProperty("text", out JsonElement partText)
+                            && partText.TryGetProperty("content", out JsonElement partContent)
+                            && partContent.GetString() is { Length: > 0 } text
+                        )
+                        {
+                            metadata.Add(text);
+                        }
+                    }
+                }
+            }
+        }
+
+        bool isLive = string.Equals(
+            badgeStyle,
+            "THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE",
+            StringComparison.Ordinal
+        );
+        bool isPast = !isLive && badgeText is not null && TryParseDuration(badgeText, out _);
+        bool isUpcoming = !isLive && !isPast && !string.IsNullOrWhiteSpace(badgeText);
+        string? count = metadata.Count > 0 ? LeadingWholeNumber(metadata[0]) : null;
+
+        byId[liveId!] = new(
+            liveId!,
+            isLive,
+            isUpcoming,
+            null,
+            isUpcoming ? null : count,
+            title,
+            thumbnailUrl,
+            isPast && metadata.Count > 1 ? metadata[metadata.Count - 1] : null,
+            isPast ? badgeText : null
+        );
+        order.Add(liveId!);
+    }
+
+    // A count written in full ("25,066", "25.066", "2310", "25 066") at the start of a localized text, as
+    // digits only; an abbreviated count ("584K", "1,2 Mio.") gives none rather than a wrong number.
+    private static string? LeadingWholeNumber(string text)
+    {
+        Match match = LeadingWholeNumberRegex().Match(text);
+        return match.Success
+            ? new string([.. match.Groups[1].Value.Where(char.IsDigit)])
+            : null;
     }
 
     private static string? ExtractOverlayStyle(JsonElement videoRenderer)
@@ -1948,6 +2105,9 @@ internal static partial class Parser
     [GeneratedRegex("\"isLiveNow\":\\s*(true|false)", RegexOptions.Compiled)]
     private static partial Regex IsLiveNowRegex();
 
+    [GeneratedRegex(@"^(\d{1,3}(?:[.,'\u00a0\u202f ]\d{3})+|\d+)(?=$|\s)")]
+    private static partial Regex LeadingWholeNumberRegex();
+
     [GeneratedRegex("\"isUpcoming\":\\s*(true|false)", RegexOptions.Compiled)]
     private static partial Regex IsUpcomingRegex();
 
@@ -2089,6 +2249,13 @@ internal static partial class Parser
     );
 
     private static Regex IsUpcomingRegex() => _isUpcomingRegex;
+
+    private static readonly Regex _leadingWholeNumberRegex = new(
+        @"^(\d{1,3}(?:[.,'\u00a0\u202f ]\d{3})+|\d+)(?=$|\s)",
+        RegexOptions.Compiled
+    );
+
+    private static Regex LeadingWholeNumberRegex() => _leadingWholeNumberRegex;
 
     private static readonly Regex _isLiveRegex = new(
         "\"isLive\":\\s*(true|false)",
