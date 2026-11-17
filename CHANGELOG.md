@@ -9,6 +9,7 @@
   must add them.
 
 ### Added
+- `PollClosedEventArgs.FinalPoll`: the poll's last state (question, choices, vote ratios) when it closed.
 - `EntityMutationReceived`: every entity update of a chat response, raw (`EntityMutation`), so state the library
   does not type yet (poll state, Super Chat reply counts, the viewer leaderboard) is available.
 - `ReactionsReceived`: the reactions viewers send, per stretch of time (`ReactionsItem`, `ReactionBucket`).

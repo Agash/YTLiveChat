@@ -294,6 +294,46 @@ public class YTLiveChatServiceTests
         Assert.AreEqual(0, Volatile.Read(ref lifecycleEvents));
     }
 
+    [TestMethod]
+    public async Task Start_PollUpdatedThenClosed_CloseCarriesTheFinalResults()
+    {
+        string liveId = "PollLife001";
+        string continuation = "cont_poll_01";
+        _ = _mockYtHttpClient
+            .Setup(c => c.GetOptionsAsync(null, null, liveId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(UtilityTestData.GetSampleLivePageHtml(liveId, "key", "cv", continuation));
+
+        // The shapes captured on 2026-11-17: an update carries the poll; the close names it by targetPanelId.
+        const string update = """
+            {"updateLiveChatPollAction":{"pollToUpdate":{"pollRenderer":{"liveChatPollId":"poll-1",
+            "choices":[{"text":{"runs":[{"text":"Yes"}]},"selected":false,"voteRatio":0.95},
+                       {"text":{"runs":[{"text":"No"}]},"selected":false,"voteRatio":0.05}],
+            "header":{"pollHeaderRenderer":{"pollQuestion":{"runs":[{"text":"Ready?"}]},
+            "liveChatPollType":"LIVE_CHAT_POLL_TYPE_CREATOR"}}}}}}
+            """;
+        const string close = """{"closeLiveChatActionPanelAction":{"targetPanelId":"poll-1","skipOnDismissCommand":true}}""";
+        string updateJson = UtilityTestData.WrapActionsInLiveChatResponse([update], continuation);
+        string closeJson = UtilityTestData.WrapActionsInLiveChatResponse([close], null);
+        _ = _mockYtHttpClient
+            .SetupSequence(c => c.GetLiveChatAsync(It.IsAny<FetchOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((JsonSerializer.Deserialize<LiveChatResponse>(updateJson), updateJson))
+            .ReturnsAsync((JsonSerializer.Deserialize<LiveChatResponse>(closeJson), closeJson));
+
+        TaskCompletionSource<PollClosedEventArgs> closedTcs = new(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        _service.PollClosed += (_, e) => _ = closedTcs.TrySetResult(e);
+
+        _service.Start(liveId: liveId);
+        PollClosedEventArgs closed = await WaitForTcsResult(closedTcs, "PollClosed");
+        _service.Stop();
+
+        Assert.AreEqual("poll-1", closed.PollId);
+        Assert.IsNotNull(closed.FinalPoll);
+        Assert.HasCount(2, closed.FinalPoll.Choices);
+        Assert.AreEqual(0.95, closed.FinalPoll.Choices[0].VoteRatio, 0.001);
+    }
+
     private static string PlayerFixture(string fileName) =>
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Player", fileName));
 

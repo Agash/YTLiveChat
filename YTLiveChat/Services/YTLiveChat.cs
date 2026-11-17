@@ -92,6 +92,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     private bool _continuousMonitorEnabledForSession;
     private string? _activeLiveId;
     private bool _activeLiveBroadcasting;
+    private readonly Dictionary<string, Contracts.Models.PollItem> _openPolls = new(
+        StringComparer.Ordinal
+    );
     private DateTimeOffset _nextBroadcastCheck;
     private string? _lastInaccessibleLiveId;
     private bool _terminateCurrentSession;
@@ -532,6 +535,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     {
         _activeLiveId = options.LiveId;
         _activeLiveBroadcasting = false;
+        _openPolls.Clear();
         _lastInaccessibleLiveId = null;
         _temporaryInaccessibleAutoDetectedLiveIds.Clear();
         if (options.IsBroadcasting)
@@ -1522,18 +1526,23 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
 
         foreach (Models.Response.Action action in actions)
         {
-            if (hasPoll)
+            // A poll's last update is kept until it closes, so the close carries the final results; the close
+            // action itself names only the poll (observed 2026-11-17: its targetPanelId is the poll id).
+            Contracts.Models.PollItem? poll = action.ToPollItem();
+            if (poll is not null)
             {
-                Contracts.Models.PollItem? poll = action.ToPollItem();
-                if (poll is not null)
+                _openPolls[poll.PollId] = poll;
+                if (hasPoll)
                     OnPollUpdated(new() { Poll = poll });
             }
 
-            if (hasPollClosed)
+            string? closedPollId = action.ToClosedPollId();
+            if (closedPollId is not null)
             {
-                string? closedPollId = action.ToClosedPollId();
-                if (closedPollId is not null)
-                    OnPollClosed(new() { PollId = closedPollId });
+                _ = _openPolls.TryGetValue(closedPollId, out Contracts.Models.PollItem? finalPoll);
+                _ = _openPolls.Remove(closedPollId);
+                if (hasPollClosed)
+                    OnPollClosed(new() { PollId = closedPollId, FinalPoll = finalPoll });
             }
 
             if (hasDelete)

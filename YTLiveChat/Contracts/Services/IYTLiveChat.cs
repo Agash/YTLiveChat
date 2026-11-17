@@ -373,6 +373,12 @@ public class PollClosedEventArgs : EventArgs
     /// The ID of the poll that was closed (matches <see cref="PollItem.PollId"/> from the preceding <c>PollUpdated</c> event).
     /// </summary>
     public required string PollId { get; set; }
+
+    /// <summary>
+    /// The poll's last state before it closed (question, choices and vote ratios), when an update of it was received
+    /// in this session; null for a poll that opened before the session started and was never updated.
+    /// </summary>
+    public PollItem? FinalPoll { get; set; }
 }
 
 /// <summary>
