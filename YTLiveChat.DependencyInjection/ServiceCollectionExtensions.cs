@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -103,7 +103,12 @@ public static class ServiceCollectionExtensions
             >(); // Logger is optional
 
             // Construct the YTLiveChat service instance
-            return new Services.YTLiveChat(options.Value, ytHttpClient, logger);
+            return new Services.YTLiveChat(
+                options.Value,
+                ytHttpClient,
+                logger,
+                provider.GetService<TimeProvider>()
+            );
         });
     }
 }

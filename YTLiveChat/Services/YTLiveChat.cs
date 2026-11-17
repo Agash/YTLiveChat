@@ -78,6 +78,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     private readonly YTLiveChatOptions _options;
     private readonly YTHttpClient _ytHttpClient;
     private readonly ILogger<YTLiveChat> _logger;
+    private readonly TimeProvider _timeProvider;
 
     private FetchOptions? _fetchOptionsInternal;
     private CancellationTokenSource? _cancellationTokenSource;
@@ -123,11 +124,13 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     /// <param name="options">The configuration options for the chat service.</param>
     /// <param name="ytHttpClient">The HTTP client instance configured for YouTube interaction.</param>
     /// <param name="logger">Optional logger instance.</param>
+    /// <param name="timeProvider">Clock and timers for polling and live checks; <see cref="TimeProvider.System"/> when omitted.</param>
     /// <exception cref="ArgumentNullException">Thrown if options or ytHttpClient is null.</exception>
     public YTLiveChat(
         YTLiveChatOptions options,
         YTHttpClient ytHttpClient,
-        ILogger<YTLiveChat>? logger = null // Logger is optional
+        ILogger<YTLiveChat>? logger = null,
+        TimeProvider? timeProvider = null
     )
     {
         // Classic null checks for netstandard2.1 compatibility
@@ -144,6 +147,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         _options = options;
         _ytHttpClient = ytHttpClient;
         _logger = logger ?? NullLogger<YTLiveChat>.Instance; // Use NullLogger if none provided
+        _timeProvider = timeProvider ?? TimeProvider.System;
 
         // Configure debug logging based on options
         _isDebugLoggingEnabled = _options.DebugLogReceivedJsonItems;
@@ -322,7 +326,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                         );
                     }
 
-                    await Task.Delay(
+                    await DelayAsync(
                             TimeSpan.FromMilliseconds(LiveCheckFrequencySetting),
                             cancellationToken
                         )
@@ -338,11 +342,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 );
 
                 // --- Polling Loop (Conditional Timer/Delay) ---
-#if NETSTANDARD2_1 || NETSTANDARD2_0
-                await PollingLoopWithTaskDelayAsync(cancellationToken);
-#else
-                await PollingLoopWithPeriodicTimerAsync(cancellationToken);
-#endif
+                await PollingLoopAsync(cancellationToken);
 
                 if (!_continuousMonitorEnabledForSession)
                 {
@@ -450,7 +450,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             if (!string.IsNullOrWhiteSpace(resolvedLiveId))
             {
                 _temporaryInaccessibleAutoDetectedLiveIds[resolvedLiveId!] =
-                    DateTimeOffset.UtcNow + GetInaccessibleCandidateRetryDelay();
+                    _timeProvider.GetUtcNow() + GetInaccessibleCandidateRetryDelay();
             }
 
             NotifyInaccessibleLivestreamCandidate(resolvedLiveId, ex.Message);
@@ -546,152 +546,11 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         OnChatStopped(new() { Reason = reason });
     }
 
-#if !NETSTANDARD2_1 && !NETSTANDARD2_0
     /// <summary>
-    /// Polling loop implementation using PeriodicTimer (for .NET 6+).
+    /// Polls the chat <see cref="YTLiveChatOptions.RequestFrequency"/> milliseconds after the previous poll
+    /// finished, retrying failed polls with backoff.
     /// </summary>
-    private async Task PollingLoopWithPeriodicTimerAsync(CancellationToken cancellationToken)
-    {
-        int currentRetryAttempt = 0;
-        using PeriodicTimer timer = new(TimeSpan.FromMilliseconds(_options.RequestFrequency));
-
-        try
-        {
-            while (await timer.WaitForNextTickAsync(cancellationToken))
-            {
-                if (_fetchOptionsInternal?.Continuation is null)
-                {
-                    _logger.LogError(
-                        "Error: Fetch options or continuation token missing. Stopping poll."
-                    );
-                    OnErrorOccurred(
-                        new ErrorOccurredEventArgs(
-                            new InvalidOperationException("Continuation token lost.")
-                        )
-                    );
-                    EndActiveLivestreamAndStopChat("Continuation token missing");
-                    break;
-                }
-
-                try
-                {
-                    // --- Fetch and Process ---
-                    (LiveChatResponse? response, string? rawJson) =
-                        await _ytHttpClient.GetLiveChatAsync(
-                            _fetchOptionsInternal,
-                            cancellationToken
-                        );
-
-                    // Log raw JSON if enabled
-                    if (
-                        _isDebugLoggingEnabled
-                        && response?.ContinuationContents?.LiveChatContinuation?.Actions != null
-                    )
-                    {
-                        await LogRawJsonActionsAsync(rawJson, cancellationToken);
-                    }
-
-                    // Process response
-                    if (response != null)
-                    {
-                        string? continuation = ProcessResponseAndEmitEvents(response, rawJson);
-
-                        if (!string.IsNullOrEmpty(continuation))
-                        {
-                            _fetchOptionsInternal = _fetchOptionsInternal with
-                            {
-                                Continuation = continuation,
-                            };
-                            currentRetryAttempt = 0; // Reset retries on success
-                        }
-                        else
-                        {
-                            _logger.LogInformation(
-                                "No continuation token received. Assuming stream ended or chat disabled."
-                            );
-                            EndActiveLivestream("Stream ended or continuation lost");
-                            if (!_continuousMonitorEnabledForSession)
-                            {
-                                OnChatStopped(
-                                    new() { Reason = "Stream ended or continuation lost" }
-                                );
-                            }
-
-                            break; // Exit loop normally
-                        }
-                    }
-                    else
-                    {
-                        // GetLiveChatAsync returning null indicates a handled HTTP or JSON error occurred.
-                        // Treat this as potentially retryable.
-                        throw new Exception(
-                            "GetLiveChatAsync returned null response object, indicating a fetch/parse error."
-                        );
-                    }
-                }
-                catch (HttpRequestException httpEx)
-                    when (httpEx.StatusCode == System.Net.HttpStatusCode.Forbidden)
-                {
-                    // --- Handle Forbidden (403) ---
-                    _logger.LogError(
-                        httpEx,
-                        "Received Forbidden (403). Stream might be region locked, require login, or API access changed. Stopping."
-                    );
-                    OnErrorOccurred(new ErrorOccurredEventArgs(httpEx));
-                    EndActiveLivestreamAndStopChat("Received Forbidden (403)");
-                    break; // Stop polling loop
-                }
-                catch (Exception ex) when (ex is not OperationCanceledException)
-                {
-                    // --- Handle Other Errors (Retry Logic) ---
-                    OnErrorOccurred(new ErrorOccurredEventArgs(ex));
-                    currentRetryAttempt++;
-                    if (currentRetryAttempt > MaxRetryAttempts)
-                    {
-                        _logger.LogError(
-                            ex,
-                            "Maximum retry attempts ({MaxAttempts}) exceeded. Stopping poll.",
-                            MaxRetryAttempts
-                        );
-                        EndActiveLivestreamAndStopChat(
-                            $"Failed after {MaxRetryAttempts} retries: {ex.Message}"
-                        );
-                        break; // Stop polling loop
-                    }
-
-                    // Calculate delay with jitter
-                    double delaySeconds =
-                        BaseRetryDelaySeconds * Math.Pow(2, currentRetryAttempt - 1);
-                    delaySeconds = Math.Min(delaySeconds, MaxRetryDelaySeconds);
-                    delaySeconds *= 1.0 + ((s_random.NextDouble() * 0.4) - 0.2); // +-20% jitter
-                    TimeSpan delay = TimeSpan.FromSeconds(delaySeconds);
-
-                    _logger.LogWarning(
-                        ex,
-                        "Error during poll cycle (Attempt {Attempt}/{MaxAttempts}). Retrying after delay {Delay}...",
-                        currentRetryAttempt,
-                        MaxRetryAttempts,
-                        delay
-                    );
-
-                    // Delay before the *next* tick is attempted by PeriodicTimer
-                    await Task.Delay(delay, cancellationToken);
-                    // PeriodicTimer will handle the wait for the next regular interval *after* this retry delay completes.
-                }
-            }
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            _logger.LogInformation("Polling loop cancelled via CancellationToken.");
-            // Stop() or ContinueWith will fire ChatStopped
-        }
-    }
-#else
-
-    /// <summary>
-    /// Polling loop implementation using Task.Delay (for .NET Standard 2.1).
-    /// </summary>
-    private async Task PollingLoopWithTaskDelayAsync(CancellationToken cancellationToken)
+    private async Task PollingLoopAsync(CancellationToken cancellationToken)
     {
         int currentRetryAttempt = 0;
         TimeSpan pollInterval = TimeSpan.FromMilliseconds(_options.RequestFrequency);
@@ -775,10 +634,10 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
 
                     // --- Normal Delay ---
                     // Delay *after* successful processing before next iteration
-                    await Task.Delay(pollInterval, cancellationToken);
+                    await DelayAsync(pollInterval, cancellationToken);
                 }
                 catch (HttpRequestException httpEx)
-                    when (httpEx.Message.Contains("403") || httpEx.Message.Contains("Forbidden"))
+                    when (IsForbidden(httpEx))
                 {
                     // --- Handle Forbidden (403) ---
                     _logger.LogError(
@@ -823,7 +682,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                     );
 
                     // Delay before the *next* attempt
-                    await Task.Delay(delay, cancellationToken);
+                    await DelayAsync(delay, cancellationToken);
                     // Continue to the next iteration immediately after the retry delay
                     continue;
                 }
@@ -835,6 +694,20 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             // Stop() or ContinueWith will fire ChatStopped
         }
     }
+
+    private Task DelayAsync(TimeSpan delay, CancellationToken cancellationToken) =>
+#if NET8_0_OR_GREATER
+        Task.Delay(delay, _timeProvider, cancellationToken);
+#else
+        _timeProvider.Delay(delay, cancellationToken);
+#endif
+
+    private static bool IsForbidden(HttpRequestException exception) =>
+#if NET8_0_OR_GREATER
+        exception.StatusCode == System.Net.HttpStatusCode.Forbidden;
+#else
+        // No status code on HttpRequestException before .NET 5; EnsureSuccessStatusCode names it in the message.
+        exception.Message.Contains("403") || exception.Message.Contains("Forbidden");
 #endif
 
     /// <summary>
@@ -853,7 +726,8 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         if (!shouldEmitRawActions)
         {
             (List<ChatItem> items, string? continuationToken) = Parser.ParseLiveChatResponse(
-                response
+                response,
+                _timeProvider
             );
             foreach (ChatItem chatItem in items)
             {
@@ -864,7 +738,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         }
 
         (List<(ChatItem Item, int ActionIndex)> indexedItems, string? continuation) =
-            Parser.ParseLiveChatResponseWithActionIndex(response);
+            Parser.ParseLiveChatResponseWithActionIndex(response, _timeProvider);
 
         Dictionary<int, ChatItem> parsedByActionIndex = new(indexedItems.Count);
         foreach ((ChatItem item, int actionIndex) in indexedItems)
@@ -1004,7 +878,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             }
 
             fs.Dispose();
-            string legacyPath = $"{_debugLogFilePath}.{DateTime.UtcNow:yyyyMMddHHmmss}.legacy";
+            string legacyPath = $"{_debugLogFilePath}.{_timeProvider.GetUtcNow():yyyyMMddHHmmss}.legacy";
             File.Move(_debugLogFilePath, legacyPath);
             File.WriteAllBytes(_debugLogFilePath, s_debugLogArrayStart);
 
@@ -1522,7 +1396,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
 
             if (hasBannerAdd)
             {
-                Contracts.Models.BannerItem? banner = action.ToBannerItem();
+                Contracts.Models.BannerItem? banner = action.ToBannerItem(_timeProvider);
                 if (banner is not null)
                     OnBannerAdded(new() { Banner = banner });
             }
@@ -1537,7 +1411,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             if (hasReplace)
             {
                 (string? targetItemId, Contracts.Models.ChatItem? replacement) =
-                    action.ToReplacedChatItem();
+                    action.ToReplacedChatItem(_timeProvider);
                 if (targetItemId is not null)
                     OnChatItemReplaced(
                         new() { TargetItemId = targetItemId, Replacement = replacement }
@@ -1546,7 +1420,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
 
             if (hasEngagement)
             {
-                Contracts.Models.EngagementItem? engagement = action.ToEngagementItem();
+                Contracts.Models.EngagementItem? engagement = action.ToEngagementItem(_timeProvider);
                 if (engagement is not null)
                     OnEngagementMessageReceived(new() { Engagement = engagement });
             }
@@ -2140,7 +2014,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             return false;
         }
 
-        if (DateTimeOffset.UtcNow < retryAt)
+        if (_timeProvider.GetUtcNow() < retryAt)
         {
             return true;
         }
@@ -2156,7 +2030,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             return;
         }
 
-        DateTimeOffset now = DateTimeOffset.UtcNow;
+        DateTimeOffset now = _timeProvider.GetUtcNow();
         List<string> expiredKeys = [];
         foreach (
             KeyValuePair<string, DateTimeOffset> entry in _temporaryInaccessibleAutoDetectedLiveIds

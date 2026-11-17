@@ -1,4 +1,4 @@
-﻿// This file is used by Code Analysis to maintain SuppressMessage
+// This file is used by Code Analysis to maintain SuppressMessage
 // attributes that are applied to this project.
 // Project-level suppressions either have no target or are given
 // a specific target and scoped to a namespace, type, member, etc.
@@ -12,21 +12,21 @@ using System.Diagnostics.CodeAnalysis;
     "CA1510:Use ArgumentNullException throw helper",
     Justification = "Not available in netstandard2.0+",
     Scope = "member",
-    Target = "~M:YTLiveChat.Services.YTLiveChat.#ctor(YTLiveChat.Contracts.YTLiveChatOptions,YTLiveChat.Services.YTHttpClient,Microsoft.Extensions.Logging.ILogger{YTLiveChat.Services.YTLiveChat})"
+    Target = "~M:YTLiveChat.Services.YTLiveChat.#ctor(YTLiveChat.Contracts.YTLiveChatOptions,YTLiveChat.Services.YTHttpClient,Microsoft.Extensions.Logging.ILogger{YTLiveChat.Services.YTLiveChat},System.TimeProvider)"
 )]
 [assembly: SuppressMessage(
     "Maintainability",
     "CA1510:Use ArgumentNullException throw helper",
     Justification = "Not available in netstandard2.0+",
     Scope = "member",
-    Target = "~M:YTLiveChat.Helpers.Parser.ToChatItem(YTLiveChat.Models.Response.Action)~YTLiveChat.Contracts.Models.ChatItem"
+    Target = "~M:YTLiveChat.Helpers.Parser.ToChatItem(YTLiveChat.Models.Response.Action,System.TimeProvider)~YTLiveChat.Contracts.Models.ChatItem"
 )]
 [assembly: SuppressMessage(
     "Usage",
     "CA2249:Consider using 'string.Contains' instead of 'string.IndexOf'",
     Justification = "Not available in netstandard2.0+",
     Scope = "member",
-    Target = "~M:YTLiveChat.Helpers.Parser.ToChatItem(YTLiveChat.Models.Response.Action)~YTLiveChat.Contracts.Models.ChatItem"
+    Target = "~M:YTLiveChat.Helpers.Parser.ToChatItem(YTLiveChat.Models.Response.Action,System.TimeProvider)~YTLiveChat.Contracts.Models.ChatItem"
 )]
 [assembly: SuppressMessage(
     "Performance",

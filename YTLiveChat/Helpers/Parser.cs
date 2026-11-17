@@ -799,7 +799,10 @@ internal static partial class Parser
     /// <summary>
     /// Converts a raw YouTube Action into a StreamWeaver ChatItem contract.
     /// </summary>
-    public static Contracts.Models.ChatItem? ToChatItem(this Action action) // Return contract type
+    public static Contracts.Models.ChatItem? ToChatItem(
+        this Action action,
+        TimeProvider? timeProvider = null
+    )
     {
         if (action == null)
             throw new ArgumentNullException(nameof(action));
@@ -1349,7 +1352,7 @@ internal static partial class Parser
         }
 
         // --- Timestamp ---
-        DateTimeOffset timestamp = DateTimeOffset.UtcNow;
+        DateTimeOffset timestamp = (timeProvider ?? TimeProvider.System).GetUtcNow();
         if (long.TryParse(baseRenderer.TimestampUsec, out long timestampUsec))
         {
             timestamp = DateTimeOffset.FromUnixTimeMilliseconds(timestampUsec / 1000);
@@ -1409,12 +1412,12 @@ internal static partial class Parser
     public static (
         List<Contracts.Models.ChatItem> Items,
         string? Continuation
-    ) ParseLiveChatResponse(LiveChatResponse? response) // Return contract type
+    ) ParseLiveChatResponse(LiveChatResponse? response, TimeProvider? timeProvider = null)
     {
         (
             List<(Contracts.Models.ChatItem Item, int ActionIndex)> indexedItems,
             string? continuation
-        ) = ParseLiveChatResponseWithActionIndex(response);
+        ) = ParseLiveChatResponseWithActionIndex(response, timeProvider);
         List<Contracts.Models.ChatItem> items = [.. indexedItems.Select(i => i.Item)];
         return (items, continuation);
     }
@@ -1426,7 +1429,10 @@ internal static partial class Parser
     public static (
         List<(Contracts.Models.ChatItem Item, int ActionIndex)> Items,
         string? Continuation
-    ) ParseLiveChatResponseWithActionIndex(LiveChatResponse? response)
+    ) ParseLiveChatResponseWithActionIndex(
+        LiveChatResponse? response,
+        TimeProvider? timeProvider = null
+    )
     {
         List<Action>? actions = response?.ContinuationContents?.LiveChatContinuation?.Actions;
         List<(Contracts.Models.ChatItem Item, int ActionIndex)> items =
@@ -1435,7 +1441,7 @@ internal static partial class Parser
         {
             for (int i = 0; i < actions.Count; i++)
             {
-                Contracts.Models.ChatItem? parsedItem = actions[i].ToChatItem();
+                Contracts.Models.ChatItem? parsedItem = actions[i].ToChatItem(timeProvider);
                 if (parsedItem != null)
                 {
                     items.Add((parsedItem, i));
@@ -1564,7 +1570,10 @@ internal static partial class Parser
     /// Extracts a <see cref="Contracts.Models.BannerItem"/> from an <c>addBannerToLiveChatCommand</c> action.
     /// Returns null for other action types or when required fields are absent.
     /// </summary>
-    public static Contracts.Models.BannerItem? ToBannerItem(this Action action)
+    public static Contracts.Models.BannerItem? ToBannerItem(
+        this Action action,
+        TimeProvider? timeProvider = null
+    )
     {
         LiveChatBannerRenderer? banner = action
             .AddBannerToLiveChatCommand
@@ -1725,7 +1734,7 @@ internal static partial class Parser
         Contracts.Models.MessagePart[] messageParts =
             textRenderer.Message?.Runs?.ToMessageParts() ?? [];
 
-        DateTimeOffset timestamp = DateTimeOffset.UtcNow;
+        DateTimeOffset timestamp = (timeProvider ?? TimeProvider.System).GetUtcNow();
         if (long.TryParse(textRenderer.TimestampUsec, out long tsUsec))
         {
             timestamp = DateTimeOffset.FromUnixTimeMilliseconds(tsUsec / 1000);
@@ -1754,7 +1763,8 @@ internal static partial class Parser
     /// (e.g. a placeholder renderer).
     /// </summary>
     public static (string? TargetItemId, Contracts.Models.ChatItem? Replacement) ToReplacedChatItem(
-        this Action action
+        this Action action,
+        TimeProvider? timeProvider = null
     )
     {
         ReplaceChatItemAction? replace = action.ReplaceChatItemAction;
@@ -1779,7 +1789,7 @@ internal static partial class Parser
                 },
             },
         };
-        return (targetId!, synth.ToChatItem());
+        return (targetId!, synth.ToChatItem(timeProvider));
     }
 
     /// <summary>
@@ -1793,7 +1803,10 @@ internal static partial class Parser
     /// <c>liveChatViewerEngagementMessageRenderer</c> inside an <c>addChatItemAction</c>.
     /// Returns null for other action types or when required fields are absent.
     /// </summary>
-    public static Contracts.Models.EngagementItem? ToEngagementItem(this Action action)
+    public static Contracts.Models.EngagementItem? ToEngagementItem(
+        this Action action,
+        TimeProvider? timeProvider = null
+    )
     {
         Models.Response.LiveChatViewerEngagementMessageRenderer? renderer = action
             .AddChatItemAction
@@ -1806,7 +1819,7 @@ internal static partial class Parser
         if (string.IsNullOrWhiteSpace(id))
             return null;
 
-        DateTimeOffset timestamp = DateTimeOffset.UtcNow;
+        DateTimeOffset timestamp = (timeProvider ?? TimeProvider.System).GetUtcNow();
         if (long.TryParse(renderer.TimestampUsec, out long usec))
             timestamp = DateTimeOffset.FromUnixTimeMilliseconds(usec / 1000);
 

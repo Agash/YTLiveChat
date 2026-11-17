@@ -52,6 +52,9 @@
     <PackageReference Include="System.Threading.Channels" />
     <PackageReference Include="System.Text.Json" />
   </ItemGroup>
+  <ItemGroup Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
+    <PackageReference Include="Microsoft.Bcl.TimeProvider" />
+  </ItemGroup>
   <ItemGroup>
     <None Include="../LICENSE.txt" Pack="true" PackagePath="" />
     <None Include="../README.md" Pack="true" PackagePath="" />

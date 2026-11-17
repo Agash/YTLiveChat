@@ -6,6 +6,7 @@
   <ItemGroup>
     <PackageVersion Include="DotNet.ReproducibleBuilds" Version="2.0.5" />
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="$(DotNetPackageVersion)" />
+    <PackageVersion Include="Microsoft.Bcl.TimeProvider" Version="$(DotNetPackageVersion)" />
     <PackageVersion
       Include="Microsoft.Extensions.DependencyInjection.Abstractions"
       Version="$(DotNetPackageVersion)"
