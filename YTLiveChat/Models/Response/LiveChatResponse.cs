@@ -1531,16 +1531,66 @@ public record LiveChatContinuation
 
     [JsonPropertyName("trackingParams")]
     public string? TrackingParams { get; init; }
+
+    [JsonPropertyName("header")]
+    public LiveChatHeader? Header { get; init; }
+}
+
+/// <summary>The chat's header in the first response: its view selector names the Top chat and Live chat views.</summary>
+public record LiveChatHeader
+{
+    [JsonPropertyName("liveChatHeaderRenderer")]
+    public LiveChatHeaderRenderer? LiveChatHeaderRenderer { get; init; }
+}
+
+public record LiveChatHeaderRenderer
+{
+    [JsonPropertyName("viewSelector")]
+    public ViewSelector? ViewSelector { get; init; }
+}
+
+public record ViewSelector
+{
+    [JsonPropertyName("sortFilterSubMenuRenderer")]
+    public SortFilterSubMenuRenderer? SortFilterSubMenuRenderer { get; init; }
+}
+
+public record SortFilterSubMenuRenderer
+{
+    [JsonPropertyName("subMenuItems")]
+    public List<SubMenuItem>? SubMenuItems { get; init; }
+}
+
+/// <summary>One view of the chat: "Top chat" first, then "Live chat" (all messages); titles are localized.</summary>
+public record SubMenuItem
+{
+    [JsonPropertyName("title")]
+    public string? Title { get; init; }
+
+    [JsonPropertyName("selected")]
+    public bool Selected { get; init; }
+
+    [JsonPropertyName("continuation")]
+    public Continuation? Continuation { get; init; }
 }
 
 public record Continuation // Container for different continuation types
 {
+    [JsonPropertyName("reloadContinuationData")]
+    public ReloadContinuationData? ReloadContinuationData { get; init; }
+
     [JsonPropertyName("invalidationContinuationData")]
     public InvalidationContinuationData? InvalidationContinuationData { get; init; }
 
     [JsonPropertyName("timedContinuationData")]
     public TimedContinuationData? TimedContinuationData { get; init; }
     // Add other continuation types if observed (e.g., liveChatReplayContinuationData)
+}
+
+public record ReloadContinuationData
+{
+    [JsonPropertyName("continuation")]
+    public string? Continuation { get; init; }
 }
 
 public record TimedContinuationData // Another type of continuation token

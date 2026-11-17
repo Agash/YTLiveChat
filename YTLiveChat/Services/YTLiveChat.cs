@@ -98,6 +98,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     private bool _continuousMonitorEnabledForSession;
     private string? _activeLiveId;
     private bool _activeLiveBroadcasting;
+    private bool _chatViewPending;
     private readonly Dictionary<string, Contracts.Models.PollItem> _openPolls = new(
         StringComparer.Ordinal
     );
@@ -554,6 +555,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         _activeLiveId = options.LiveId;
         _activeLiveBroadcasting = false;
         _openPolls.Clear();
+        _chatViewPending = _options.ChatView == ChatView.AllMessages;
         _lastInaccessibleLiveId = null;
         _temporaryInaccessibleAutoDetectedLiveIds.Clear();
         if (options.IsBroadcasting)
@@ -691,7 +693,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                     // Process response
                     if (response != null)
                     {
-                        string? continuation = ProcessResponseAndEmitEvents(response, rawJson);
+                        string? continuation =
+                            TrySwitchToAllMessages(response)
+                            ?? ProcessResponseAndEmitEvents(response, rawJson);
 
                         if (!string.IsNullOrEmpty(continuation))
                         {
@@ -1486,6 +1490,36 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 OnReactionsReceived(new() { Reactions = reactions });
             }
         }
+    }
+
+    // The watch page hands out the Top chat continuation (verified 2026-11-17: its chat type field is 4, as on the
+    // "Top chat" entry of the view selector; "Live chat" is 1), which hides messages YouTube considers potential
+    // spam. The first response's header lists both views, Top chat first and Live chat second (titles are
+    // localized); for all messages the session moves to the second before emitting anything, so the Top chat
+    // backlog is not emitted twice.
+    private string? TrySwitchToAllMessages(LiveChatResponse response)
+    {
+        if (!_chatViewPending)
+        {
+            return null;
+        }
+
+        _chatViewPending = false;
+        List<SubMenuItem>? views = response
+            .ContinuationContents?.LiveChatContinuation?.Header?.LiveChatHeaderRenderer?.ViewSelector?.SortFilterSubMenuRenderer?.SubMenuItems;
+        if (views is not { Count: >= 2 } || views[1].Selected)
+        {
+            return null;
+        }
+
+        string? allMessages = views[1].Continuation?.ReloadContinuationData?.Continuation;
+        if (string.IsNullOrEmpty(allMessages))
+        {
+            return null;
+        }
+
+        _logger.LogInformation("Reading all messages (Live chat) instead of Top chat.");
+        return allMessages;
     }
 
     private static readonly TimeSpan s_metadataFloor = TimeSpan.FromSeconds(5);

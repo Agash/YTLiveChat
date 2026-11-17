@@ -24,6 +24,13 @@ public class YTLiveChatOptions
     public int IdleRequestFrequency { get; set; } = 5000;
 
     /// <summary>
+    /// Which view of the chat is read. <see cref="ChatView.AllMessages"/> (YouTube's "Live chat") has every message;
+    /// <see cref="ChatView.TopChat"/> is the filtered view YouTube opens with, which hides messages it considers
+    /// potential spam.
+    /// </summary>
+    public ChatView ChatView { get; set; } = ChatView.AllMessages;
+
+    /// <summary>
     /// If true and started with a channel handle/channelId (not direct liveId), keeps monitoring for future livestreams.
     /// When a stream ends, the service continues polling the channel's /live endpoint until the next stream starts.
     /// </summary>
@@ -72,4 +79,14 @@ public class YTLiveChatOptions
     /// </summary>
     public string DebugLogFilePath { get; set; } =
         Path.Combine(AppContext.BaseDirectory, "ytlivechat_debug_items.json");
+}
+
+/// <summary>A view of the live chat.</summary>
+public enum ChatView
+{
+    /// <summary>Every message (YouTube's "Live chat" view).</summary>
+    AllMessages,
+
+    /// <summary>The filtered view YouTube opens with ("Top chat"), without messages it considers potential spam.</summary>
+    TopChat,
 }

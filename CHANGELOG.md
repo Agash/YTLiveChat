@@ -1,4 +1,7 @@
 ### Breaking
+- The chat is read in YouTube's "Live chat" view (every message) by default. The watch page hands out the
+  "Top chat" continuation, which hides messages YouTube considers potential spam, and earlier versions read that
+  one; `YTLiveChatOptions.ChatView` (`ChatView.AllMessages`, `ChatView.TopChat`) chooses.
 - `CreatorGoalItem` is rebuilt on the goal entity YouTube sends in the chat's entity updates
   (`frameworkUpdates` → `creatorGoalEntity`), which carries the real progress: `GoalId`, `State`
   (`CreatorGoalState`), `CurrentCount`, `TargetCount`, `EndsAt`, `Description`, `TargetText`, `IsXpGoal`.

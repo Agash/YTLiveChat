@@ -334,6 +334,95 @@ public class YTLiveChatServiceTests
         Assert.AreEqual(0.95, closed.FinalPoll.Choices[0].VoteRatio, 0.001);
     }
 
+    private const string ViewSelectorHeader = """
+        "header":{"liveChatHeaderRenderer":{"viewSelector":{"sortFilterSubMenuRenderer":{"subMenuItems":[
+        {"title":"Top chat","selected":true,"continuation":{"reloadContinuationData":{"continuation":"top-chat"}}},
+        {"title":"Live chat","selected":false,"continuation":{"reloadContinuationData":{"continuation":"all-messages"}}}]}}}},
+        """;
+
+    [TestMethod]
+    public async Task Start_DefaultChatView_MovesToAllMessagesBeforeEmittingAnything()
+    {
+        string liveId = "ChatView001";
+        _ = _mockYtHttpClient
+            .Setup(c => c.GetOptionsAsync(null, null, liveId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(UtilityTestData.GetSampleLivePageHtml(liveId, "key", "cv", "top-chat"));
+
+        // The first response's header lists Top chat (selected) then Live chat, as served on 2026-11-17.
+        string topJson = UtilityTestData
+            .WrapItemsInLiveChatResponse(
+                [$$"""{ "liveChatTextMessageRenderer": {{TextMessageTestData.SimpleTextMessage1()}} }"""],
+                "top-next"
+            )
+            .Replace("\"continuations\"", ViewSelectorHeader + "\"continuations\"", StringComparison.Ordinal);
+        string allJson = UtilityTestData.WrapItemsInLiveChatResponse(
+            [$$"""{ "liveChatTextMessageRenderer": {{TextMessageTestData.SimpleTextMessage1()}} }"""],
+            null
+        );
+        _ = _mockYtHttpClient
+            .Setup(c => c.GetLiveChatAsync(It.Is<FetchOptions>(o => o.Continuation == "top-chat"), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((JsonSerializer.Deserialize<LiveChatResponse>(topJson), topJson));
+        _ = _mockYtHttpClient
+            .Setup(c => c.GetLiveChatAsync(It.Is<FetchOptions>(o => o.Continuation == "all-messages"), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((JsonSerializer.Deserialize<LiveChatResponse>(allJson), allJson));
+
+        int received = 0;
+        TaskCompletionSource<ChatStoppedEventArgs> stopped = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        _service.ChatReceived += (_, _) => Interlocked.Increment(ref received);
+        _service.ChatStopped += (_, e) => _ = stopped.TrySetResult(e);
+
+        _service.Start(liveId: liveId);
+        _ = await WaitForTcsResult(stopped, "ChatStopped");
+
+        Assert.AreEqual(1, Volatile.Read(ref received), "The Top chat backlog was emitted as well.");
+        _mockYtHttpClient.Verify(
+            c => c.GetLiveChatAsync(It.Is<FetchOptions>(o => o.Continuation == "all-messages"), It.IsAny<CancellationToken>()),
+            Times.Once
+        );
+    }
+
+    [TestMethod]
+    public async Task Start_TopChatView_StaysOnTopChat()
+    {
+        _ytLiveChatOptions.ChatView = ChatView.TopChat;
+        string liveId = "ChatView002";
+        _ = _mockYtHttpClient
+            .Setup(c => c.GetOptionsAsync(null, null, liveId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(UtilityTestData.GetSampleLivePageHtml(liveId, "key", "cv", "top-chat"));
+
+        // The first response's header lists Top chat (selected) then Live chat, as served on 2026-11-17.
+        string topJson = UtilityTestData
+            .WrapItemsInLiveChatResponse(
+                [$$"""{ "liveChatTextMessageRenderer": {{TextMessageTestData.SimpleTextMessage1()}} }"""],
+                null
+            )
+            .Replace("\"continuations\"", ViewSelectorHeader + "\"continuations\"", StringComparison.Ordinal);
+        string allJson = UtilityTestData.WrapItemsInLiveChatResponse(
+            [$$"""{ "liveChatTextMessageRenderer": {{TextMessageTestData.SimpleTextMessage1()}} }"""],
+            null
+        );
+        _ = _mockYtHttpClient
+            .Setup(c => c.GetLiveChatAsync(It.Is<FetchOptions>(o => o.Continuation == "top-chat"), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((JsonSerializer.Deserialize<LiveChatResponse>(topJson), topJson));
+        _ = _mockYtHttpClient
+            .Setup(c => c.GetLiveChatAsync(It.Is<FetchOptions>(o => o.Continuation == "all-messages"), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((JsonSerializer.Deserialize<LiveChatResponse>(allJson), allJson));
+
+        int received = 0;
+        TaskCompletionSource<ChatStoppedEventArgs> stopped = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        _service.ChatReceived += (_, _) => Interlocked.Increment(ref received);
+        _service.ChatStopped += (_, e) => _ = stopped.TrySetResult(e);
+
+        _service.Start(liveId: liveId);
+        _ = await WaitForTcsResult(stopped, "ChatStopped");
+
+        Assert.AreEqual(1, Volatile.Read(ref received));
+        _mockYtHttpClient.Verify(
+            c => c.GetLiveChatAsync(It.Is<FetchOptions>(o => o.Continuation == "all-messages"), It.IsAny<CancellationToken>()),
+            Times.Never
+        );
+    }
+
     private static string PlayerFixture(string fileName) =>
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Player", fileName));
 
