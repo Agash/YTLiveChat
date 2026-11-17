@@ -8,11 +8,15 @@
   `Id`, `GoalType`, `ProgressLabel` and `AccessibilityLabel` (read from the ticker chip's localized labels) are
   removed, and `Parser.ToCreatorGoalItem` with them. `CreatorGoalReceived` now fires on every goal update (start,
   each contribution, end) rather than per ticker chip.
-- `IYTLiveChat` gains `GetChannelInfoAsync`, `ReactionsReceived`, `ReplyCountReceived`, `ChatModeChanged`, `StreamMetadataUpdated` and
+- `IYTLiveChat` gains `StreamChatReplayAsync`, `GetChannelInfoAsync`, `ReactionsReceived`, `ReplyCountReceived`, `ChatModeChanged`, `StreamMetadataUpdated` and
   `EntityMutationReceived`; custom implementations of the interface
   must add them.
 
 ### Added
+- `StreamChatReplayAsync` (`ReplayChatItem`): a past stream's chat replay, from the start or from a point in the
+  video, without sign-in: messages, Super Chats, stickers, memberships, gift memberships and Jewels gifts, each with
+  its place in the video and the time it was sent. Reads the "Live chat replay" view (every message) unless
+  `ChatView.TopChat` is set.
 - `GetChannelInfoAsync` (`ChannelInfo`): a channel's profile without sign-in: id, handle, name, description,
   avatar, banner, subscriber and video counts (as YouTube rounds them), badges and link.
 - `Superchat.ReplyCountEntityKey` and `ReplyCountReceived` (`ReplyCountItem`): how many viewers replied to a Super

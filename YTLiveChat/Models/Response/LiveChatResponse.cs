@@ -1486,6 +1486,10 @@ public record Action
     [JsonPropertyName("addChatItemAction")]
     public AddChatItemAction? AddChatItemAction { get; init; }
 
+    /// <summary>In a chat replay, the actions that happened at one point of the video.</summary>
+    [JsonPropertyName("replayChatItemAction")]
+    public ReplayChatItemAction? ReplayChatItemAction { get; init; }
+
     [JsonPropertyName("removeChatItemAction")]
     public RemoveChatItemAction? RemoveChatItemAction { get; init; }
 
@@ -1595,12 +1599,31 @@ public record Continuation // Container for different continuation types
     [JsonPropertyName("reloadContinuationData")]
     public ReloadContinuationData? ReloadContinuationData { get; init; }
 
+    [JsonPropertyName("liveChatReplayContinuationData")]
+    public LiveChatReplayContinuationData? LiveChatReplayContinuationData { get; init; }
+
     [JsonPropertyName("invalidationContinuationData")]
     public InvalidationContinuationData? InvalidationContinuationData { get; init; }
 
     [JsonPropertyName("timedContinuationData")]
     public TimedContinuationData? TimedContinuationData { get; init; }
     // Add other continuation types if observed (e.g., liveChatReplayContinuationData)
+}
+
+/// <summary>A chat replay entry: the live actions, and where in the video they happened.</summary>
+public record ReplayChatItemAction
+{
+    [JsonPropertyName("actions")]
+    public List<Action>? Actions { get; init; }
+
+    [JsonPropertyName("videoOffsetTimeMsec")]
+    public string? VideoOffsetTimeMsec { get; init; }
+}
+
+public record LiveChatReplayContinuationData
+{
+    [JsonPropertyName("continuation")]
+    public string? Continuation { get; init; }
 }
 
 public record ReloadContinuationData

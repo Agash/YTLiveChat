@@ -31,6 +31,10 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>Entities\%(Filename)%(Extension)</TargetPath>
     </Content>
+    <Content Include="TestData\Replay\*.*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>Replay\%(Filename)%(Extension)</TargetPath>
+    </Content>
     <Content Include="TestData\Player\*.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>Player\%(Filename)%(Extension)</TargetPath>

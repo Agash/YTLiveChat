@@ -2718,6 +2718,64 @@ internal static partial class Parser
     }
 
     /// <summary>
+    /// The chat replay continuation of a past stream's watch page
+    /// (<c>conversationBar.liveChatRenderer.continuations[0]</c>, with <c>isReplay</c>); null when the page has no
+    /// replay (chat was off, or the stream is still live). Only this token opens the replay page; the view selector's
+    /// tokens on the watch page are refused. The options carry the page's API key and client version.
+    /// </summary>
+    public static FetchOptions? GetReplayOptions(string watchPageHtml)
+    {
+        Match key = ApiKeyRegex().Match(watchPageHtml);
+        Match version = ClientVersionRegex().Match(watchPageHtml);
+        string? liveId = TryExtractLiveId(watchPageHtml);
+        if (!key.Success || !version.Success || liveId is null)
+        {
+            return null;
+        }
+
+        string? json = ExtractJsonObjectAfterMarker(watchPageHtml, "ytInitialData");
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        using JsonDocument document = JsonDocument.Parse(json!);
+        if (
+            !document.RootElement.TryGetProperty("contents", out JsonElement contents)
+            || !contents.TryGetProperty("twoColumnWatchNextResults", out JsonElement results)
+            || !results.TryGetProperty("conversationBar", out JsonElement bar)
+            || !bar.TryGetProperty("liveChatRenderer", out JsonElement chat)
+            || !(chat.TryGetProperty("isReplay", out JsonElement replay) && replay.ValueKind == JsonValueKind.True)
+            || !chat.TryGetProperty("continuations", out JsonElement continuations)
+            || continuations.ValueKind != JsonValueKind.Array
+            || continuations.GetArrayLength() == 0
+            || !continuations[0].TryGetProperty("reloadContinuationData", out JsonElement reload)
+        )
+        {
+            return null;
+        }
+
+        return ReadString(reload, "continuation") is { } continuation
+            ? new FetchOptions
+            {
+                ApiKey = key.Groups[1].Value,
+                ClientVersion = version.Groups[1].Value,
+                Continuation = continuation,
+                LiveId = liveId,
+            }
+            : null;
+    }
+
+    /// <summary>The chat replay page's data (<c>window["ytInitialData"]</c>), in the shape of a chat response.</summary>
+    public static LiveChatResponse? ParseReplayPage(string html)
+    {
+        string? json = ExtractJsonObjectAfterMarker(html, "ytInitialData");
+        return string.IsNullOrWhiteSpace(json)
+            ? null
+            : JsonSerializer.Deserialize(json!, YTLiveChatJsonSerializerContext.Default.LiveChatResponse);
+    }
+
+    /// <summary>
     /// Reads a channel page fetched in English. Observed 2026-11-17: metadata.channelMetadataRenderer (externalId,
     /// title, description, keywords, vanityChannelUrl) and header.pageHeaderRenderer.content.pageHeaderViewModel
     /// (metadata rows: the handle, then "1.16M subscribers" and "1,259 videos"; avatar and banner sources; the

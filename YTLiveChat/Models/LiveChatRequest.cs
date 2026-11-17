@@ -27,6 +27,25 @@ public sealed record MetadataRequest
     public string? Continuation { get; init; }
 }
 
+/// <summary>The innertube <c>get_live_chat_replay</c> request: the continuation and the player position.</summary>
+public sealed record ReplayRequest
+{
+    [JsonPropertyName("context")]
+    public required RequestContext Context { get; init; }
+
+    [JsonPropertyName("continuation")]
+    public required string Continuation { get; init; }
+
+    [JsonPropertyName("currentPlayerState")]
+    public required PlayerState CurrentPlayerState { get; init; }
+}
+
+public sealed record PlayerState
+{
+    [JsonPropertyName("playerOffsetMs")]
+    public required string PlayerOffsetMs { get; init; }
+}
+
 /// <summary>The innertube <c>player</c> request: the video whose playback state is asked for.</summary>
 public sealed record PlayerRequest
 {

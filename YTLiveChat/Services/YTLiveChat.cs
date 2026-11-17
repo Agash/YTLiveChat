@@ -2044,6 +2044,105 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     }
 
     /// <inheritdoc />
+    public async IAsyncEnumerable<ReplayChatItem> StreamChatReplayAsync(
+        string liveId,
+        TimeSpan? from = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default
+    )
+    {
+        if (string.IsNullOrWhiteSpace(liveId))
+            throw new ArgumentException("A video id must be provided.", nameof(liveId));
+
+        string watchPage = await _ytHttpClient
+            .GetOptionsAsync(null, null, liveId, cancellationToken)
+            .ConfigureAwait(false);
+        FetchOptions page =
+            Parser.GetReplayOptions(watchPage)
+            ?? throw new InvalidOperationException($"Video {liveId} has no chat replay.");
+        string replayToken = page.Continuation;
+
+        LiveChatResponse? first = Parser.ParseReplayPage(
+            await _ytHttpClient.GetReplayPageAsync(replayToken, cancellationToken).ConfigureAwait(false)
+        );
+        LiveChatContinuation? chat = first?.ContinuationContents?.LiveChatContinuation;
+        if (chat is null)
+            throw new InvalidOperationException($"The chat replay of {liveId} could not be read.");
+
+        // As live, the replay page opens in Top chat; the second view of its header is every message.
+        List<SubMenuItem>? views = chat.Header?.LiveChatHeaderRenderer?.ViewSelector?.SortFilterSubMenuRenderer?.SubMenuItems;
+        string? continuation =
+            _options.ChatView == ChatView.AllMessages && views is { Count: >= 2 }
+                ? views[1].Continuation?.ReloadContinuationData?.Continuation
+                : null;
+        if (continuation is null)
+        {
+            foreach (ReplayChatItem item in ToReplayItems(chat.Actions, from))
+                yield return item;
+            continuation = NextReplayContinuation(chat);
+        }
+
+        long offsetMs = (long)(from?.TotalMilliseconds ?? 0);
+        while (!string.IsNullOrEmpty(continuation))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            string json = await _ytHttpClient
+                .GetLiveChatReplayAsync(page with { Continuation = continuation! }, offsetMs, cancellationToken)
+                .ConfigureAwait(false);
+            chat = JsonSerializer
+                .Deserialize(json, YTLiveChatJsonSerializerContext.Default.LiveChatResponse)
+                ?.ContinuationContents?.LiveChatContinuation;
+            if (chat is null)
+                yield break;
+
+            foreach (ReplayChatItem item in ToReplayItems(chat.Actions, from))
+            {
+                yield return item;
+            }
+
+            // The player position follows every replay entry, including the ones that carry nothing to report.
+            offsetMs = Math.Max(offsetMs, LastReplayOffsetMs(chat.Actions));
+
+            string? next = NextReplayContinuation(chat);
+            if (next == continuation)
+                yield break;
+            continuation = next;
+        }
+    }
+
+    private static long LastReplayOffsetMs(List<Models.Response.Action>? actions) =>
+        actions?.Select(static a => long.TryParse(a.ReplayChatItemAction?.VideoOffsetTimeMsec, out long ms) ? ms : 0)
+            .DefaultIfEmpty(0)
+            .Max() ?? 0;
+
+    private static string? NextReplayContinuation(LiveChatContinuation chat) =>
+        chat.Continuations?.Select(static c => c.LiveChatReplayContinuationData?.Continuation)
+            .FirstOrDefault(static c => !string.IsNullOrEmpty(c));
+
+    private IEnumerable<ReplayChatItem> ToReplayItems(List<Models.Response.Action>? actions, TimeSpan? from)
+    {
+        foreach (Models.Response.Action action in actions ?? [])
+        {
+            ReplayChatItemAction? replay = action.ReplayChatItemAction;
+            if (replay is null)
+                continue;
+
+            TimeSpan offset = TimeSpan.FromMilliseconds(
+                long.TryParse(replay.VideoOffsetTimeMsec, out long ms) ? ms : 0
+            );
+            if (from is { } start && offset < start)
+                continue;
+
+            foreach (Models.Response.Action inner in replay.Actions ?? [])
+            {
+                if (inner.ToChatItem(_timeProvider) is { } chatItem)
+                    yield return new ReplayChatItem { VideoOffset = offset, ChatItem = chatItem };
+                else if (inner.ToGiftItem() is { } gift)
+                    yield return new ReplayChatItem { VideoOffset = offset, Gift = gift };
+            }
+        }
+    }
+
+    /// <inheritdoc />
     public async Task<Contracts.Models.ChannelInfo?> GetChannelInfoAsync(
         string? handle = null,
         string? channelId = null,

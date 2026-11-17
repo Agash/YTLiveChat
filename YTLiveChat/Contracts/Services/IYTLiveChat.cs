@@ -189,6 +189,21 @@ public interface IYTLiveChat : IDisposable
     event EventHandler<ErrorOccurredEventArgs>? ErrorOccurred;
 
     /// <summary>
+    /// Reads a past stream's chat replay from the start (or from <paramref name="from"/>): messages, Super Chats,
+    /// stickers, memberships, gift memberships and Jewels gifts with their place in the video and the time they were
+    /// sent. A replay has no deletions (deleted messages are simply missing), polls, goals or other live state.
+    /// </summary>
+    /// <param name="liveId">The past stream's video id.</param>
+    /// <param name="from">Where in the video to start.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="InvalidOperationException">The video has no chat replay.</exception>
+    IAsyncEnumerable<ReplayChatItem> StreamChatReplayAsync(
+        string liveId,
+        TimeSpan? from = null,
+        CancellationToken cancellationToken = default
+    );
+
+    /// <summary>
     /// Fetches a channel's profile from its page: id, handle, name, description, avatar, banner, subscriber and
     /// video counts, badges and link. Needs no sign-in; the page is read in English so the counts can be parsed.
     /// </summary>

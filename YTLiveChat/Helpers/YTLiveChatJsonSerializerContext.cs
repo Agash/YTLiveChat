@@ -7,6 +7,7 @@ namespace YTLiveChat.Helpers;
 [JsonSerializable(typeof(LiveChatRequest))]
 [JsonSerializable(typeof(PlayerRequest))]
 [JsonSerializable(typeof(MetadataRequest))]
+[JsonSerializable(typeof(ReplayRequest))]
 [JsonSerializable(typeof(RequestContext))]
 [JsonSerializable(typeof(ClientInfo))]
 [JsonSerializable(typeof(LiveChatResponse))]

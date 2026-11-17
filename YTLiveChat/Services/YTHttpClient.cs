@@ -156,6 +156,71 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
         }
     }
 
+    // The replay page answers older or unknown browsers with an "update your browser" page instead of its data.
+    private const string BrowserUserAgent =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36";
+
+    /// <summary>
+    /// Fetches a chat replay page (<c>/live_chat_replay</c>) for the replay continuation a past stream's watch page
+    /// names; it holds the first replay entries and the view selector.
+    /// </summary>
+    public virtual async Task<string> GetReplayPageAsync(
+        string continuation,
+        CancellationToken cancellationToken = default
+    ) =>
+        await GetStringStatelessAsync(
+                $"/live_chat_replay?continuation={Uri.EscapeDataString(continuation)}&hl={InterfaceLanguage}",
+                cancellationToken,
+                BrowserUserAgent
+            )
+            .ConfigureAwait(false);
+
+    /// <summary>
+    /// Fetches the next chat replay entries (<c>get_live_chat_replay</c>) after <paramref name="playerOffsetMs"/>.
+    /// </summary>
+    /// <returns>The raw JSON.</returns>
+    /// <exception cref="HttpRequestException">The request failed or returned a non-success status.</exception>
+    public virtual async Task<string> GetLiveChatReplayAsync(
+        FetchOptions options,
+        long playerOffsetMs,
+        CancellationToken cancellationToken = default
+    )
+    {
+        string url =
+            $"/youtubei/v1/live_chat/get_live_chat_replay?key={options.ApiKey}&prettyPrint={PrettyPrintQueryValue}";
+        ReplayRequest payload = new()
+        {
+            Context = new RequestContext
+            {
+                Client = new ClientInfo
+                {
+                    ClientVersion = options.ClientVersion,
+                    ClientName = "WEB",
+                    Hl = InterfaceLanguage,
+                },
+            },
+            Continuation = options.Continuation,
+            CurrentPlayerState = new PlayerState
+            {
+                PlayerOffsetMs = playerOffsetMs.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            },
+        };
+        using StringContent content = new(
+            JsonSerializer.Serialize(payload, YTLiveChatJsonSerializerContext.Default.ReplayRequest),
+            System.Text.Encoding.UTF8,
+            "application/json"
+        );
+        using HttpResponseMessage response = await _httpClient
+            .PostAsync(url, content, cancellationToken)
+            .ConfigureAwait(false);
+        _ = response.EnsureSuccessStatusCode();
+#if NETSTANDARD2_1 || NETSTANDARD2_0
+        return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+#else
+        return await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+#endif
+    }
+
     /// <summary>
     /// Fetches the innertube <c>updated_metadata</c> response for the stream in <paramref name="options"/>: the
     /// first request names the video, later ones pass the continuation the previous response returned.
@@ -338,7 +403,8 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
 
     private async Task<string> GetStringStatelessAsync(
         string urlPath,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken,
+        string? userAgent = null
     )
     {
         HttpClientHandler handler = new()
@@ -354,6 +420,10 @@ public class YTHttpClient(HttpClient httpClient, ILogger<YTHttpClient>? logger =
         };
 
         using HttpRequestMessage request = new(HttpMethod.Get, urlPath);
+        if (userAgent is not null)
+        {
+            _ = request.Headers.TryAddWithoutValidation("User-Agent", userAgent);
+        }
 #if NETSTANDARD2_1 || NETSTANDARD2_0
         using HttpResponseMessage response = await statelessClient
             .SendAsync(request)
