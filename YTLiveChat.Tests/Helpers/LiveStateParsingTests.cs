@@ -81,4 +81,35 @@ public class LiveStateParsingTests
 
         Assert.AreEqual("chat-disabled", Parser.DetectInaccessibleLiveReason(page));
     }
+
+    // Notices captured 2026-11-17, tracking data removed.
+    [TestMethod]
+    [DataRow("TAB_SUBSCRIPTIONS", ChatMode.SubscribersOnly)]
+    [DataRow("LIVE", ChatMode.LiveCommentary)]
+    [DataRow("QUESTION_ANSWER", ChatMode.Open)]
+    [DataRow("SOMETHING_NEW", ChatMode.Unknown)]
+    public void ToChatModeChange_CapturedNotice_ReadsTheModeFromTheIcon(string iconType, ChatMode mode)
+    {
+        string json = """
+            {"addChatItemAction":{"item":{"liveChatModeChangeMessageRenderer":{
+            "id":"ChwKGkNNN2QzTHpsanBnREZVam9jZ2tkbFN3aWt3","timestampUsec":"1794911252203394",
+            "icon":{"iconType":"ICON_TYPE"},
+            "text":{"runs":[{"text":"@TVN_Chile","bold":true},{"text":" turned on subscribers-only mode","bold":true}]},
+            "subtext":{"runs":[{"text":"Only channel subscribers of ","italics":true},{"text":"5 minutes","italics":true},
+            {"text":" or longer can send messages","italics":true}]}}},"clientId":"CM7d3LzljpgDFUjocgkdlSwikw"}}
+            """;
+        YTLiveChat.Models.Response.Action action =
+            System.Text.Json.JsonSerializer.Deserialize<YTLiveChat.Models.Response.Action>(
+                json.Replace("ICON_TYPE", iconType, StringComparison.Ordinal)
+            )!;
+
+        ChatModeChangeItem? change = action.ToChatModeChange();
+
+        Assert.IsNotNull(change);
+        Assert.AreEqual(mode, change.Mode);
+        Assert.AreEqual(iconType, change.IconType);
+        Assert.HasCount(2, change.Text);
+        Assert.HasCount(3, change.Subtext);
+        Assert.AreEqual(DateTimeOffset.FromUnixTimeMilliseconds(1794911252203), change.Timestamp);
+    }
 }

@@ -67,6 +67,8 @@ internal static class WatchMode
         "liveChatViewerEngagementMessageRenderer",
         // Fires GiftReceived — YouTube Jewels virtual gift; no ChatItem produced.
         "giftMessageViewModel",
+        // Fires ChatModeChanged (subscribers-only, live commentary, open again).
+        "liveChatModeChangeMessageRenderer",
     };
 
     // addChatItemAction item renderers the library recognizes but intentionally discards
@@ -75,8 +77,6 @@ internal static class WatchMode
     {
         // Pending message slot — no user-visible data.
         "liveChatPlaceholderItemRenderer",
-        // Mode-change notification (subscribers-only on/off) — no dedicated event yet.
-        "liveChatModeChangeMessageRenderer",
     };
 
     // Combined set for the "is this renderer known?" gate in default capture mode.

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * ==========================================================================
  *  SEMI-AUTO-GENERATED C# Data Models for YouTube Live Chat API Responses
  * ==========================================================================
@@ -779,6 +779,28 @@ public record AddChatItemActionItem
 
     [JsonPropertyName("giftMessageViewModel")]
     public GiftMessageViewModel? GiftMessageViewModel { get; init; }
+
+    [JsonPropertyName("liveChatModeChangeMessageRenderer")]
+    public LiveChatModeChangeMessageRenderer? LiveChatModeChangeMessageRenderer { get; init; }
+}
+
+/// <summary>A notice that the chat's mode changed (subscribers-only, live commentary, open again, ...).</summary>
+public record LiveChatModeChangeMessageRenderer
+{
+    [JsonPropertyName("id")]
+    public string? Id { get; init; }
+
+    [JsonPropertyName("timestampUsec")]
+    public string? TimestampUsec { get; init; }
+
+    [JsonPropertyName("icon")]
+    public Icon? Icon { get; init; }
+
+    [JsonPropertyName("text")]
+    public Message? Text { get; init; }
+
+    [JsonPropertyName("subtext")]
+    public Message? Subtext { get; init; }
 }
 
 public record AddChatItemAction

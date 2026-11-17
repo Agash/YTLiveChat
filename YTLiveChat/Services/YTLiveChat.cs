@@ -75,6 +75,9 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     public event EventHandler<ReactionsReceivedEventArgs>? ReactionsReceived;
 
     /// <inheritdoc />
+    public event EventHandler<ChatModeChangedEventArgs>? ChatModeChanged;
+
+    /// <inheritdoc />
     public event EventHandler<EntityMutationReceivedEventArgs>? EntityMutationReceived;
 
     /// <inheritdoc />
@@ -1470,6 +1473,19 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         }
     }
 
+    /// <summary>Invokes the ChatModeChanged event.</summary>
+    protected virtual void OnChatModeChanged(ChatModeChangedEventArgs e)
+    {
+        try
+        {
+            ChatModeChanged?.Invoke(this, e);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error invoking ChatModeChanged event handler.");
+        }
+    }
+
     /// <summary>Invokes the ReactionsReceived event.</summary>
     protected virtual void OnReactionsReceived(ReactionsReceivedEventArgs e)
     {
@@ -1510,6 +1526,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
         bool hasReplace = ChatItemReplaced != null;
         bool hasEngagement = EngagementMessageReceived != null;
         bool hasGift = GiftReceived != null;
+        bool hasModeChange = ChatModeChanged != null;
 
         if (
             !hasPoll
@@ -1521,6 +1538,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             && !hasReplace
             && !hasEngagement
             && !hasGift
+            && !hasModeChange
         )
             return;
 
@@ -1588,6 +1606,11 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                 Contracts.Models.EngagementItem? engagement = action.ToEngagementItem(_timeProvider);
                 if (engagement is not null)
                     OnEngagementMessageReceived(new() { Engagement = engagement });
+            }
+
+            if (hasModeChange && action.ToChatModeChange(_timeProvider) is { } modeChange)
+            {
+                OnChatModeChanged(new() { Change = modeChange });
             }
 
             if (hasGift)

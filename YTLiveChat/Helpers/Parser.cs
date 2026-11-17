@@ -1759,6 +1759,43 @@ internal static partial class Parser
         action.CloseLiveChatActionPanelAction?.TargetPanelId;
 
     /// <summary>
+    /// The chat mode change in an <c>addChatItemAction</c> carrying a <c>liveChatModeChangeMessageRenderer</c>, or null.
+    /// </summary>
+    public static Contracts.Models.ChatModeChangeItem? ToChatModeChange(
+        this Action action,
+        TimeProvider? timeProvider = null
+    )
+    {
+        Models.Response.LiveChatModeChangeMessageRenderer? notice = action
+            .AddChatItemAction
+            ?.Item
+            ?.LiveChatModeChangeMessageRenderer;
+        if (notice is null || string.IsNullOrWhiteSpace(notice.Id))
+        {
+            return null;
+        }
+
+        string? iconType = notice.Icon?.IconType;
+        return new Contracts.Models.ChatModeChangeItem
+        {
+            Id = notice.Id!,
+            Timestamp = long.TryParse(notice.TimestampUsec, out long usec)
+                ? DateTimeOffset.FromUnixTimeMilliseconds(usec / 1000)
+                : (timeProvider ?? TimeProvider.System).GetUtcNow(),
+            IconType = iconType,
+            Mode = iconType switch
+            {
+                "TAB_SUBSCRIPTIONS" => Contracts.Models.ChatMode.SubscribersOnly,
+                "LIVE" => Contracts.Models.ChatMode.LiveCommentary,
+                "QUESTION_ANSWER" => Contracts.Models.ChatMode.Open,
+                _ => Contracts.Models.ChatMode.Unknown,
+            },
+            Text = notice.Text?.Runs.ToMessageParts() ?? [],
+            Subtext = notice.Subtext?.Runs.ToMessageParts() ?? [],
+        };
+    }
+
+    /// <summary>
     /// Returns the target item ID from a <c>removeChatItemAction</c>, or null for other actions.
     /// </summary>
     public static string? ToDeletedItemId(this Action action) =>

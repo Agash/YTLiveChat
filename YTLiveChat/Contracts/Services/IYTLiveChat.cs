@@ -159,6 +159,12 @@ public interface IYTLiveChat : IDisposable
     event EventHandler<ReactionsReceivedEventArgs>? ReactionsReceived;
 
     /// <summary>
+    /// Fires when the chat's mode changes (subscribers-only, live commentary, open again), from the notice YouTube
+    /// shows in chat (<c>liveChatModeChangeMessageRenderer</c>).
+    /// </summary>
+    event EventHandler<ChatModeChangedEventArgs>? ChatModeChanged;
+
+    /// <summary>
     /// Fires for every entity update in a chat response (<c>frameworkUpdates</c>), typed or not: creator goals,
     /// reactions, poll state, Super Chat reply counts, the viewer leaderboard and whatever YouTube adds.
     /// </summary>
@@ -449,6 +455,13 @@ public class CreatorGoalReceivedEventArgs : EventArgs
 {
     /// <summary>The goal as it stands after this update.</summary>
     public required CreatorGoalItem CreatorGoal { get; set; }
+}
+
+/// <summary>EventArgs for the ChatModeChanged event.</summary>
+public class ChatModeChangedEventArgs : EventArgs
+{
+    /// <summary>The mode change.</summary>
+    public required ChatModeChangeItem Change { get; set; }
 }
 
 /// <summary>EventArgs for the ReactionsReceived event.</summary>

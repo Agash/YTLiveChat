@@ -5,10 +5,12 @@
   `Id`, `GoalType`, `ProgressLabel` and `AccessibilityLabel` (read from the ticker chip's localized labels) are
   removed, and `Parser.ToCreatorGoalItem` with them. `CreatorGoalReceived` now fires on every goal update (start,
   each contribution, end) rather than per ticker chip.
-- `IYTLiveChat` gains `ReactionsReceived` and `EntityMutationReceived`; custom implementations of the interface
+- `IYTLiveChat` gains `ReactionsReceived`, `ChatModeChanged` and `EntityMutationReceived`; custom implementations of the interface
   must add them.
 
 ### Added
+- `ChatModeChanged`: the chat's mode changed (subscribers-only, live commentary, open again), with the mode read
+  from the notice's icon (`ChatModeChangeItem`, `ChatMode`).
 - `PollClosedEventArgs.FinalPoll`: the poll's last state (question, choices, vote ratios) when it closed.
 - `EntityMutationReceived`: every entity update of a chat response, raw (`EntityMutation`), so state the library
   does not type yet (poll state, Super Chat reply counts, the viewer leaderboard) is available.
