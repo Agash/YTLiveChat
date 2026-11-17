@@ -11,7 +11,6 @@ Unofficial .NET library for reading YouTube live chat via InnerTube (the same we
 
 - `net11.0`
 - `net10.0`
-- `net9.0`
 - `netstandard2.1`
 - `netstandard2.0`
 

@@ -20,7 +20,6 @@ jobs:
         with:
           dotnet-version: |
             8.0.x
-            9.0.x
             10.0.x
             11.0.x
           global-json-file: global.json
@@ -35,9 +34,6 @@ jobs:
 
       - name: Build
         run: dotnet build YTLiveChat.sln -c Release --no-restore
-
-      - name: Test (net9.0)
-        run: dotnet test --project ${{ github.workspace }}/YTLiveChat.Tests/YTLiveChat.Tests.csproj -c Release --framework net9.0 --no-build
 
       - name: Test (net11.0)
         run: dotnet test --project ${{ github.workspace }}/YTLiveChat.Tests/YTLiveChat.Tests.csproj -c Release --framework net11.0 --no-build

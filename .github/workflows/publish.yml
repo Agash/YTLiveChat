@@ -42,7 +42,6 @@ jobs:
         with:
           dotnet-version: |
             8.0.x
-            9.0.x
             10.0.x
             11.0.x
 
@@ -58,8 +57,6 @@ jobs:
       - name: Run Tests for .NET 10.0
         run: dotnet test --project ${{ github.workspace }}/YTLiveChat.Tests/YTLiveChat.Tests.csproj --configuration Release --framework net10.0 --no-build --report-trx --report-trx-filename test-results-net10.trx
 
-      - name: Run Tests for .NET 9.0
-        run: dotnet test --project ${{ github.workspace }}/YTLiveChat.Tests/YTLiveChat.Tests.csproj --configuration Release --framework net9.0 --no-build --report-trx --report-trx-filename test-results-net9.trx
       
       # Optional: Add a step to publish test results if you want them as artifacts or for PR checks
       - name: Upload Test Results
