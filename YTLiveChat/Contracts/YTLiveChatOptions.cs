@@ -1,4 +1,4 @@
-﻿namespace YTLiveChat.Contracts;
+namespace YTLiveChat.Contracts;
 
 /// <summary>
 /// Options from appsettings.json loaded in DI
@@ -12,9 +12,16 @@ public class YTLiveChatOptions
     public string YoutubeBaseUrl { get; set; } = "https://www.youtube.com";
 
     /// <summary>
-    /// Frequency of when (in milliseconds) the new batch of chat messages will be requested from YT servers, (i.e. every X milliseconds)
+    /// Milliseconds between chat polls while the chat is active: the fastest the chat is polled.
     /// </summary>
     public int RequestFrequency { get; set; } = 1000;
+
+    /// <summary>
+    /// The longest wait, in milliseconds, between chat polls while the chat is quiet. Each poll that brings nothing
+    /// stretches the wait by half, from <see cref="RequestFrequency"/> up to this (and never past the timeout
+    /// YouTube names); the first poll that brings anything goes back to <see cref="RequestFrequency"/>.
+    /// </summary>
+    public int IdleRequestFrequency { get; set; } = 5000;
 
     /// <summary>
     /// If true and started with a channel handle/channelId (not direct liveId), keeps monitoring for future livestreams.

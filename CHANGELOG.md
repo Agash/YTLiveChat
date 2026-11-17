@@ -3,6 +3,9 @@
   stream's waiting room is checked every `LiveCheckFrequency` until its watch page reports it live.
   `LivestreamEnded` fires only for a stream that started. Both events and `LiveCheckFrequency` apply to
   every session and are no longer marked `[Obsolete]`.
+- A quiet chat is polled less often: each poll that brings nothing stretches the wait by half, up to the new
+  `IdleRequestFrequency` (5 seconds by default, never past YouTube's own timeout), and the first poll that brings
+  anything goes back to `RequestFrequency`.
 - Timing goes through a `TimeProvider` (constructor parameter, resolved from DI when registered).
 - net9.0 is no longer a target.
 

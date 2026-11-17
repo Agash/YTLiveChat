@@ -619,6 +619,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
     {
         int currentRetryAttempt = 0;
         TimeSpan pollInterval = TimeSpan.FromMilliseconds(_options.RequestFrequency);
+        TimeSpan waitAfterPoll = pollInterval;
 
         try
         {
@@ -671,6 +672,12 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                                 Continuation = continuation!,
                             };
                             currentRetryAttempt = 0; // Reset retries on success
+                            waitAfterPoll = NextPollWait(
+                                waitAfterPoll,
+                                pollInterval,
+                                _options.IdleRequestFrequency,
+                                response
+                            );
                             await CheckBroadcastStartedAsync(cancellationToken)
                                 .ConfigureAwait(false);
                         }
@@ -699,9 +706,7 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
                         );
                     }
 
-                    // --- Normal Delay ---
-                    // Delay *after* successful processing before next iteration
-                    await DelayAsync(pollInterval, cancellationToken);
+                    await DelayAsync(waitAfterPoll, cancellationToken);
                 }
                 catch (HttpRequestException httpEx)
                     when (IsForbidden(httpEx))
@@ -760,6 +765,37 @@ public class YTLiveChat : IYTLiveChat // Changed to public for direct instantiat
             _logger.LogInformation("Polling loop cancelled via CancellationToken.");
             // Stop() or ContinueWith will fire ChatStopped
         }
+    }
+
+    // Measured 2026-11-17 (pollprobe on chats of 25,000, 900 and 50 viewers at a 1 s interval): YouTube answers
+    // every poll with an invalidation continuation whose timeoutMs is 10000, the ceiling its own web client long-polls
+    // to between push notifications; a message is already 1.6 to 2.7 s old when it can first be read; and quiet
+    // chats return nothing on almost every poll (166 and 170 of 171). So a poll that brings nothing stretches the
+    // next wait by half, up to IdleRequestFrequency and never past YouTube's timeoutMs, and the first poll that
+    // brings anything goes back to RequestFrequency.
+    internal static TimeSpan NextPollWait(
+        TimeSpan current,
+        TimeSpan fastest,
+        int idleMs,
+        LiveChatResponse response
+    )
+    {
+        LiveChatContinuation? chat = response.ContinuationContents?.LiveChatContinuation;
+        if (chat?.Actions is { Count: > 0 })
+        {
+            return fastest;
+        }
+
+        Continuation? next = chat?.Continuations?.FirstOrDefault();
+        int timeoutMs =
+            next?.InvalidationContinuationData?.TimeoutMs ?? next?.TimedContinuationData?.TimeoutMs ?? 0;
+        double ceilingMs = Math.Max(fastest.TotalMilliseconds, idleMs);
+        if (timeoutMs > 0)
+        {
+            ceilingMs = Math.Min(ceilingMs, Math.Max(fastest.TotalMilliseconds, timeoutMs));
+        }
+
+        return TimeSpan.FromMilliseconds(Math.Min(ceilingMs, current.TotalMilliseconds * 1.5));
     }
 
     private Task DelayAsync(TimeSpan delay, CancellationToken cancellationToken) =>
