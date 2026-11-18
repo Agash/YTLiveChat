@@ -5,7 +5,7 @@
        project with a single TargetFramework has not set it yet when the props are imported; items,
        PackageVersion among them, are evaluated after every property, so they see this value. -->
   <PropertyGroup>
-    <DotNetPackageVersion>10.0.15</DotNetPackageVersion>
+    <DotNetPackageVersion>11.0.0</DotNetPackageVersion>
     <DotNetPackageVersion
       Condition="'$(TargetFramework)' != '' and $([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net11.0'))"
       >11.0.0</DotNetPackageVersion>
